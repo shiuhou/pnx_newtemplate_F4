@@ -1,0 +1,12 @@
+# Preserve CubeMX, CMSIS, HAL, and ThreadX reference sources byte-for-byte.
+# Their upstream whitespace is not treated as a project-authored diff error.
+boards/dji_c_board_f407/*.ioc -text -whitespace
+boards/dji_c_board_f407/reference/*.ioc -text -whitespace
+boards/dji_c_board_f407/AZURE_RTOS/** -text -whitespace
+boards/dji_c_board_f407/Core/** -text -whitespace
+boards/dji_c_board_f407/Drivers/** -text -whitespace
+boards/dji_c_board_f407/Middlewares/** -text -whitespace
+boards/dji_c_board_f407/USBX/** -text -whitespace
+boards/dji_c_board_f407/cmake/stm32cubemx/CMakeLists.txt -text
+boards/dji_c_board_f407/startup_stm32f407xx.s -text -whitespace
+boards/dji_c_board_f407/STM32F407XX_FLASH.ld -text

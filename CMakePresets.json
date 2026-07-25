@@ -1,0 +1,113 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "firmware-default",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "toolchainFile": "${sourceDir}/cmake/gcc-arm-none-eabi.cmake",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true
+      }
+    },
+    {
+      "name": "host-tests",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true,
+        "PNX_HOST_TESTS": true
+      }
+    },
+    {
+      "name": "board-smoke",
+      "inherits": "firmware-default",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "PNX_DEMO": "board_smoke"
+      }
+    },
+    {
+      "name": "can-rx",
+      "inherits": "firmware-default",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "PNX_DEMO": "can_receive"
+      }
+    },
+    {
+      "name": "motor-safe",
+      "inherits": "firmware-default",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "PNX_DEMO": "motor_safe",
+        "PNX_ENABLE_NONZERO_MOTOR_TEST": false
+      }
+    },
+    {
+      "name": "board-smoke-release",
+      "inherits": "firmware-default",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "PNX_DEMO": "board_smoke"
+      }
+    },
+    {
+      "name": "usb-cdc",
+      "inherits": "firmware-default",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "PNX_DEMO": "usb_cdc"
+      }
+    },
+    {
+      "name": "usb-cdc-release",
+      "inherits": "firmware-default",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "PNX_DEMO": "usb_cdc"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "board-smoke",
+      "configurePreset": "board-smoke"
+    },
+    {
+      "name": "can-rx",
+      "configurePreset": "can-rx"
+    },
+    {
+      "name": "motor-safe",
+      "configurePreset": "motor-safe"
+    },
+    {
+      "name": "board-smoke-release",
+      "configurePreset": "board-smoke-release"
+    },
+    {
+      "name": "usb-cdc",
+      "configurePreset": "usb-cdc"
+    },
+    {
+      "name": "usb-cdc-release",
+      "configurePreset": "usb-cdc-release"
+    },
+    {
+      "name": "host-tests",
+      "configurePreset": "host-tests"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "host-tests",
+      "configurePreset": "host-tests",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}

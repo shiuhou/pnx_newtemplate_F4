@@ -1,0 +1,7 @@
+.venv/
+.vscode/
+.agents/
+
+build/
+__pycache__/
+configs/generated/

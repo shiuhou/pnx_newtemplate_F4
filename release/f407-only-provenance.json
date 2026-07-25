@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "manifest_type": "pnx-f407-only-export-provenance",
+  "status": "unaccepted-unpublished-hardware-unverified-candidate",
+  "authoritative_source": {
+    "firmware_commit": "bc31a22616c598d81b19d95c7c7d5877cb1a5f94",
+    "source_manifest_commit": "48c6370b8d3e043f7f853a1c89ca2b4a3b79a525",
+    "source_manifest_path": "release/f407-only-source-manifest.json",
+    "exporter_commit": "8b1d1683b753d01e418d337df3155bf4a11801ce",
+    "repository_role": "pnx-h723-f407-multiboard-integration"
+  },
+  "submodules": {
+    "pnx_bsp": {
+      "commit": "f61e8ac8ac4b75d93b021ec32a8ecf56fc36a73b",
+      "remote_reachability": "not_rechecked"
+    },
+    "pnx_devices": {
+      "commit": "14ec349a242a2c17de1cb9d0e2968c73c61fb0fd",
+      "remote_reachability": "not_rechecked"
+    },
+    "pnx_libs": {
+      "commit": "55bd94060b7be562ce7a6773822a6a4d2bcab9c0",
+      "remote_reachability": "not_rechecked"
+    },
+    "pnx_modules": {
+      "commit": "45d3725b486fde00ebffd4473a2600ae3f4acacf",
+      "remote_reachability": "not_rechecked"
+    }
+  },
+  "f407_board": {
+    "board_id": "dji_c_board_f407",
+    "mcu": "STM32F407IGH6TR",
+    "mcu_package": "UFBGA176",
+    "mcu_evidence_scope": "accepted_board_configuration_not_physical_marking",
+    "physical_mcu_marking": "HARDWARE_UNVERIFIED",
+    "minimal_ioc_path": "boards/dji_c_board_f407/dji_c_board_f407.ioc",
+    "minimal_ioc_sha256": "179FA05916794FCBFFA127D22955D11AD82CBAD155B36CD72E36CC0974EC9598",
+    "formal_generated_tree_path": "boards/dji_c_board_f407",
+    "formal_generated_tree_manifest_path": "boards/dji_c_board_f407/provenance/accepted_formal_tree_manifest.json",
+    "formal_generated_tree_manifest_sha256": "70B60EBE43EE0050915B48A9CB833569E45C59A6F5599122DE073A16091F3FFB",
+    "formal_generated_tree_hash": "9BFAB3C6C7C70EB738BFB3CC341C681174AC4921A7F8E825402BE747C519C679",
+    "formal_generated_tree_file_count": 438,
+    "canonical_tree_format": "pnx-canonical-tree-v1",
+    "cubemx_version": "6.17.0-RC5",
+    "cubemx_usage": "disposable_audit_generation_only",
+    "cubemx_authoring_version": "6.15.0",
+    "cubemx_exact_replay_status": "DEFERRED_NON_BLOCKING_FOR_HARDWARE_BRINGUP",
+    "stm32cube_f4_package_version": "STM32Cube_FW_F4_V1.28.3",
+    "stm32cube_f4_package_xml_sha256": "C81B86A1FAB3B01E4B8EB9E0FFB705ADEF65D60428F9670F1C58EBF82C62A3AA",
+    "stm32cube_f4_release": "FW.F4.1.28.0",
+    "stm32cube_f4_patch": "FW.F4.1.28.3",
+    "usbx_version": "6.1.10"
+  },
+  "software_gates": {
+    "source_manifest_evidence": {
+      "phase_1_multiboard_f407_software": "PASS",
+      "f407_usb_software_gate": "PASS",
+      "f407_usb_uart_telemetry_patch": "PASS",
+      "f407_usb_source_acceptance": "PASS",
+      "host_tests": {
+        "status": "PASS",
+        "retained_baseline": "32/32",
+        "rerun_in_this_stage": false
+      },
+      "h723_regression": {
+        "status": "PASS",
+        "evidence_basis": "retained_f4_0_and_steer_4_software_evidence",
+        "rerun_in_this_stage": false
+      },
+      "f407_build_static": {
+        "status": "PASS",
+        "evidence_basis": "retained_f4_0_software_evidence",
+        "rerun_in_this_stage": false
+      }
+    },
+    "f407_only_software_validation": "NOT_RUN"
+  },
+  "runtime_gates": {
+    "f407_core_runtime": "NOT_RUN",
+    "f407_usb_enumeration": "NOT_RUN",
+    "f407_usb_bidirectional_data": "NOT_RUN",
+    "f407_usb_reconnect": "NOT_RUN",
+    "hardware_gate": "HARDWARE_UNVERIFIED"
+  },
+  "usb": {
+    "class": "CDC_ACM",
+    "telemetry_abi": 4,
+    "descriptor_identity_state": "UNASSIGNED_FAIL_CLOSED",
+    "controller_default_state": "STOPPED",
+    "development_identity": "NOT_APPROVED",
+    "release_identity": "NOT_ASSIGNED"
+  },
+  "build": {
+    "firmware_presets": [
+      "board-smoke",
+      "can-rx",
+      "motor-safe",
+      "board-smoke-release",
+      "usb-cdc",
+      "usb-cdc-release"
+    ],
+    "host_test_preset": "host-tests",
+    "board_selector_required": false
+  },
+  "export": {
+    "canonical_tree_format": "pnx-f407-export-tree-v1",
+    "canonical_tree_sha256": "7003205C6D77E65E796BFD4A7A1DFE10F5D5B0C3BAF2C6514AC15AB9446BE16D",
+    "input_inventory_path": "release/f407-only-input-inventory.json",
+    "policy_path": "release/f407-only-export-policy.json",
+    "idempotence": "NOT_RUN"
+  },
+  "f407_only_distribution": {
+    "fresh_clone": "NOT_RUN",
+    "hardware": "HARDWARE_UNVERIFIED",
+    "software_validation": "NOT_RUN",
+    "team_release": "NOT_PUBLISHED"
+  },
+  "constraints": {
+    "hardware_used": false,
+    "push_performed": false,
+    "remote_modified": false,
+    "tag_created": false,
+    "vault_ingested": false
+  }
+}
