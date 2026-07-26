@@ -1,32 +1,26 @@
-# F407-only Team Repository Rules
+# Pure-F407 Repository Rules
 
-## Repository role
+This is the active pure-F407 DJI C-board workspace. H7 is not part of the
+product build or normal user surface.
 
-This is a derived, unpublished DJI C-board F407 candidate. It is not the
-authority for shared PnX interfaces, devices, modules or libraries.
-
-```text
-F407_ONLY_HARDWARE=HARDWARE_UNVERIFIED
-F407_ONLY_TEAM_RELEASE=NOT_PUBLISHED
-USB_DESCRIPTOR_IDENTITY=UNASSIGNED_FAIL_CLOSED
-```
-
-## Required boundaries
-
-- Keep `pnx_bsp`, `pnx_devices`, `pnx_libs` and `pnx_modules` at the exact
+- Shared framework/API/configuration-generation changes originate in
+  `../pnx_h7_f4`; promote an accepted export rather than creating a
+  candidate-only shared-module fork.
+- Board-specific development and hardware validation happen here.
+- Use `../OLDF4` and RM26 material for hardware facts, not as architecture
+  authority.
+- Keep `pnx_bsp`, `pnx_devices`, `pnx_libs`, and `pnx_modules` at their exact
   recorded gitlinks.
-- Land shared fixes in the authoritative multi-board repository, then export a
-  new candidate.
-- Keep IOC, startup, linker, HAL, IRQ, DMA, memory and USB backend changes
-  board-specific.
-- Do not treat build/static results as physical runtime evidence.
-- Preserve zero-by-default motor behavior and the explicit non-zero arm Gate.
-- Keep USB descriptor identity fail-closed until an authorized identity is
-  separately approved.
-- Do not push, publish, tag, change remotes, connect hardware or flash a board
-  without task-specific authorization.
+- Motor output defaults to zero. Non-zero output requires a separately
+  approved, bounded bench gate.
+- USB descriptor identity remains unassigned until explicitly approved;
+  controller start must remain fail-closed.
+- Do not push, add/change remotes, tag, publish, or operate hardware without
+  explicit authorization.
+- Separate verified facts, user constraints, assumptions, inferences, and
+  unknowns.
+- Hardware claims require retained logs, telemetry, captures, and the exact
+  ELF hash.
 
-## Verification
-
-Use the documented presets and run the candidate checker, CubeMX production
-Gate and all host tests before handing changes back for integration.
+Read [HANDOFF.md](HANDOFF.md), then
+[docs/CURRENT_TASK.md](docs/CURRENT_TASK.md).

@@ -5,7 +5,6 @@
       "name": "firmware-default",
       "hidden": true,
       "generator": "Ninja",
-      "binaryDir": "${sourceDir}/build/${presetName}",
       "toolchainFile": "${sourceDir}/cmake/gcc-arm-none-eabi.cmake",
       "cacheVariables": {
         "CMAKE_EXPORT_COMPILE_COMMANDS": true
@@ -24,6 +23,7 @@
     {
       "name": "board-smoke",
       "inherits": "firmware-default",
+      "binaryDir": "${sourceDir}/build/dji-c-board",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "PNX_DEMO": "board_smoke"
@@ -32,6 +32,7 @@
     {
       "name": "can-rx",
       "inherits": "firmware-default",
+      "binaryDir": "${sourceDir}/build/dji-c-board-can-rx",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "PNX_DEMO": "can_receive"
@@ -40,6 +41,7 @@
     {
       "name": "motor-safe",
       "inherits": "firmware-default",
+      "binaryDir": "${sourceDir}/build/dji-c-board-motor-safe",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "PNX_DEMO": "motor_safe",
@@ -49,6 +51,7 @@
     {
       "name": "board-smoke-release",
       "inherits": "firmware-default",
+      "binaryDir": "${sourceDir}/build/dji-c-board-release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "PNX_DEMO": "board_smoke"
@@ -57,6 +60,7 @@
     {
       "name": "usb-cdc",
       "inherits": "firmware-default",
+      "binaryDir": "${sourceDir}/build/dji-c-board-usb-cdc",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "PNX_DEMO": "usb_cdc"
@@ -65,6 +69,7 @@
     {
       "name": "usb-cdc-release",
       "inherits": "firmware-default",
+      "binaryDir": "${sourceDir}/build/dji-c-board-usb-cdc-release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "PNX_DEMO": "usb_cdc"

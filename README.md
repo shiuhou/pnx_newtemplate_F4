@@ -1,70 +1,65 @@
-# PnX DJI C-board F407 Team Template
+# PnX DJI C-board F407
 
-This repository is an unpublished F407-only candidate derived from the PnX
-multi-board authority. Shared modules remain pinned Git submodules; fixes to
-shared code must be made and reviewed in the authoritative integration
-repository before a new export.
+This is the active local pure-F407 workspace for ordinary DJI C-board
+development and hardware bring-up. It was materialized from the accepted
+deterministic candidate and retains four exact shared-module gitlinks.
+
+Shared framework changes originate in `../pnx_h7_f4`; this repository owns the
+F407-only product workflow and must not become a private fork of shared
+modules.
 
 ```text
-F407_ONLY_HARDWARE=HARDWARE_UNVERIFIED
-F407_ONLY_TEAM_RELEASE=NOT_PUBLISHED
+PURE_F407_LOCAL_REPOSITORY=PASS
+PURE_F407_HW1=NOT_RUN
+F407_CORE_RUNTIME=NOT_RUN
+F407_USB_HARDWARE=HARDWARE_UNVERIFIED
 USB_DESCRIPTOR_IDENTITY=UNASSIGNED_FAIL_CLOSED
-```
-
-No physical F407 runtime, USB enumeration, bidirectional CDC transfer or
-reconnect result is implied by a successful build.
-
-## Clone
-
-```powershell
-git clone --recurse-submodules <approved-repository-url>
-cd <cloned-directory>
-```
-
-If the repository was cloned without submodules:
-
-```powershell
-git submodule update --init --recursive
+F407_ONLY_TEAM_RELEASE=DEFERRED
 ```
 
 ## Build
-
-Board smoke debug:
 
 ```powershell
 cmake --fresh --preset board-smoke
 cmake --build --preset board-smoke
 ```
 
-USB CDC debug:
+Board Smoke output:
+`build/dji-c-board/pnx_embedded.elf`.
+
+USB CDC software image:
 
 ```powershell
 cmake --fresh --preset usb-cdc
 cmake --build --preset usb-cdc
 ```
 
-All supported firmware presets:
+USB CDC output:
+`build/dji-c-board-usb-cdc/pnx_embedded.elf`.
+
+All six firmware presets are listed in
+[docs/VALIDATION.md](docs/VALIDATION.md). Host tests use:
 
 ```powershell
-python scripts/check_cubemx_production.py --list-f407-presets
-.\scripts\build_dji_c_board.ps1
+cmake --fresh --preset host-tests
+cmake --build --preset host-tests
+ctest --preset host-tests
 ```
 
-Host tests:
-
-```powershell
-.\scripts\test_host.ps1
-```
+The 2026-07-27 local software run built all six F407 presets and passed 34/34
+host tests. The next image for manual verification is
+`build/dji-c-board/pnx_embedded.elf`, SHA-256
+`1C8C9A0CF5C74DCD37A02346E43A942933701EA495AE7CB6C4106DA07A7CE192`.
 
 ## Safety
 
-- Default motor builds produce zero current.
-- Never enable the non-zero motor compile gate without the separately approved
-  bench procedure, explicit CAN bus, feedback ID, motor model and bounded
-  current.
-- The USB controller remains stopped while descriptor identity is unassigned.
-- Do not substitute an STMicroelectronics VID or an arbitrary public VID/PID.
-- Hardware work requires a separate approved Gate.
+- Motor output is zero by default.
+- USB descriptor identity is unassigned and controller start remains
+  fail-closed.
+- A successful build is not physical runtime evidence.
+- Do not push, add a publication remote, or use hardware without explicit
+  authorization.
 
-See [Team Guide](docs/TEAM_GUIDE.md) and
-[candidate provenance](release/f407-only-provenance.json).
+Start with [HANDOFF.md](HANDOFF.md) and
+[docs/CURRENT_TASK.md](docs/CURRENT_TASK.md). Source identity is recorded in
+[the export provenance](release/f407-only-provenance.json).

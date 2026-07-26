@@ -160,6 +160,12 @@ add_test(
 )
 
 add_test(
+    NAME f407_only_checker_unit
+    COMMAND "${Python3_EXECUTABLE}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/f407_only_checker_tests.py"
+)
+
+add_test(
     NAME cdc_harness_runtime
     COMMAND "${Python3_EXECUTABLE}"
         "${CMAKE_CURRENT_SOURCE_DIR}/cdc_harness_tests.py"
@@ -175,10 +181,11 @@ endif()
 
 if(EXISTS "${CMAKE_SOURCE_DIR}/release/f407-only-provenance.json")
     add_test(
-        NAME f407_only_candidate_gate
+        NAME f407_only_promoted_workspace_gate
         COMMAND "${Python3_EXECUTABLE}"
             "${CMAKE_SOURCE_DIR}/scripts/check_f407_only.py"
             --repo-root "${CMAKE_SOURCE_DIR}"
+            --promoted-workspace
     )
 endif()
 

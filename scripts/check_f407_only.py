@@ -123,11 +123,20 @@ def check_delivery_surface(root: Path) -> list[str]:
         if text is None:
             continue
         lowered = text.casefold()
-        if "h723" in lowered:
+        normalized = text.replace("\\", "/")
+        if any(
+            re.search(pattern, normalized)
+            for pattern in (
+                r"(?im)\bcmake\b[^\r\n]*(?:--preset|--build)\b"
+                r"[^\r\n]*h723",
+                r"(?im)\bPNX_BOARD\b[^\r\n]*h723",
+                r"(?im)(?:^|/)boards?/[^\r\n` ]*h723",
+            )
+        ):
             errors.append(f"H723 user/build entry in {relative}")
         if "stm32h723" in lowered:
             errors.append(f"H723 MCU entry in {relative}")
-        if re.search(r"(?<![A-Za-z0-9_])board/", text.replace("\\", "/")):
+        if re.search(r"(?:^|/)board/", normalized):
             errors.append(f"forbidden board/Core/main.c-style path in {relative}")
         if "original-board" in lowered:
             errors.append(f"original-board preset/entry in {relative}")
@@ -697,6 +706,26 @@ def check_candidate(root: Path) -> list[str]:
     return errors
 
 
+def check_promoted_workspace(root: Path) -> list[str]:
+    """Check a promoted workspace without reasserting immutable export identity."""
+
+    errors = check_delivery_surface(root)
+    errors.extend(check_cleanliness(root))
+    gitmodules = root / ".gitmodules"
+    if not gitmodules.is_file():
+        errors.append("missing .gitmodules")
+    else:
+        gitmodules_text = _read_text(
+            gitmodules, errors, ".gitmodules"
+        )
+        if gitmodules_text is not None:
+            errors.extend(check_gitmodules_text(gitmodules_text))
+    for relative in REQUIRED_LICENSES:
+        if not (root / relative).is_file():
+            errors.append(f"missing required license: {relative}")
+    return errors
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -704,18 +733,31 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=Path(__file__).resolve().parents[1],
     )
+    parser.add_argument(
+        "--promoted-workspace",
+        action="store_true",
+        help=(
+            "check delivery, cleanliness, gitmodules and licenses without "
+            "reasserting the immutable exporter-candidate tree identity"
+        ),
+    )
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
-    errors = check_candidate(args.repo_root.resolve())
+    if args.promoted_workspace:
+        errors = check_promoted_workspace(args.repo_root.resolve())
+        label = "F407-only promoted workspace gate"
+    else:
+        errors = check_candidate(args.repo_root.resolve())
+        label = "F407-only candidate gate"
     if errors:
-        print("F407-only candidate gate failed:", file=sys.stderr)
+        print(f"{label} failed:", file=sys.stderr)
         for error in errors:
             print(f"- {error}", file=sys.stderr)
         return 1
-    print("F407-only candidate gate passed.")
+    print(f"{label} passed.")
     return 0
 
 

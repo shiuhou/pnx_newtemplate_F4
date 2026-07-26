@@ -1,5 +1,6 @@
 .venv/
-.vscode/
+.vscode/*
+!.vscode/launch.json
 .agents/
 
 build/
