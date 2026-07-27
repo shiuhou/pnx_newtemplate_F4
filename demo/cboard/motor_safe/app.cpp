@@ -61,19 +61,16 @@ modules::motor::nonzero_test_config test_config() noexcept
     return config;
 }
 
+#if PNX_MOTOR_TEST_USB_ARM && PNX_USB_DEVICE_IDENTITY_CONFIRMED
 void usb_arm_received(
     const std::uint8_t* data, std::uint16_t length, void*) noexcept
 {
-#if PNX_MOTOR_TEST_USB_ARM
     if (usb_arm_parser.consume(data, length))
     {
         usb_arm_pending.store(true, std::memory_order_release);
     }
-#else
-    (void)data;
-    (void)length;
-#endif
 }
+#endif
 
 void send_usb_telemetry() noexcept
 {
