@@ -274,5 +274,26 @@ F407_ONLY_TEAM_RELEASE=NOT_PUBLISHED
 ```
 
 The individual PWM, BMI088 and IST8310 lab sources are not formal production
-integration. The exact current combined tree still requires the six-preset
-regression and expanded host suite.
+integration.
+
+## 2026-07-28 pre-integration software regression
+
+Tested code commit:
+`730b987c12f8951e8b0e2a0d1b9e655d0a585dff`.
+
+- All six official F407 presets rebuilt successfully with zero compiler or
+  linker warnings.
+- The complete current host suite passed 39/39, with zero failed and zero
+  skipped tests.
+- The promoted F407-only, CubeMX production and board-boundary gates passed.
+- `pwm_servo_lab`, `imu_bmi088_lab` and `ist8310_mag_lab` each configured and
+  built successfully through the existing `board-smoke` CMake interface; each
+  produced its ELF with zero observed warnings.
+- Tracked content remained clean except for the approved
+  `CMakePresets.json` stat-only status; its textual diff was empty. All four
+  submodules remained at their recorded gitlinks.
+- No hardware was operated. Existing hardware results remain retained
+  historical or isolated-lab evidence.
+
+Formal BMI088 + IST8310 integration remains `NOT_DONE`; UART remains
+`SKIPPED_BY_USER_NOT_BLOCKING`.

@@ -240,5 +240,19 @@ the shared BMI088 driver remains separate because it currently hard-codes
 The operator observed four small servo movements from the demo-local PWM
 sequence. This is
 `PWM_C2_SERVO=BOUNDED_PHYSICAL_OBSERVATION_PASS` only. It does not establish
-quantitative angle, pulse-width or load accuracy, and repository-wide
-regression remains pending.
+quantitative angle, pulse-width or load accuracy.
+
+## 2026-07-28 pre-integration regression
+
+Commit `730b987c12f8951e8b0e2a0d1b9e655d0a585dff` passed the lean
+pre-integration software regression: all six official F407 presets built with
+zero warnings, the current host suite passed 39/39, all three static/boundary
+gates passed, and the PWM, BMI088 and IST8310 embedded lab demos built and
+produced ELFs with zero observed warnings. No hardware was operated. Tracked
+content remained clean apart from the approved content-clean
+`CMakePresets.json` stat-only status; submodules remained clean.
+
+Next action:
+`CREATE_PRIVATE_GITHUB_AND_PUSH_BASELINE`, then generate
+`F4_STATE_SNAPSHOT.md` and perform the architecture review. Do not begin
+sensor integration automatically.

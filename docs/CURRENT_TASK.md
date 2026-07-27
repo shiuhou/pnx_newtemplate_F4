@@ -1,23 +1,15 @@
 # Current Task
 
-Prepare the pre-sensor-integration checkpoint without building, testing or
-operating hardware.
+The pure-F407 pre-integration software baseline at
+`730b987c12f8951e8b0e2a0d1b9e655d0a585dff` passed its lean regression:
+six official presets, 39/39 host tests, three static/boundary gates and three
+embedded lab builds all passed with zero observed compiler/linker warnings.
 
-## Current boundary
+## Next action
 
-- Six F407 preset builds: `RETAINED_PASS`; exact current combined-tree
-  regression: `NOT_RUN`.
-- Previous host suite: `RETAINED_34_OF_34_PASS`; expanded current suite:
-  `NOT_RUN`.
-- USB CDC: `ISOLATED_LAB_PASS`; production identity remains unassigned.
-- CAN1 and bounded M2006 pulse: `PASS`.
-- PWM C2: `BOUNDED_PHYSICAL_OBSERVATION_PASS`.
-- BMI088 replacement-board and IST8310 individual labs: `LAB_PASS`.
-- Formal BMI088 + IST8310 common runtime: `NOT_DONE`.
-- UART: `SKIPPED_BY_USER_NOT_BLOCKING`; CAN2: `NOT_RUN_OPTIONAL`.
-- DBUS: `NOT_IMPLEMENTED_NOT_RUN`; MaixCam: `NOT_RUN`; AHRS:
-  `OUT_OF_SCOPE`.
-- Daily integrated firmware: `PARTIAL`; team publication: `NOT_PUBLISHED`.
+1. Create the private GitHub repository and push the accepted baseline.
+2. Generate `F4_STATE_SNAPSHOT.md`.
+3. Perform the architecture review.
 
-The next action after checkpoint acceptance is the exact current combined-tree
-software regression. Formal sensor integration remains a separate task.
+Formal BMI088 + IST8310 integration remains `NOT_DONE` and must not begin
+automatically.
