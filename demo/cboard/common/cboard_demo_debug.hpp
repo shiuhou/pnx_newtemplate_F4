@@ -15,6 +15,9 @@ enum class kind : std::uint32_t
     can_receive = 2,
     motor_safe = 3,
     usb_cdc = 4,
+    pwm_servo_lab = 5,
+    imu_bmi088_lab = 6,
+    ist8310_mag_lab = 7,
 };
 
 struct debug_state

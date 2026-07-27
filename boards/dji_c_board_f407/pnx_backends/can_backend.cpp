@@ -163,22 +163,25 @@ extern "C" void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef* handle)
         return;
     }
 
-    CAN_RxHeaderTypeDef header{};
-    bsp::can::rx_frame frame{};
-    if (HAL_CAN_GetRxMessage(handle, CAN_RX_FIFO0, &header, frame.data) != HAL_OK)
+    while (HAL_CAN_GetRxFifoFillLevel(handle, CAN_RX_FIFO0) != 0U)
     {
-        bsp::can::detail::error_from_isr(
-            selected, bsp::can::state::fault, HAL_GetTick());
-        return;
+        CAN_RxHeaderTypeDef header{};
+        bsp::can::rx_frame frame{};
+        if (HAL_CAN_GetRxMessage(handle, CAN_RX_FIFO0, &header, frame.data) != HAL_OK)
+        {
+            bsp::can::detail::error_from_isr(
+                selected, bsp::can::state::fault, HAL_GetTick());
+            return;
+        }
+        if (header.IDE != CAN_ID_STD || header.RTR != CAN_RTR_DATA)
+        {
+            bsp::can::detail::drop_from_isr(selected);
+            continue;
+        }
+        frame.id = header.IDE == CAN_ID_EXT ? header.ExtId : header.StdId;
+        frame.len = static_cast<std::uint8_t>(header.DLC);
+        bsp::can::detail::rx_from_isr(selected, frame, HAL_GetTick());
     }
-    if (header.IDE != CAN_ID_STD || header.RTR != CAN_RTR_DATA)
-    {
-        bsp::can::detail::drop_from_isr(selected);
-        return;
-    }
-    frame.id = header.IDE == CAN_ID_EXT ? header.ExtId : header.StdId;
-    frame.len = static_cast<std::uint8_t>(header.DLC);
-    bsp::can::detail::rx_from_isr(selected, frame, HAL_GetTick());
 }
 
 extern "C" void HAL_CAN_ErrorCallback(CAN_HandleTypeDef* handle)

@@ -60,6 +60,50 @@ add_test(
     COMMAND pnx_motor_arm_guard_host_tests
 )
 
+add_executable(pnx_motor_usb_arm_command_host_tests
+    motor_usb_arm_command_tests.cpp
+)
+target_include_directories(pnx_motor_usb_arm_command_host_tests PRIVATE
+    "${CMAKE_SOURCE_DIR}/demo/cboard/motor_safe"
+)
+add_test(
+    NAME motor_usb_arm_command_runtime
+    COMMAND pnx_motor_usb_arm_command_host_tests
+)
+
+add_executable(pnx_pwm_servo_sequence_host_tests
+    pwm_servo_sequence_tests.cpp
+)
+target_include_directories(pnx_pwm_servo_sequence_host_tests PRIVATE
+    "${CMAKE_SOURCE_DIR}/demo/cboard/pwm_servo_lab"
+)
+add_test(
+    NAME pwm_servo_sequence_runtime
+    COMMAND pnx_pwm_servo_sequence_host_tests
+)
+
+add_executable(pnx_bmi088_lab_protocol_host_tests
+    bmi088_lab_protocol_tests.cpp
+)
+target_include_directories(pnx_bmi088_lab_protocol_host_tests PRIVATE
+    "${CMAKE_SOURCE_DIR}/demo/cboard/imu_bmi088_lab"
+)
+add_test(
+    NAME bmi088_lab_protocol_runtime
+    COMMAND pnx_bmi088_lab_protocol_host_tests
+)
+
+add_executable(pnx_ist8310_lab_protocol_host_tests
+    ist8310_lab_protocol_tests.cpp
+)
+target_include_directories(pnx_ist8310_lab_protocol_host_tests PRIVATE
+    "${CMAKE_SOURCE_DIR}/demo/cboard/ist8310_mag_lab"
+)
+add_test(
+    NAME ist8310_lab_protocol_runtime
+    COMMAND pnx_ist8310_lab_protocol_host_tests
+)
+
 add_executable(pnx_can_host_tests
     can_host_tests.cpp
     fake_can_backend.cpp
@@ -157,6 +201,12 @@ add_test(
     NAME f407_usb_source_acceptance
     COMMAND "${Python3_EXECUTABLE}"
         "${CMAKE_CURRENT_SOURCE_DIR}/f407_usb_source_tests.py"
+)
+
+add_test(
+    NAME f407_can_backend_source_acceptance
+    COMMAND "${Python3_EXECUTABLE}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/f407_can_backend_source_tests.py"
 )
 
 add_test(

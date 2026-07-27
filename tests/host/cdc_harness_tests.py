@@ -29,11 +29,15 @@ class FakePort:
 
 
 class FakeConnection:
-    def __init__(self) -> None:
+    def __init__(self, empty_banner_reads: int = 0) -> None:
         self.pending = bytearray()
         self.closed = False
+        self.empty_banner_reads = empty_banner_reads
 
     def readline(self) -> bytes:
+        if self.empty_banner_reads > 0:
+            self.empty_banner_reads -= 1
+            return b""
         return b"PNX_F407_USB_CDC READY\n"
 
     def write(self, payload: bytes) -> int:
@@ -53,11 +57,13 @@ class FakeConnection:
 
 
 class FakeSerialModule:
-    def __init__(self) -> None:
+    def __init__(self, empty_banner_reads: int = 0) -> None:
         self.connections: list[FakeConnection] = []
+        self.empty_banner_reads = empty_banner_reads
 
     def Serial(self, *args, **kwargs) -> FakeConnection:  # noqa: N802
-        connection = FakeConnection()
+        connection = FakeConnection(self.empty_banner_reads)
+        self.empty_banner_reads = 0
         self.connections.append(connection)
         return connection
 
@@ -93,6 +99,13 @@ class CdcHarnessTests(unittest.TestCase):
         self.assertTrue(report.reopen_passed)
         self.assertIn("READY", report.banner)
         self.assertEqual(len(serial_module.connections), 2)
+
+    def test_banner_waits_through_initial_empty_reads(self) -> None:
+        serial_module = FakeSerialModule(empty_banner_reads=2)
+        report = HARNESS.exercise(
+            serial_module, "COM7", count=1, timeout=0.1,
+            reopen=False)
+        self.assertIn("READY", report.banner)
 
 
 if __name__ == "__main__":

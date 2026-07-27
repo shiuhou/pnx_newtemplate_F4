@@ -116,6 +116,55 @@ def test_irq_is_a_constant_time_bridge() -> None:
             raise AssertionError(f"OTG_FS_IRQHandler contains forbidden work: {token}")
 
 
+def test_usbx_activation_defers_bsp_state_to_thread_context() -> None:
+    backend = read(BOARD / "pnx_backends" / "usb_backend.cpp")
+    activate = function_body(
+        backend,
+        'extern "C" void usb_cdc_activate(void* cdc_acm_instance)',
+        "F407 USB activation callback",
+    )
+    deactivate = function_body(
+        backend,
+        'extern "C" void usb_cdc_deactivate(void* cdc_acm_instance)',
+        "F407 USB deactivation callback",
+    )
+    worker = function_body(
+        backend,
+        "void worker_entry(ULONG)",
+        "F407 USB worker",
+    )
+
+    for body, label in (
+        (activate, "activation"),
+        (deactivate, "deactivation"),
+    ):
+        if "bsp::usb::detail::connection_from_backend" in body:
+            raise AssertionError(
+                f"USBX {label} callback must not lock BSP state from IRQ context"
+            )
+        require(
+            body,
+            "pending_connection_event.store(",
+            f"USBX {label} deferred connection event",
+        )
+        require(
+            body,
+            "backend_signal_tx();",
+            f"USBX {label} worker wake",
+        )
+
+    require(
+        worker,
+        "pending_connection_event.exchange(",
+        "F407 USB worker deferred event consumption",
+    )
+    require(
+        worker,
+        "bsp::usb::detail::connection_from_backend(",
+        "F407 USB worker connection publication",
+    )
+
+
 def test_build_selection_and_presets() -> None:
     cmake = read(ROOT / "CMakeLists.txt")
     require(cmake, "usb_cdc", "top-level demo selection")
@@ -239,6 +288,37 @@ def test_safe_demo_and_harness() -> None:
             "F407 USB demo must keep exactly one application-owned thread"
         )
 
+    usb_telemetry_body = function_body(
+        demo,
+        "void send_usb_telemetry() noexcept",
+        "USB CDC device telemetry",
+    )
+    require(
+        demo,
+        "std::uint8_t usb_telemetry_buffer[64]",
+        "USB CDC single-transfer telemetry buffer",
+    )
+    require(
+        usb_telemetry_body,
+        '"PNX_F407_USB_CDC READY hb=%08lx rx=%08lx tx=%08lx\\r\\n"',
+        "USB CDC bounded READY telemetry",
+    )
+    require(
+        usb_telemetry_body,
+        "static_cast<std::size_t>(length) >= sizeof(usb_telemetry_buffer)",
+        "USB CDC telemetry transfer-size guard",
+    )
+    for token in (
+        "const bsp::usb::runtime_state state = bsp::usb::snapshot();",
+        "state.write_busy",
+        "state.tx_queue_size",
+    ):
+        require(
+            usb_telemetry_body,
+            token,
+            "USB CDC telemetry backpressure guard",
+        )
+
     harness = read(ROOT / "tools" / "usb" / "cdc_harness.py")
     for token in (
         "--port",
@@ -314,16 +394,67 @@ def test_usb_memory_intent_is_normal_sram() -> None:
             raise AssertionError(f"{label} must not place USB state in CCMRAM")
 
 
+def test_motor_safe_usb_arm_is_explicit_and_thread_deferred() -> None:
+    cmake = read(ROOT / "CMakeLists.txt")
+    app = read(ROOT / "demo" / "cboard" / "motor_safe" / "app.cpp")
+    for token in (
+        "option(PNX_MOTOR_TEST_USB_ARM",
+        "PNX_MOTOR_TEST_USB_ARM AND NOT PNX_ENABLE_NONZERO_MOTOR_TEST",
+        '"PNX_MOTOR_TEST_USB_ARM=$<BOOL:${PNX_MOTOR_TEST_USB_ARM}>"',
+    ):
+        require(cmake, token, "motor-safe USB arm build gate")
+
+    callback = function_body(
+        app,
+        "void usb_arm_received(",
+        "motor-safe USB arm callback",
+    )
+    require(
+        callback,
+        "usb_arm_parser.consume(",
+        "motor-safe USB arm parser",
+    )
+    require(
+        callback,
+        "usb_arm_pending.store(true",
+        "motor-safe deferred USB arm request",
+    )
+    if "request_arm(" in callback:
+        raise AssertionError("USB worker callback must not arm the motor directly")
+
+    monitor = function_body(
+        app,
+        "void monitor_entry(ULONG)",
+        "motor-safe monitor thread",
+    )
+    for token in (
+        "usb_arm_pending.exchange(false",
+        "service.request_arm(modules::motor::motor_demo_arm_magic)",
+        "bsp::usb::init(usb_config)",
+        "send_usb_telemetry();",
+    ):
+        require(monitor, token, "motor-safe monitor-thread USB arm")
+    require(app, "bsp::usb::write(", "motor-safe USB result telemetry")
+    for token in (
+        "demo_debug_instance.dji_speed_rpm",
+        "demo_debug_instance.dji_current",
+        "demo_debug_instance.dji_feedback_count",
+    ):
+        require(app, token, "motor-safe USB feedback telemetry")
+
+
 TESTS = (
     test_generated_closure,
     test_descriptor_identity_is_fail_closed,
     test_usbx_lifecycle_and_backend,
     test_irq_is_a_constant_time_bridge,
+    test_usbx_activation_defers_bsp_state_to_thread_context,
     test_build_selection_and_presets,
     test_safe_demo_and_harness,
     test_expected_identity_block_is_not_a_runtime_fault,
     test_public_boundary_is_board_neutral,
     test_usb_memory_intent_is_normal_sram,
+    test_motor_safe_usb_arm_is_explicit_and_thread_deferred,
 )
 
 

@@ -10,11 +10,16 @@ modules.
 
 ```text
 PURE_F407_LOCAL_REPOSITORY=PASS
-PURE_F407_HW1=NOT_RUN
-F407_CORE_RUNTIME=NOT_RUN
-F407_USB_HARDWARE=HARDWARE_UNVERIFIED
+PURE_F407_HW1=PASS
+F407_CORE_RUNTIME=PASS
+SIX_F407_PRESET_BUILDS=RETAINED_PASS
+CURRENT_COMBINED_TREE_REGRESSION=NOT_RUN
+HOST_TEST_BASELINE=RETAINED_34_OF_34_PASS
+EXPANDED_CURRENT_HOST_SUITE=NOT_RUN
+F407_USB_CDC=ISOLATED_LAB_PASS
 USB_DESCRIPTOR_IDENTITY=UNASSIGNED_FAIL_CLOSED
-F407_ONLY_TEAM_RELEASE=DEFERRED
+DAILY_INTEGRATED_FIRMWARE=PARTIAL
+F407_ONLY_TEAM_RELEASE=NOT_PUBLISHED
 ```
 
 ## Build
@@ -46,10 +51,13 @@ cmake --build --preset host-tests
 ctest --preset host-tests
 ```
 
-The 2026-07-27 local software run built all six F407 presets and passed 34/34
-host tests. The next image for manual verification is
-`build/dji-c-board/pnx_embedded.elf`, SHA-256
-`1C8C9A0CF5C74DCD37A02346E43A942933701EA495AE7CB6C4106DA07A7CE192`.
+The retained 2026-07-27 baseline built all six F407 presets and passed 34/34
+host tests. Those results do not represent a regression run of the exact
+current combined tree. Individual USB, CAN1, M2006, PWM, BMI088 and IST8310
+labs have since produced hardware evidence; formal common sensor runtime and
+the current combined regression remain incomplete. The isolated USB identity
+is lab-only and is not authorized for release; tracked presets remain
+fail-closed.
 
 ## Safety
 

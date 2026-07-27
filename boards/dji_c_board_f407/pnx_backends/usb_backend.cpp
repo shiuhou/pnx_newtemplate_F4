@@ -7,6 +7,7 @@
 #include "ux_api.h"
 #include "ux_device_class_cdc_acm.h"
 
+#include <atomic>
 #include <cstdint>
 
 #ifndef PNX_USB_DEVICE_IDENTITY_CONFIRMED
@@ -25,6 +26,9 @@ constexpr ULONG rx_fifo_words = 128U;
 constexpr ULONG ep0_tx_fifo_words = 16U;
 constexpr ULONG cdc_command_tx_fifo_words = 16U;
 constexpr ULONG cdc_data_tx_fifo_words = 32U;
+constexpr std::uint32_t connection_event_none = 0U;
+constexpr std::uint32_t connection_event_disconnected = 1U;
+constexpr std::uint32_t connection_event_connected = 2U;
 
 alignas(8) std::uint8_t worker_stack[worker_stack_size] RAM_D1_BSS{};
 alignas(4) std::uint8_t tx_buffer[io_buffer_size] RAM_D1_BSS{};
@@ -39,6 +43,12 @@ std::uint16_t active_tx_length = 0U;
 bool mutex_ready = false;
 bool signal_ready = false;
 bool controller_started = false;
+std::atomic<std::uint32_t> pending_connection_event{
+    connection_event_none};
+
+static_assert(
+    std::atomic<std::uint32_t>::is_always_lock_free,
+    "F407 USB ISR-to-thread connection event must be lock-free");
 
 bool device_ready() noexcept
 {
@@ -121,6 +131,16 @@ void worker_entry(ULONG)
             publish_native_error(UX_ERROR);
             continue;
         }
+
+        const std::uint32_t connection_event =
+            pending_connection_event.exchange(
+                connection_event_none, std::memory_order_acq_rel);
+        if (connection_event != connection_event_none)
+        {
+            bsp::usb::detail::connection_from_backend(
+                connection_event == connection_event_connected);
+        }
+
         bsp::usb::detail::transmit_woken_from_backend();
         if (!device_ready() || active_tx_length != 0U)
         {
@@ -166,7 +186,8 @@ extern "C" void usb_cdc_activate(void* cdc_acm_instance)
         return;
     }
     active_cdc = cdc;
-    bsp::usb::detail::connection_from_backend(true);
+    pending_connection_event.store(
+        connection_event_connected, std::memory_order_release);
     bsp::usb::detail::backend_signal_tx();
 }
 
@@ -181,7 +202,9 @@ extern "C" void usb_cdc_deactivate(void* cdc_acm_instance)
     }
     active_cdc = nullptr;
     active_tx_length = 0U;
-    bsp::usb::detail::connection_from_backend(false);
+    pending_connection_event.store(
+        connection_event_disconnected, std::memory_order_release);
+    bsp::usb::detail::backend_signal_tx();
 }
 
 extern "C" void usb_cdc_parameter_change(void* cdc_acm_instance)

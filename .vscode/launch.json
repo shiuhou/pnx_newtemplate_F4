@@ -1,6 +1,7 @@
 {
   "version": "0.2.0",
   "configurations": [
+
     {
       "name": "F407 Board Smoke Debug",
       "type": "cortex-debug",
@@ -28,6 +29,26 @@
       "servertype": "openocd",
       "cwd": "${workspaceFolder}",
       "executable": "${workspaceFolder}/build/dji-c-board-usb-cdc/pnx_embedded.elf",
+      "device": "STM32F407IGHx",
+      "configFiles": [
+        "interface/cmsis-dap.cfg",
+        "target/stm32f4x.cfg"
+      ],
+      "runToEntryPoint": "main",
+      "serverArgs": [
+        "-c",
+        "transport select swd",
+        "-c",
+        "adapter speed 1000"
+      ]
+    },
+    {
+      "name": "F407 USB CDC Lab Debug (isolated identity)",
+      "type": "cortex-debug",
+      "request": "launch",
+      "servertype": "openocd",
+      "cwd": "${workspaceFolder}",
+      "executable": "${workspaceFolder}/build/dji-c-board-usb-cdc-lab/pnx_embedded.elf",
       "device": "STM32F407IGHx",
       "configFiles": [
         "interface/cmsis-dap.cfg",

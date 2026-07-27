@@ -79,6 +79,15 @@ def read_until_exact(
     return bytes(received)
 
 
+def read_banner(connection: Any, timeout: float) -> bytes:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        line = connection.readline()
+        if line:
+            return line
+    return b""
+
+
 def exercise(
     serial_module: Any,
     device: str,
@@ -97,7 +106,7 @@ def exercise(
 
     connection = open_port()
     try:
-        banner = connection.readline().decode(
+        banner = read_banner(connection, timeout).decode(
             "utf-8", errors="replace").strip()
         for sequence in range(count):
             payload = (

@@ -15,7 +15,9 @@ if(PNX_HOST_TESTS)
     return()
 endif()
 
-set(PNX_SUPPORTED_DEMOS board_smoke can_receive motor_safe usb_cdc)
+set(PNX_SUPPORTED_DEMOS
+    board_smoke can_receive motor_safe usb_cdc pwm_servo_lab
+    imu_bmi088_lab ist8310_mag_lab)
 if(NOT DEFINED PNX_DEMO OR PNX_DEMO STREQUAL "")
     set(PNX_DEMO "board_smoke" CACHE STRING
         "F407 application/demo entry" FORCE)
@@ -31,9 +33,16 @@ if(NOT PNX_DEMO IN_LIST PNX_SUPPORTED_DEMOS)
         "Supported demos: ${PNX_SUPPORTED_DEMOS_TEXT}")
 endif()
 
+option(PNX_MOTOR_TEST_USB_ARM
+    "Enable the attended USB CDC arm channel for motor_safe" OFF)
+
 set(PNX_F407_USB_ENABLED OFF)
-if(PNX_DEMO STREQUAL "usb_cdc")
+if(PNX_DEMO STREQUAL "usb_cdc" OR PNX_MOTOR_TEST_USB_ARM)
     set(PNX_F407_USB_ENABLED ON)
+endif()
+if(PNX_MOTOR_TEST_USB_ARM AND NOT PNX_DEMO STREQUAL "motor_safe")
+    message(FATAL_ERROR
+        "PNX_MOTOR_TEST_USB_ARM is valid only for motor_safe")
 endif()
 
 option(PNX_USB_DEVICE_IDENTITY_CONFIRMED
@@ -52,7 +61,7 @@ set(PNX_USB_DEVICE_SERIAL "UNASSIGNED" CACHE STRING
 if(PNX_USB_DEVICE_IDENTITY_CONFIRMED)
     if(NOT PNX_F407_USB_ENABLED)
         message(FATAL_ERROR
-            "PNX_USB_DEVICE_IDENTITY_CONFIRMED is valid only for usb_cdc")
+            "PNX_USB_DEVICE_IDENTITY_CONFIRMED requires a USB-enabled demo")
     endif()
     if(NOT PNX_USB_DEVICE_VID MATCHES "^(0[xX][0-9A-Fa-f]+|[0-9]+)$" OR
        NOT PNX_USB_DEVICE_PID MATCHES "^(0[xX][0-9A-Fa-f]+|[0-9]+)$")
@@ -83,6 +92,10 @@ endif()
 
 option(PNX_ENABLE_NONZERO_MOTOR_TEST
     "Compile the one-shot C-board non-zero motor pulse gate" OFF)
+if(PNX_MOTOR_TEST_USB_ARM AND NOT PNX_ENABLE_NONZERO_MOTOR_TEST)
+    message(FATAL_ERROR
+        "PNX_MOTOR_TEST_USB_ARM requires the non-zero motor test gate")
+endif()
 set(PNX_MOTOR_TEST_BUS "none" CACHE STRING
     "Explicit motor-safe bus: none, can1, or can2")
 set_property(CACHE PNX_MOTOR_TEST_BUS PROPERTY STRINGS none can1 can2)
@@ -348,6 +361,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
     "PNX_MOTOR_TEST_ID=${PNX_MOTOR_TEST_ID_VALUE}"
     "PNX_MOTOR_TEST_CURRENT=${PNX_MOTOR_TEST_CURRENT_VALUE}"
     "PNX_MOTOR_TEST_MODEL=${PNX_MOTOR_TEST_MODEL_VALUE}"
+    "PNX_MOTOR_TEST_USB_ARM=$<BOOL:${PNX_MOTOR_TEST_USB_ARM}>"
     "PNX_F407_USB_ENABLED=$<BOOL:${PNX_F407_USB_ENABLED}>"
     "PNX_USB_DEVICE_IDENTITY_CONFIRMED=${PNX_USB_DEVICE_IDENTITY_CONFIRMED_VALUE}"
     "PNX_USB_DEVICE_VID=${PNX_USB_DEVICE_VID_VALUE}"

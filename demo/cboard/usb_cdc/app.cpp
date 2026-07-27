@@ -19,7 +19,7 @@ namespace
 TX_THREAD usb_demo_thread{};
 alignas(8) ULONG usb_demo_stack[512]{};
 CHAR usb_demo_name[] = "cboard usb cdc";
-std::uint8_t usb_telemetry_buffer[160]{};
+std::uint8_t usb_telemetry_buffer[64]{};
 std::uint8_t uart_telemetry_buffer[256]{};
 bool uart_usb_line_next = false;
 
@@ -53,34 +53,29 @@ void update_uart() noexcept
 
 void send_usb_telemetry() noexcept
 {
-    if (!bsp::usb::connected())
+    const bsp::usb::runtime_state state = bsp::usb::snapshot();
+    if (!state.connected || state.write_busy ||
+        state.tx_queue_size != 0U)
     {
         return;
     }
     const int length = std::snprintf(
         reinterpret_cast<char*>(usb_telemetry_buffer),
         sizeof(usb_telemetry_buffer),
-        "PNX_F407_USB_CDC READY heartbeat=%lu rx=%lu tx=%lu "
-        "errors=%lu drops=%lu\r\n",
+        "PNX_F407_USB_CDC READY hb=%08lx rx=%08lx tx=%08lx\r\n",
         static_cast<unsigned long>(
             demo_debug_instance.heartbeat_count),
         static_cast<unsigned long>(
             demo_debug_instance.usb_read_count),
         static_cast<unsigned long>(
-            demo_debug_instance.usb_write_count),
-        static_cast<unsigned long>(
-            demo_debug_instance.usb_error_count),
-        static_cast<unsigned long>(
-            demo_debug_instance.usb_tx_drop_count));
-    if (length <= 0)
+            demo_debug_instance.usb_write_count));
+    if (length <= 0 ||
+        static_cast<std::size_t>(length) >= sizeof(usb_telemetry_buffer))
     {
         ++demo_debug_instance.fault_count;
         return;
     }
-    const std::size_t bytes =
-        static_cast<std::size_t>(length) < sizeof(usb_telemetry_buffer)
-            ? static_cast<std::size_t>(length)
-            : sizeof(usb_telemetry_buffer) - 1U;
+    const std::size_t bytes = static_cast<std::size_t>(length);
     const bsp::usb::write_result result =
         bsp::usb::write(usb_telemetry_buffer, bytes);
     if (result.status != types::status::ok &&
