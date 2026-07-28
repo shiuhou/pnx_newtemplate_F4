@@ -1,26 +1,17 @@
 # Pure-F407 Repository Rules
 
-This is the active pure-F407 DJI C-board workspace. H7 is not part of the
-product build or normal user surface.
+This repository contains only the minimal DJI C-board STM32F407 product
+graphs: Core F407 and Core F407 plus USB CDC.
 
-- Shared framework/API/configuration-generation changes originate in
-  `../pnx_h7_f4`; promote an accepted export rather than creating a
-  candidate-only shared-module fork.
-- Board-specific development and hardware validation happen here.
-- Use `../OLDF4` and RM26 material for hardware facts, not as architecture
-  authority.
-- Keep `pnx_bsp`, `pnx_devices`, `pnx_libs`, and `pnx_modules` at their exact
-  recorded gitlinks.
-- Motor output defaults to zero. Non-zero output requires a separately
-  approved, bounded bench gate.
-- USB descriptor identity remains unassigned until explicitly approved;
-  controller start must remain fail-closed.
-- Do not push, add/change remotes, tag, publish, or operate hardware without
-  explicit authorization.
-- Separate verified facts, user constraints, assumptions, inferences, and
-  unknowns.
-- Hardware claims require retained logs, telemetry, captures, and the exact
-  ELF hash.
-
-Read [HANDOFF.md](HANDOFF.md), then
-[docs/CURRENT_TASK.md](docs/CURRENT_TASK.md).
+- Use `pnx_template@c025ad41b370faaeab128cf6389963a12e154a68` as the
+  shared-architecture baseline.
+- Keep F407 compiler, generated, Board, startup, linker and ThreadX details
+  below the existing Board/platform boundary.
+- Do not add lab, motor-test, sensor-draft, release, promotion or hardware
+  evidence architecture to the normal product graph.
+- Motor output remains zero; non-zero output and all hardware operation
+  require separate explicit authorization.
+- USB identity remains unassigned until explicitly approved, and controller
+  start must remain fail-closed.
+- Do not push, modify remotes, tag, publish, regenerate CubeMX or operate
+  hardware without explicit authorization.

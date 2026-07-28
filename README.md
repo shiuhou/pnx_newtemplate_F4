@@ -1,73 +1,48 @@
+Core F407:
+
+cmake --preset f407-debug
+cmake --build --preset f407-debug
+
+USB CDC:
+
+cmake --preset f407-usb-cdc-debug
+cmake --build --preset f407-usb-cdc-debug
+
 # PnX DJI C-board F407
 
-This is the active local pure-F407 workspace for ordinary DJI C-board
-development and hardware bring-up. It was materialized from the accepted
-deterministic candidate and retains four exact shared-module gitlinks.
+This repository is the `pnx_template` architecture reduced to the minimum
+STM32F407 port for the DJI C-board. It contains one Core image and one
+optional USB CDC image.
 
-Shared framework changes originate in `../pnx_h7_f4`; this repository owns the
-F407-only product workflow and must not become a private fork of shared
-modules.
+## Architecture boundary
 
-```text
-PURE_F407_LOCAL_REPOSITORY=PASS
-PURE_F407_HW1=PASS
-F407_CORE_RUNTIME=PASS
-SIX_F407_PRESET_BUILDS=RETAINED_PASS
-CURRENT_COMBINED_TREE_REGRESSION=NOT_RUN
-HOST_TEST_BASELINE=RETAINED_34_OF_34_PASS
-EXPANDED_CURRENT_HOST_SUITE=NOT_RUN
-F407_USB_CDC=ISOLATED_LAB_PASS
-USB_DESCRIPTOR_IDENTITY=UNASSIGNED_FAIL_CLOSED
-DAILY_INTEGRATED_FIRMWARE=PARTIAL
-F407_ONLY_TEAM_RELEASE=NOT_PUBLISHED
-```
+Shared PnX interfaces remain in the `pnx_*` submodules. STM32F407 compiler
+flags, CMSIS/HAL, startup, linker, ThreadX Cortex-M4 port, generated sources
+and resource bindings stay under `boards/dji_c_board_f407`, `configs` and
+`cmake`.
 
-## Build
+## Targets
 
-```powershell
-cmake --fresh --preset board-smoke
-cmake --build --preset board-smoke
-```
+Core and USB use the same F407 startup, linker, clock, GPIO, ThreadX bootstrap
+and Board base. The USB target adds only USB OTG FS generated code, USBX, CDC
+descriptors, the USB backend and the minimal echo application. Its descriptor
+identity is unassigned by default, so controller start remains fail-closed.
 
-Board Smoke output:
-`build/dji-c-board/pnx_embedded.elf`.
+Core `app_start`:
+`demo/cboard/board_smoke/app.cpp`
 
-USB CDC software image:
+USB `app_start`:
+`demo/cboard/usb_cdc/app.cpp`
 
-```powershell
-cmake --fresh --preset usb-cdc
-cmake --build --preset usb-cdc
-```
+## Generated-code ownership
 
-USB CDC output:
-`build/dji-c-board-usb-cdc/pnx_embedded.elf`.
+`boards/dji_c_board_f407/dji_c_board_f407.ioc` and the generated F407 tree are
+CubeMX-owned. Do not hand-edit generated hardware mappings or regenerate them
+without a separate, reviewed CubeMX task.
 
-All six firmware presets are listed in
-[docs/VALIDATION.md](docs/VALIDATION.md). Host tests use:
+## Prerequisites
 
-```powershell
-cmake --fresh --preset host-tests
-cmake --build --preset host-tests
-ctest --preset host-tests
-```
-
-The retained 2026-07-27 baseline built all six F407 presets and passed 34/34
-host tests. Those results do not represent a regression run of the exact
-current combined tree. Individual USB, CAN1, M2006, PWM, BMI088 and IST8310
-labs have since produced hardware evidence; formal common sensor runtime and
-the current combined regression remain incomplete. The isolated USB identity
-is lab-only and is not authorized for release; tracked presets remain
-fail-closed.
-
-## Safety
-
-- Motor output is zero by default.
-- USB descriptor identity is unassigned and controller start remains
-  fail-closed.
-- A successful build is not physical runtime evidence.
-- Do not push, add a publication remote, or use hardware without explicit
-  authorization.
-
-Start with [HANDOFF.md](HANDOFF.md) and
-[docs/CURRENT_TASK.md](docs/CURRENT_TASK.md). Source identity is recorded in
-[the export provenance](release/f407-only-provenance.json).
+- CMake 3.22 or newer
+- Ninja
+- GNU Arm Embedded toolchain providing `arm-none-eabi-gcc` and
+  `arm-none-eabi-g++`
