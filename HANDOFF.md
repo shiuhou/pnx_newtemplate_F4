@@ -543,3 +543,14 @@ runtime code, but no new binary was programmed in this cleanup pass.
 - A public release still requires a repository-owner decision on LICENSE,
   NOTICE, and third-party distribution terms. No legal metadata is invented
   by this engineering cleanup.
+
+### Fact: submodule clone URL correction
+
+The initial remote fresh-clone attempt reached the parent and public
+`pnx_bsp`, but failed before checkout because `pnx_devices`, `pnx_libs`, and
+`pnx_modules` were recorded with unavailable `git@github.com:HKUSTGZ-ROBOMASTER-PNX/...`
+SSH URLs. Their tested release remotes are the corresponding
+`https://github.com/shiuhou/...` repositories, which already contain the
+recorded F407 branches. `.gitmodules` is therefore corrected to these HTTPS
+URLs before the final fresh-clone retry. This is release provenance repair,
+not an architecture or firmware behaviour change.

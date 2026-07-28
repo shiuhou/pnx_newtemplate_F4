@@ -127,6 +127,9 @@ The Vault was not modified.
 - Preserve the evidence boundary: no hardware was operated in this cleanup;
   `DBUS_LIVE_FRAME=NOT_RUN`; Flash hardware is unverified; public-release
   licensing and remote fresh-clone verification remain open.
+- Record the release-provenance repair: `.gitmodules` now names the tested
+  `shiuhou` HTTPS remotes for `pnx_devices`, `pnx_libs`, and `pnx_modules`;
+  the previous HKUSTGZ SSH URLs were not cloneable by the release environment.
 
 The Vault was not modified.
 
