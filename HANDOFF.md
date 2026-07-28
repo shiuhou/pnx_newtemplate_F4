@@ -554,3 +554,19 @@ SSH URLs. Their tested release remotes are the corresponding
 recorded F407 branches. `.gitmodules` is therefore corrected to these HTTPS
 URLs before the final fresh-clone retry. This is release provenance repair,
 not an architecture or firmware behaviour change.
+
+### Fact: final remote reproducibility evidence
+
+After the URL correction, a clean clone of
+`refactor/f407-minimal-architecture@4a3a101a3d201b3d61cad71df730ed059559b7e0`
+with `--recurse-submodules` completed from `origin`. It checked out exactly:
+
+- `pnx_bsp@899c0b491ec81e48ba8ed66ae90d451fb2bddc1b`
+- `pnx_devices@e90601d8676922db954c90a06de97ef82d87bf01`
+- `pnx_libs@205217a42ac4e1e556e63f594eb7671f47e0e2b9`
+- `pnx_modules@deaae6720a6051c0276b1ffbeb3fc0fc875456dd`
+
+In that independent checkout, all seven normal embedded presets and the
+isolated CAN attended image built successfully; `ctest` reported 25/25 host
+tests PASS. The only observed transient was one HTTPS connection timeout while
+cloning `pnx_modules`; Git retried automatically and checkout completed.

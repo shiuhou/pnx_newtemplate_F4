@@ -188,3 +188,17 @@ The Vault was not modified.
   vertical slice.
 
 The Vault was not modified.
+
+## 2026-07-29 final release-candidate reproducibility proposal
+
+- Supersede earlier no-push statements: four submodule branches and parent
+  `refactor/f407-minimal-architecture` are now pushed.
+- The parent records cloneable `shiuhou` HTTPS URLs for all submodules.
+- A clean recursive checkout of parent
+  `4a3a101a3d201b3d61cad71df730ed059559b7e0` reached all exact gitlinks,
+  built seven normal F407 images plus isolated CAN, and passed 25/25 host
+  tests.
+- Retain the hardware boundary: this release cleanup did not operate hardware;
+  DBUS live frames and destructive Flash hardware remain unverified.
+
+The Vault was not modified.
