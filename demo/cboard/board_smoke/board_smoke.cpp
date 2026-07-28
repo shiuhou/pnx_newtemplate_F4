@@ -1,7 +1,11 @@
+#include "board_smoke.hpp"
+
 #include "bsp_dwt.hpp"
 #include "bsp_indicator.hpp"
 #include "tx_api.h"
 
+namespace demo::cboard::board_smoke
+{
 namespace
 {
 
@@ -33,7 +37,7 @@ void core_entry(ULONG)
 
 } // namespace
 
-extern "C" void app_start(void)
+void run() noexcept
 {
     if (tx_thread_create(
             &core_thread, core_name, core_entry, 0U,
@@ -45,3 +49,5 @@ extern "C" void app_start(void)
             bsp::indicator::channel::red, true);
     }
 }
+
+} // namespace demo::cboard::board_smoke

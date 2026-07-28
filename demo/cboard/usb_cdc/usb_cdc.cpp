@@ -1,3 +1,5 @@
+#include "usb_cdc.hpp"
+
 #include "bsp_indicator.hpp"
 #include "bsp_usb.hpp"
 #include "tx_api.h"
@@ -8,6 +10,8 @@
 #define PNX_USB_DEVICE_IDENTITY_CONFIRMED 0
 #endif
 
+namespace demo::cboard::usb_cdc
+{
 namespace
 {
 
@@ -56,7 +60,7 @@ void usb_entry(ULONG)
 
 } // namespace
 
-extern "C" void app_start(void)
+void run() noexcept
 {
     if (tx_thread_create(
             &usb_thread, usb_name, usb_entry, 0U,
@@ -68,3 +72,5 @@ extern "C" void app_start(void)
             bsp::indicator::channel::red, true);
     }
 }
+
+} // namespace demo::cboard::usb_cdc

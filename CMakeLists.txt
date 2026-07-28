@@ -116,6 +116,7 @@ unset(ROBOT_CONFIG)
 unset(OUT_DIR)
 
 set(PNX_EMBEDDED_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/demo/app.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/diagnostics/src/bsp_diagnostics.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/dwt/src/bsp_dwt.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/indicator/src/bsp_indicator.cpp"
@@ -137,14 +138,14 @@ if(PNX_ENABLE_USB_CDC)
     list(APPEND PNX_EMBEDDED_SOURCES
         "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/usb/src/bsp_usb.cpp"
         "${PNX_BOARD_ROOT}/pnx_backends/usb_backend.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/demo/cboard/usb_cdc/app.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/demo/cboard/usb_cdc/usb_cdc.cpp"
     )
     list(APPEND PNX_EMBEDDED_INCLUDE_DIRS
         "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/usb/include"
     )
 else()
     list(APPEND PNX_EMBEDDED_SOURCES
-        "${CMAKE_CURRENT_SOURCE_DIR}/demo/cboard/board_smoke/app.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/demo/cboard/board_smoke/board_smoke.cpp"
     )
 endif()
 
@@ -156,6 +157,11 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${PNX_EMBEDDED_INCLUDE_DIRS}
 )
 target_link_libraries(${PROJECT_NAME} stm32cubemx)
+if(PNX_ENABLE_USB_CDC)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE PNX_APP_USB_CDC=1)
+else()
+    target_compile_definitions(${PROJECT_NAME} PRIVATE PNX_APP_BOARD_SMOKE=1)
+endif()
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     "PNX_F407_USB_ENABLED=$<BOOL:${PNX_ENABLE_USB_CDC}>"
     "PNX_USB_DEVICE_IDENTITY_CONFIRMED=${PNX_USB_DEVICE_IDENTITY_CONFIRMED_VALUE}"
