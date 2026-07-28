@@ -1,8 +1,6 @@
 .venv/
-.vscode/*
-!.vscode/launch.json
+.vscode/
 .agents/
 
 build/
 __pycache__/
-configs/generated/
