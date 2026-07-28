@@ -6,10 +6,6 @@
 
 #include <cstdint>
 
-#ifndef PNX_USB_DEVICE_IDENTITY_CONFIRMED
-#define PNX_USB_DEVICE_IDENTITY_CONFIRMED 0
-#endif
-
 namespace demo::cboard::usb_cdc
 {
 namespace
@@ -19,7 +15,7 @@ TX_THREAD usb_thread{};
 alignas(8) ULONG usb_stack[256]{};
 CHAR usb_name[] = "f407 usb cdc";
 
-[[maybe_unused]] void echo_received(
+void echo_received(
     const std::uint8_t* data, std::uint16_t length, void*) noexcept
 {
     if (data != nullptr && length != 0U)
@@ -32,12 +28,9 @@ void usb_entry(ULONG)
 {
     const bool indicator_ready =
         bsp::indicator::init() == types::status::ok;
-    types::status usb_status = types::status::not_configured;
-#if PNX_USB_DEVICE_IDENTITY_CONFIRMED
     bsp::usb::config config{};
     config.on_rx = echo_received;
-    usb_status = bsp::usb::init(config);
-#endif
+    const types::status usb_status = bsp::usb::init(config);
 
     if (!indicator_ready ||
         (usb_status != types::status::ok &&

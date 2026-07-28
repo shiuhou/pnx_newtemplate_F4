@@ -11,17 +11,6 @@ pnx_ioc_parse("${IOC}")
 file(READ "${PARAMS}" params_json)
 
 # --- params.json: build ---
-string(JSON build_usbx ERROR_VARIABLE json_err GET "${params_json}" build usbx)
-if(json_err)
-    set(build_usbx "false")
-endif()
-pnx_to_json_bool("${build_usbx}" _usbx_json_unused)
-if(build_usbx STREQUAL "true" OR build_usbx STREQUAL "1" OR build_usbx STREQUAL "ON")
-    set(params_usbx TRUE)
-else()
-    set(params_usbx FALSE)
-endif()
-
 string(JSON motor_dji ERROR_VARIABLE json_err GET "${params_json}" build motors dji)
 if(json_err)
     set(motor_dji "true")
@@ -193,16 +182,33 @@ else()
 endif()
 _pnx_feature_override("motors" "${HAS_MOTORS}" HAS_MOTORS)
 
-if(PNX_IOC_HAS_USB AND params_usbx)
-    set(ENABLE_USBX ON)
+if(PNX_IOC_HAS_USB_FS)
+    set(HW_HAS_USB_FS 1)
 else()
-    set(ENABLE_USBX OFF)
+    set(HW_HAS_USB_FS 0)
+endif()
+
+if(PNX_IOC_HAS_USB_HS)
+    set(HW_HAS_USB_HS 1)
+else()
+    set(HW_HAS_USB_HS 0)
 endif()
 
 if(PNX_IOC_HAS_USB)
     set(HW_HAS_USB 1)
 else()
     set(HW_HAS_USB 0)
+endif()
+
+if(PNX_ENABLE_USB_CDC AND NOT PNX_IOC_HAS_USB)
+    message(FATAL_ERROR
+        "PNX_ENABLE_USB_CDC requires USB hardware in ${IOC}")
+endif()
+
+if(PNX_ENABLE_USB_CDC AND PNX_IOC_HAS_USB)
+    set(ENABLE_USBX ON)
+else()
+    set(ENABLE_USBX OFF)
 endif()
 
 if(ENABLE_USBX)
@@ -497,6 +503,8 @@ file(WRITE "${CONFIG_HPP}"
 "#include <array>\n"
 "#include <cstddef>\n"
 "#include <cstdint>\n\n"
+"#define HW_HAS_USB_FS ${HW_HAS_USB_FS}\n"
+"#define HW_HAS_USB_HS ${HW_HAS_USB_HS}\n"
 "#define HW_HAS_USB ${HW_HAS_USB}\n"
 "#define ENABLE_USBX ${ENABLE_USBX_C}\n"
 "#define HAS_AHRS ${HAS_AHRS}\n"
@@ -514,6 +522,8 @@ file(WRITE "${CONFIG_HPP}"
 "#define MOTOR_DM ${MOTOR_DM_C}\n"
 "#define MOTOR_LK ${MOTOR_LK_C}\n\n"
 "namespace config::feature {\n\n"
+"inline constexpr bool hw_has_usb_fs = ${HW_HAS_USB_FS};\n"
+"inline constexpr bool hw_has_usb_hs = ${HW_HAS_USB_HS};\n"
 "inline constexpr bool hw_has_usb = ${HW_HAS_USB};\n"
 "inline constexpr bool enable_usbx = ${ENABLE_USBX_C};\n"
 "inline constexpr bool has_ahrs = ${HAS_AHRS};\n"

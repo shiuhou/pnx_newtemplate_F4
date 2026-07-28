@@ -1,6 +1,5 @@
 {
   "build": {
-    "usbx": true,
     "motors": {
       "dji": false,
       "dm": false,

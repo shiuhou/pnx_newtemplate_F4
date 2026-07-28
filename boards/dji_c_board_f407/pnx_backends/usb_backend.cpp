@@ -89,7 +89,6 @@ UINT cdc_read_complete(UX_SLAVE_CLASS_CDC_ACM*, UINT status,
 
 UINT start_controller() noexcept
 {
-#if PNX_USB_DEVICE_IDENTITY_CONFIRMED
     HAL_PCDEx_SetRxFiFo(&hpcd_USB_OTG_FS, rx_fifo_words);
     HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_FS, 0U, ep0_tx_fifo_words);
     HAL_PCDEx_SetTxFiFo(
@@ -110,9 +109,6 @@ UINT start_controller() noexcept
     }
     controller_started = true;
     return UX_SUCCESS;
-#else
-    return UX_INVALID_PARAMETER;
-#endif
 }
 
 void worker_entry(ULONG)
@@ -217,6 +213,12 @@ namespace bsp::usb::detail
 
 types::status backend_init(const backend_config& config) noexcept
 {
+    if (PNX_USB_DEVICE_IDENTITY_CONFIRMED == 0)
+    {
+        (void)config;
+        return types::status::not_configured;
+    }
+
     active_config = config;
     if (!mutex_ready)
     {
