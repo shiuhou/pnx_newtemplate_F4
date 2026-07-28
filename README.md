@@ -1,69 +1,110 @@
-Core F407:
+# PnX DJI C-board STM32F407
 
+這是以 `pnx_template@c025ad41b370faaeab128cf6389963a12e154a68`
+為共用架構基線的 DJI C-board STM32F407 repository。它提供一個最小
+Core image、一個可選 USB CDC image，以及明確隔離的硬體 validation
+images；它不是把所有 template demo 編進同一個 firmware。
+
+## Release 狀態
+
+目前定位為 **F407 architecture release candidate**。
+
+| Image / closure | 建置狀態 | 硬體證據 | 用途 |
+| --- | --- | --- | --- |
+| Core | 已驗證 | Core smoke PASS | 正常安全基線 |
+| USB CDC | 已驗證 | 保留 USB CDC 證據 | 可選 CDC echo；未確認 identity 時 fail-closed |
+| PWM A2 | 已驗證 | 保留 servo slice PASS | attended validation，不是產品 image |
+| BMI088 | 已驗證 | 保留 BMI088 PASS | attended validation，不是產品 image |
+| DBUS RX | 已驗證 | `DBUS_LIVE_FRAME=NOT_RUN` | software-only；不可宣稱實機完成 |
+| CAN/M2006 | 已驗證 | 保留 attended PASS | 僅 explicit attended validation；不提供 preset |
+
+詳細、帶條件的證據與未驗證範圍見 [HANDOFF.md](HANDOFF.md)。
+
+## 快速建置
+
+需求：CMake 3.22+、Ninja、GNU Arm Embedded Toolchain
+(`arm-none-eabi-gcc`、`arm-none-eabi-g++`)。
+
+```powershell
 cmake --preset f407-debug
 cmake --build --preset f407-debug
+```
 
-USB CDC:
+可用 configure/build presets：
 
-cmake --preset f407-usb-cdc-debug
-cmake --build --preset f407-usb-cdc-debug
+```text
+f407-debug                 Core
+f407-release               Core
+f407-usb-cdc-debug         optional USB CDC
+f407-usb-cdc-release       optional USB CDC
+f407-pwm-a2-debug          attended PWM/A2 validation
+f407-bmi088-debug          attended BMI088 validation
+f407-dbus-rx-debug         DBUS software-validation image
+```
 
-# PnX DJI C-board F407
+CAN/M2006 不屬於一般 preset。只有在已取得專門硬體操作授權、限制輸出
+與監看設備狀態時，才可 configure：
 
-This repository is the `pnx_template` architecture reduced to the minimum
-STM32F407 port for the DJI C-board. It contains one Core image and one
-optional USB CDC image.
+```powershell
+cmake -S . -B build/f407-can-m2006-debug -G Ninja `
+  -DCMAKE_BUILD_TYPE=Debug `
+  -DCMAKE_TOOLCHAIN_FILE=cmake/gcc-arm-none-eabi.cmake `
+  -DPNX_ENABLE_CAN_M2006_VALIDATION=ON
+cmake --build build/f407-can-m2006-debug
+```
 
-## Architecture boundary
+## 架構與邊界
 
-Shared PnX interfaces remain in the `pnx_*` submodules. STM32F407 compiler
-flags, CMSIS/HAL, startup, linker, ThreadX Cortex-M4 port, generated sources
-and resource bindings stay under `boards/dji_c_board_f407`, `configs` and
-`cmake`.
+```text
+demo application
+  → pnx_bsp public contract
+  → DJI C-board backend
+  → CubeMX / ThreadX / USBX / HAL / CMSIS
+  → STM32F407 hardware
+```
 
-## Targets
+`pnx_bsp`、`pnx_devices`、`pnx_libs`、`pnx_modules` 保持共用 API；F407
+HAL、startup、linker、ThreadX Cortex-M4 port、generated code 與 board
+mapping 一律在 `boards/dji_c_board_f407`。`demo/app.cpp` 是唯一的
+composition root，compile-time 強制只選一個 application closure。
 
-Core and USB use the same F407 startup, linker, clock, GPIO, ThreadX bootstrap
-and Board base. The USB target adds only USB OTG FS generated code, USBX, CDC
-descriptors, the USB backend and the minimal echo application. Its descriptor
-identity is unassigned by default, so controller start remains fail-closed.
+根 CMake 只顯式列入所選 closure 的 source；Core 不含 USB、CAN、PWM、
+SPI、BMI088、DBUS 或 Flash API closure。CAN/UART 的 CubeMX generated
+initialization 保留在 board support，表示硬體 capability，並不代表產品
+application 已啟動對應 BSP service。
 
-The single application composition root is `demo/app.cpp`. Core selects
-`demo/cboard/board_smoke/board_smoke.cpp`; USB CDC selects
-`demo/cboard/usb_cdc/usb_cdc.cpp`.
+## Configuration authority
 
-## Demo source status
+- `boards/dji_c_board_f407/dji_c_board_f407.ioc`：CubeMX 管理的 clock、
+  generated CAN/UART/USB、一般 GPIO 與 BMI088 chip-select 的安全開機狀態。
+- `configs/boards/dji_c_board_f407/*.json`：產品 policy 與 IOC-derived
+  CAN/USART/USB binding 的輸入；CMake 產生 build-local `config.hpp`。
+- `boards/dji_c_board_f407/pnx_backends`：F407 runtime backend。SPI1/BMI088
+  與 TIM1_CH2/PE11 PWM 是刻意手寫的 board resource，不由 IOC 產生。
 
-MCU-independent demos from `pnx_template` are retained as reference source for
-learning and future adaptation. Source presence does not mean that an
-application is currently buildable on F407. The template USB demo is
-intentionally not restored; the current F407 `usb_cdc` component is the only
-USB application.
+完整 pin、lifecycle 與 regeneration 規則見
+[Board README](boards/dji_c_board_f407/README.md)。不可在未完成專門
+CubeMX review 與對應硬體 revalidation 前，將手寫 SPI1/TIM1 ownership
+移入 IOC。
 
-| Application | Source present | F407 buildable | Current status |
-| --- | --- | --- | --- |
-| board_smoke | YES | YES | Core application |
-| usb_cdc | YES | YES | F407 USB application |
-| motor | YES | NO | Awaiting CAN/device compatibility |
-| usart | YES | NO | Awaiting minimal USART backend |
-| remoter | YES | NO | Awaiting DBUS/USART support |
-| referee_ui | YES | NO | Awaiting USART/protocol integration |
-| imu | YES | NO | Awaiting F407 sensor integration |
+## USB identity
 
-Only `board_smoke` and `usb_cdc` enter the current product build graph.
-Restored motor, IMU, remoter, referee and USART demos remain excluded. This
-task does not claim new hardware validation; any prior hardware validation
-belongs to the frozen baseline and was not repeated here.
+USB CDC 的選擇權只有 `PNX_ENABLE_USB_CDC`。IOC 僅說明 USB 硬體能力。
+預設 VID/PID/serial 未配置，F407 USB backend 必須 fail-closed；只有取得
+授權 identity 後才設定 `PNX_USB_DEVICE_IDENTITY_CONFIRMED=ON` 與完整
+VID/PID/manufacturer/product/serial。
 
-## Generated-code ownership
+## Repository 與發布規則
 
-`boards/dji_c_board_f407/dji_c_board_f407.ioc` and the generated F407 tree are
-CubeMX-owned. Do not hand-edit generated hardware mappings or regenerate them
-without a separate, reviewed CubeMX task.
+四個 `pnx_*` 目錄是 submodule，不可只發布 parent gitlink。發布順序是：
 
-## Prerequisites
+```text
+push pnx_bsp / pnx_devices / pnx_libs / pnx_modules commits
+→ verify fresh clone --recurse-submodules
+→ build all presets and run host tests
+→ push parent commit
+```
 
-- CMake 3.22 or newer
-- Ninja
-- GNU Arm Embedded toolchain providing `arm-none-eabi-gcc` and
-  `arm-none-eabi-g++`
+`testing.md` 是本機未追蹤測試計畫，不是 release evidence，也不應被自動
+提交。正式公開發布前還必須由 repository owner 確認 root license/NOTICE
+與 third-party distribution policy。

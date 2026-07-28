@@ -137,18 +137,15 @@ set(PNX_EMBEDDED_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/demo/app.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/diagnostics/src/bsp_diagnostics.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/dwt/src/bsp_dwt.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/flash/src/bsp_flash.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/indicator/src/bsp_indicator.cpp"
     "${PNX_BOARD_ROOT}/pnx_backends/diagnostics_backend.cpp"
     "${PNX_BOARD_ROOT}/pnx_backends/fault_handlers.S"
-    "${PNX_BOARD_ROOT}/pnx_backends/flash_backend.cpp"
     "${PNX_BOARD_ROOT}/pnx_backends/indicator_backend.cpp"
 )
 
 set(PNX_EMBEDDED_INCLUDE_DIRS
     "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/diagnostics/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/dwt/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/flash/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/indicator/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/pnx_libs/common/include"
     "${PNX_BOARD_ROOT}/pnx_backends"

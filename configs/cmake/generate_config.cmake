@@ -81,30 +81,6 @@ string(TOLOWER "${referee_uart}" referee_uart)
 string(TOLOWER "${remoter_source}" remoter_source)
 
 # --- HAS_* from IOC + bindings ---
-if(PNX_IOC_HAS_SPI2)
-    set(HAS_AHRS 1)
-else()
-    set(HAS_AHRS 0)
-endif()
-
-if(PNX_IOC_HAS_SPI6)
-    set(HAS_LED 1)
-else()
-    set(HAS_LED 0)
-endif()
-
-if(PNX_IOC_HAS_TIM3)
-    set(HAS_PWM_TIM3_CH4 1)
-else()
-    set(HAS_PWM_TIM3_CH4 0)
-endif()
-
-if(PNX_IOC_HAS_TIM12)
-    set(HAS_PWM_TIM12_CH2 1)
-else()
-    set(HAS_PWM_TIM12_CH2 0)
-endif()
-
 pnx_ioc_hw_in_list("${PNX_IOC_UART_HW}" "${remoter_uart}" remoter_uart_present)
 pnx_ioc_uart_has_dma("${PNX_IOC_LINES}" "${remoter_uart}" "RX" remoter_has_rx_dma)
 if(remoter_uart_present AND remoter_has_rx_dma)
@@ -134,12 +110,10 @@ else()
     set(HAS_UI 0)
 endif()
 
-_pnx_feature_override("ahrs" "${HAS_AHRS}" HAS_AHRS)
 _pnx_feature_override("remoter" "${HAS_REMOTER}" HAS_REMOTER)
 _pnx_feature_override("vt03" "${HAS_VT03}" HAS_VT03)
 _pnx_feature_override("referee" "${HAS_REFEREE}" HAS_REFEREE)
 _pnx_feature_override("ui" "${HAS_UI}" HAS_UI)
-_pnx_feature_override("indicator" "${HAS_LED}" HAS_LED)
 
 if(remoter_source STREQUAL "")
     if(HAS_REMOTER)
@@ -304,42 +278,6 @@ endforeach()
 list(JOIN usart_enabled_list ", " usart_enabled_cpp)
 list(JOIN usart_config_list ", " usart_config_cpp)
 list(LENGTH PNX_IOC_UART_HW usart_port_count)
-
-if(PNX_IOC_HAS_SPI2)
-    set(spi2_enabled "true")
-else()
-    set(spi2_enabled "false")
-endif()
-if(PNX_IOC_HAS_SPI6)
-    set(spi6_enabled "true")
-else()
-    set(spi6_enabled "false")
-endif()
-set(spi_bus_count 2)
-set(spi_config_cpp "{ ${spi2_enabled}, handle_id::spi2 }, { ${spi6_enabled}, handle_id::spi6 }")
-
-if(PNX_IOC_HAS_TIM3)
-    set(pwm_tim3_ch4_enabled "true")
-    set(pwm_tim3_ch4_timer "timer_id::tim3")
-    set(pwm_tim3_ch4_channel "channel_id::ch4")
-else()
-    set(pwm_tim3_ch4_enabled "false")
-    set(pwm_tim3_ch4_timer "timer_id::none")
-    set(pwm_tim3_ch4_channel "channel_id::none")
-endif()
-if(PNX_IOC_HAS_TIM12)
-    set(pwm_tim12_ch2_enabled "true")
-    set(pwm_tim12_ch2_timer "timer_id::tim12")
-    set(pwm_tim12_ch2_channel "channel_id::ch2")
-else()
-    set(pwm_tim12_ch2_enabled "false")
-    set(pwm_tim12_ch2_timer "timer_id::none")
-    set(pwm_tim12_ch2_channel "channel_id::none")
-endif()
-set(pwm_channel_count 2)
-set(pwm_timer_clock_hz 240000000)
-set(pwm_config_cpp
-    "{ ${pwm_tim3_ch4_enabled}, ${pwm_tim3_ch4_timer}, ${pwm_tim3_ch4_channel}, ${pwm_timer_clock_hz}U }, { ${pwm_tim12_ch2_enabled}, ${pwm_tim12_ch2_timer}, ${pwm_tim12_ch2_channel}, ${pwm_timer_clock_hz}U }")
 
 pnx_ioc_uart_index("${PNX_IOC_UART_HW}" "${remoter_uart}" dr16_port_idx)
 pnx_ioc_uart_index("${PNX_IOC_UART_HW}" "uart7" vt03_port_idx)
@@ -507,16 +445,12 @@ file(WRITE "${CONFIG_HPP}"
 "#define HW_HAS_USB_HS ${HW_HAS_USB_HS}\n"
 "#define HW_HAS_USB ${HW_HAS_USB}\n"
 "#define ENABLE_USBX ${ENABLE_USBX_C}\n"
-"#define HAS_AHRS ${HAS_AHRS}\n"
 "#define HAS_REMOTER ${HAS_REMOTER}\n"
 "#define HAS_VT03 ${HAS_VT03}\n"
 "#define ENABLE_DR16 ${ENABLE_DR16}\n"
 "#define ENABLE_VT03 ${ENABLE_VT03}\n"
 "#define HAS_REFEREE ${HAS_REFEREE}\n"
 "#define HAS_UI ${HAS_UI}\n"
-"#define HAS_LED ${HAS_LED}\n"
-"#define HAS_PWM_TIM3_CH4 ${HAS_PWM_TIM3_CH4}\n"
-"#define HAS_PWM_TIM12_CH2 ${HAS_PWM_TIM12_CH2}\n"
 "#define HAS_MOTORS ${HAS_MOTORS}\n"
 "#define MOTOR_DJI ${MOTOR_DJI_C}\n"
 "#define MOTOR_DM ${MOTOR_DM_C}\n"
@@ -526,16 +460,12 @@ file(WRITE "${CONFIG_HPP}"
 "inline constexpr bool hw_has_usb_hs = ${HW_HAS_USB_HS};\n"
 "inline constexpr bool hw_has_usb = ${HW_HAS_USB};\n"
 "inline constexpr bool enable_usbx = ${ENABLE_USBX_C};\n"
-"inline constexpr bool has_ahrs = ${HAS_AHRS};\n"
 "inline constexpr bool has_remoter = ${HAS_REMOTER};\n"
 "inline constexpr bool has_vt03 = ${HAS_VT03};\n"
 "inline constexpr bool enable_dr16 = ${ENABLE_DR16};\n"
 "inline constexpr bool enable_vt03 = ${ENABLE_VT03};\n"
 "inline constexpr bool has_referee = ${HAS_REFEREE};\n"
 "inline constexpr bool has_ui = ${HAS_UI};\n"
-"inline constexpr bool has_led = ${HAS_LED};\n"
-"inline constexpr bool has_pwm_tim3_ch4 = ${HAS_PWM_TIM3_CH4};\n"
-"inline constexpr bool has_pwm_tim12_ch2 = ${HAS_PWM_TIM12_CH2};\n"
 "inline constexpr bool has_motors = ${HAS_MOTORS};\n"
 "inline constexpr bool motor_dji = ${MOTOR_DJI_C};\n"
 "inline constexpr bool motor_dm = ${MOTOR_DM_C};\n"
@@ -563,29 +493,6 @@ file(WRITE "${CONFIG_HPP}"
 "inline constexpr std::array<bus_type, bus_count> configured_bus_types = { ${can_type_cpp} };\n"
 "inline constexpr std::array<id_type, bus_count> filter_id_types = { ${can_id_type_cpp} };\n\n"
 "} // namespace can\n\n"
-"namespace spi {\n\n"
-"enum class handle_id : std::uint8_t { none = 0, spi2, spi6 };\n\n"
-"struct bus_config\n"
-"{\n"
-"    bool enabled = false;\n"
-"    handle_id handle = handle_id::none;\n"
-"};\n\n"
-"inline constexpr std::size_t bus_count = ${spi_bus_count};\n"
-"inline constexpr std::array<bus_config, bus_count> configs = {{ ${spi_config_cpp} }};\n\n"
-"} // namespace spi\n\n"
-"namespace pwm {\n\n"
-"enum class timer_id : std::uint8_t { none = 0, tim3, tim12 };\n"
-"enum class channel_id : std::uint8_t { none = 0, ch1, ch2, ch3, ch4 };\n\n"
-"struct channel_config\n"
-"{\n"
-"    bool enabled = false;\n"
-"    timer_id timer = timer_id::none;\n"
-"    channel_id channel = channel_id::none;\n"
-"    std::uint32_t timer_clock_hz = 0;\n"
-"};\n\n"
-"inline constexpr std::size_t channel_count = ${pwm_channel_count};\n"
-"inline constexpr std::array<channel_config, channel_count> configs = {{ ${pwm_config_cpp} }};\n\n"
-"} // namespace pwm\n\n"
 "namespace usart {\n\n"
 "using port = std::size_t;\n\n"
 "inline constexpr port none = static_cast<port>(-1);\n\n"

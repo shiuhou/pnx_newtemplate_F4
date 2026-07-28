@@ -487,3 +487,59 @@ hardware** for the final source state.
   verified.
 - No remote push, tag, IOC edit, generated-code edit, destructive Flash test,
   CAN output, or PWM output was performed during this completion pass.
+
+## 2026-07-29 architecture release-candidate cleanup
+
+### Fact: scope and intent
+
+This change is a narrow release-hygiene cleanup on top of the recorded F407
+vertical-slice evidence. It does not alter IOC/generated files, startup,
+linker, HAL runtime code, SPI1/BMI088 source, TIM1/PWM source, USB runtime
+code, or application behaviour.
+
+- Removed the unused H7-template SPI2/SPI6/TIM3/TIM12 capability parsing and
+  generated SPI/PWM configuration from `configs/cmake/import_ioc.cmake` and
+  `configs/cmake/generate_config.cmake`.
+- Removed the unselected Flash public/backend closure and F4 Flash HAL source
+  files from the default Core source graph. The board-local Flash backend is
+  retained for a future explicit Flash slice; it remains unverified on
+  hardware because no reserved destructive-test sector exists.
+- Made every normal CMake preset explicitly set all optional application
+  selectors. An attended CAN configure can therefore no longer silently
+  persist into a subsequently selected normal Core/USB/PWM/BMI/DBUS preset.
+- Updated the root README, repository rules, and board ownership note. The
+  documents distinguish product images from attended validation closures and
+  give one authoritative location for manual SPI1/TIM1 ownership.
+
+### Fact: fresh software validation after the cleanup
+
+On 2026-07-29, from a fresh CMake configure directory for each normal preset:
+
+- 7/7 embedded builds PASS: `f407-debug`, `f407-release`,
+  `f407-usb-cdc-debug`, `f407-usb-cdc-release`, `f407-pwm-a2-debug`,
+  `f407-bmi088-debug`, and `f407-dbus-rx-debug`.
+- The explicit attended CAN/M2006 image PASSed in its own binary directory
+  `build/f407-can-m2006-debug` with all other optional closures OFF.
+- Host tests: 25/25 PASS.
+- `ninja -C build/f407-debug -t commands` contains none of
+  `flash_backend`, `bsp_flash`, `usb_backend`, `can_backend`, `spi_backend`,
+  `pwm_backend`, `bmi088`, or `usart_backend`.
+- The removed generated-configuration identifiers have zero matches under
+  `configs`; `git diff --check` PASSed.
+
+### Inference: release status
+
+The source tree is suitable for an **F407 architecture release candidate**:
+the normal Core graph is now materially minimal, configuration authority is
+clear, and optional hardware slices do not leak into it. The prior hardware
+evidence remains relevant because this cleanup did not change the exercised
+runtime code, but no new binary was programmed in this cleanup pass.
+
+### Remaining release gates
+
+- `DBUS_LIVE_FRAME=NOT_RUN`; DBUS remains software-validated only.
+- Fresh-clone/submodule retrieval must be verified after the recorded
+  submodule commits and parent commit are available from `origin`.
+- A public release still requires a repository-owner decision on LICENSE,
+  NOTICE, and third-party distribution terms. No legal metadata is invented
+  by this engineering cleanup.

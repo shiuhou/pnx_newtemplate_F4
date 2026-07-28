@@ -16,7 +16,11 @@
       "inherits": "f407-base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "PNX_ENABLE_USB_CDC": false
+        "PNX_ENABLE_USB_CDC": false,
+        "PNX_ENABLE_CAN_M2006_VALIDATION": false,
+        "PNX_ENABLE_PWM_A2": false,
+        "PNX_ENABLE_BMI088": false,
+        "PNX_ENABLE_DBUS_RX": false
       }
     },
     {
@@ -24,7 +28,11 @@
       "inherits": "f407-base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "PNX_ENABLE_USB_CDC": false
+        "PNX_ENABLE_USB_CDC": false,
+        "PNX_ENABLE_CAN_M2006_VALIDATION": false,
+        "PNX_ENABLE_PWM_A2": false,
+        "PNX_ENABLE_BMI088": false,
+        "PNX_ENABLE_DBUS_RX": false
       }
     },
     {
@@ -32,7 +40,11 @@
       "inherits": "f407-base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "PNX_ENABLE_USB_CDC": true
+        "PNX_ENABLE_USB_CDC": true,
+        "PNX_ENABLE_CAN_M2006_VALIDATION": false,
+        "PNX_ENABLE_PWM_A2": false,
+        "PNX_ENABLE_BMI088": false,
+        "PNX_ENABLE_DBUS_RX": false
       }
     },
     {
@@ -40,7 +52,11 @@
       "inherits": "f407-base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "PNX_ENABLE_USB_CDC": true
+        "PNX_ENABLE_USB_CDC": true,
+        "PNX_ENABLE_CAN_M2006_VALIDATION": false,
+        "PNX_ENABLE_PWM_A2": false,
+        "PNX_ENABLE_BMI088": false,
+        "PNX_ENABLE_DBUS_RX": false
       }
     },
     {
@@ -50,7 +66,9 @@
         "CMAKE_BUILD_TYPE": "Debug",
         "PNX_ENABLE_USB_CDC": false,
         "PNX_ENABLE_CAN_M2006_VALIDATION": false,
-        "PNX_ENABLE_PWM_A2": true
+        "PNX_ENABLE_PWM_A2": true,
+        "PNX_ENABLE_BMI088": false,
+        "PNX_ENABLE_DBUS_RX": false
       }
     },
     {
@@ -61,7 +79,8 @@
         "PNX_ENABLE_USB_CDC": false,
         "PNX_ENABLE_CAN_M2006_VALIDATION": false,
         "PNX_ENABLE_PWM_A2": false,
-        "PNX_ENABLE_BMI088": true
+        "PNX_ENABLE_BMI088": true,
+        "PNX_ENABLE_DBUS_RX": false
       }
     },
     {

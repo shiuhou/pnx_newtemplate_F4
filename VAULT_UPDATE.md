@@ -112,6 +112,24 @@ superseded by the separately authorized `P0-F407-USB-ZLP-BOUNDARY-FIX`:
 
 The Vault was not modified.
 
+## 2026-07-29 release-candidate cleanup proposal delta
+
+- Record the F407 release-hygiene cleanup: unused H7-template SPI2/SPI6 and
+  TIM3/TIM12 generated configuration was removed; default Core no longer
+  links the unselected Flash closure; and normal presets explicitly reset all
+  optional application selectors.
+- Record documentation authority: root README for image/build/release use;
+  board README for IOC/manual-resource ownership; AGENTS for architecture
+  constraints.
+- Record fresh software evidence: 7/7 normal embedded presets, one isolated
+  CAN attended image, and 25/25 host tests PASS; normal Core Ninja graph has
+  no optional closure source.
+- Preserve the evidence boundary: no hardware was operated in this cleanup;
+  `DBUS_LIVE_FRAME=NOT_RUN`; Flash hardware is unverified; public-release
+  licensing and remote fresh-clone verification remain open.
+
+The Vault was not modified.
+
 ## 2026-07-28 shared-peripheral completion proposal delta
 
 - Record the F407 portable boundary cleanup as complete for SPI, PWM, Flash,
