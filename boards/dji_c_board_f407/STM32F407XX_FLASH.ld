@@ -234,12 +234,6 @@ SECTIONS
   {
     *(.bss)
     *(.bss*)
-    *(.ram_d1_bss)
-    *(.ram_d1_bss*)
-    *(.ram_d2_bss)
-    *(.ram_d2_bss*)
-    *(.ram_d3_bss)
-    *(.ram_d3_bss*)
     *(.dma_buffer)
     *(.dma_buffer*)
     *(COMMON)

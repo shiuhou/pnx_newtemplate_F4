@@ -12,8 +12,7 @@ extern "C" {
 volatile bsp_diagnostics_crash_record pnx_crash_record
     __attribute__((section(".noinit"), used));
 
-alignas(8) std::uint8_t pnx_fault_emergency_stack[512]
-    __attribute__((section(".ram_d1_bss"), used));
+alignas(8) std::uint8_t pnx_fault_emergency_stack[512];
 
 }
 

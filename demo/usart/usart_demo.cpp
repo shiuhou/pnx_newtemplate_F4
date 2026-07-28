@@ -13,7 +13,7 @@ namespace demo::usart
 namespace
 {
 
-alignas(32) std::uint8_t rx_buffer[sizeof(protocol::host_packet)] RAM_D1_BSS{};
+alignas(32) std::uint8_t rx_buffer[sizeof(protocol::host_packet)] PNX_DMA_BUFFER{};
 bool started = false;
 
 void record_request(debug::link_state& debug, const protocol::host_packet& packet) noexcept

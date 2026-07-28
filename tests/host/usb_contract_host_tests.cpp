@@ -1,5 +1,6 @@
 #include "bsp_usb.hpp"
 #include "fake_usb_backend.hpp"
+#include "usb_tx_completion.hpp"
 
 #include <array>
 #include <cstdlib>
@@ -289,6 +290,69 @@ void test_fill_tx_compat() noexcept
     require(bsp::usb::snapshot().fill_count == 1U);
 }
 
+void test_f407_zlp_boundary() noexcept
+{
+    using pnx::f407::usb_detail::tx_next_action;
+
+    pnx::f407::usb_detail::tx_completion_state state{};
+
+    state.start(63U);
+    auto completion = state.on_callback(true, 63U);
+    require(completion.next == tx_next_action::complete);
+    require(completion.requested == 63U);
+    require(completion.actual == 63U);
+    require(completion.success);
+    require(!state.busy());
+
+    state.start(64U);
+    completion = state.on_callback(true, 64U);
+    require(completion.next == tx_next_action::send_zlp);
+    require(state.busy());
+
+    completion = state.on_callback(true, 0U);
+    require(completion.next == tx_next_action::complete);
+    require(completion.requested == 64U);
+    require(completion.actual == 64U);
+    require(completion.success);
+    require(!state.busy());
+
+    state.start(64U);
+    completion = state.on_callback(true, 64U);
+    require(completion.next == tx_next_action::send_zlp);
+    completion = state.abort();
+    require(completion.next == tx_next_action::complete);
+    require(completion.requested == 64U);
+    require(completion.actual == 64U);
+    require(!completion.success);
+    require(!state.busy());
+
+    state.start(64U);
+    completion = state.on_callback(true, 64U);
+    require(completion.next == tx_next_action::send_zlp);
+    completion = state.on_callback(false, 0U);
+    require(completion.next == tx_next_action::complete);
+    require(completion.requested == 64U);
+    require(completion.actual == 64U);
+    require(!completion.success);
+    require(!state.busy());
+
+    state.start(32U);
+    completion = state.on_callback(false, 5U);
+    require(completion.next == tx_next_action::complete);
+    require(completion.requested == 32U);
+    require(completion.actual == 5U);
+    require(!completion.success);
+    require(!state.busy());
+
+    state.start(64U);
+    completion = state.on_callback(true, 32U);
+    require(completion.next == tx_next_action::complete);
+    require(completion.requested == 64U);
+    require(completion.actual == 32U);
+    require(completion.success);
+    require(!state.busy());
+}
+
 } // namespace
 
 int main(int argc, char** argv)
@@ -309,6 +373,7 @@ int main(int argc, char** argv)
     else if (scenario == "tx_error") test_tx_error();
     else if (scenario == "capabilities") test_capabilities();
     else if (scenario == "fill_tx_compat") test_fill_tx_compat();
+    else if (scenario == "f407_zlp_boundary") test_f407_zlp_boundary();
     else return EXIT_FAILURE;
     return EXIT_SUCCESS;
 }

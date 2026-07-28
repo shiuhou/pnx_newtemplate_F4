@@ -3,6 +3,7 @@
 #include "bridge_usb.h"
 #include "memory.h"
 #include "tx_api.h"
+#include "usb_tx_completion.hpp"
 #include "usb_otg.h"
 #include "ux_api.h"
 #include "ux_device_class_cdc_acm.h"
@@ -20,7 +21,8 @@ extern "C" UINT _ux_dcd_stm32_initialize(
 namespace
 {
 
-constexpr std::uint16_t io_buffer_size = 64U;
+constexpr std::uint16_t io_buffer_size =
+    pnx::f407::usb_detail::cdc_full_speed_max_packet_size;
 constexpr std::uint16_t worker_stack_size = 1536U;
 constexpr ULONG rx_fifo_words = 128U;
 constexpr ULONG ep0_tx_fifo_words = 16U;
@@ -30,16 +32,16 @@ constexpr std::uint32_t connection_event_none = 0U;
 constexpr std::uint32_t connection_event_disconnected = 1U;
 constexpr std::uint32_t connection_event_connected = 2U;
 
-alignas(8) std::uint8_t worker_stack[worker_stack_size] RAM_D1_BSS{};
-alignas(4) std::uint8_t tx_buffer[io_buffer_size] RAM_D1_BSS{};
+alignas(8) std::uint8_t worker_stack[worker_stack_size]{};
+alignas(4) std::uint8_t tx_buffer[io_buffer_size]{};
 
-TX_THREAD worker_thread RAM_D1_BSS{};
-TX_SEMAPHORE write_signal RAM_D1_BSS{};
-TX_MUTEX common_mutex RAM_D1_BSS{};
+TX_THREAD worker_thread{};
+TX_SEMAPHORE write_signal{};
+TX_MUTEX common_mutex{};
 
 bsp::usb::detail::backend_config active_config{};
 UX_SLAVE_CLASS_CDC_ACM* active_cdc = nullptr;
-std::uint16_t active_tx_length = 0U;
+pnx::f407::usb_detail::tx_completion_state active_tx{};
 bool mutex_ready = false;
 bool signal_ready = false;
 bool controller_started = false;
@@ -64,14 +66,28 @@ void publish_native_error(UINT native_status) noexcept
         nullptr, 0U, types::status::error, native_status);
 }
 
-UINT cdc_write_complete(UX_SLAVE_CLASS_CDC_ACM*, UINT status,
+UINT cdc_write_complete(UX_SLAVE_CLASS_CDC_ACM* cdc, UINT status,
                         ULONG length)
 {
-    const std::uint16_t requested = active_tx_length;
-    active_tx_length = 0U;
+    auto completion = active_tx.on_callback(
+        status == UX_SUCCESS, static_cast<std::uint16_t>(length));
+    if (completion.next ==
+        pnx::f407::usb_detail::tx_next_action::send_zlp)
+    {
+        const UINT zlp_status =
+            ux_device_class_cdc_acm_write_with_callback(
+                cdc, tx_buffer, 0U);
+        if (zlp_status == UX_SUCCESS)
+        {
+            return UX_SUCCESS;
+        }
+        completion = active_tx.abort();
+        status = zlp_status;
+    }
+
     bsp::usb::detail::transmit_complete_from_backend(
-        requested, static_cast<std::uint16_t>(length),
-        status == UX_SUCCESS ? types::status::ok : types::status::error,
+        completion.requested, completion.actual,
+        completion.success ? types::status::ok : types::status::error,
         status);
     bsp::usb::detail::backend_signal_tx();
     return UX_SUCCESS;
@@ -138,7 +154,7 @@ void worker_entry(ULONG)
         }
 
         bsp::usb::detail::transmit_woken_from_backend();
-        if (!device_ready() || active_tx_length != 0U)
+        if (!device_ready() || active_tx.busy())
         {
             continue;
         }
@@ -150,15 +166,16 @@ void worker_entry(ULONG)
             continue;
         }
 
-        active_tx_length = requested;
+        active_tx.start(requested);
         const UINT status =
             ux_device_class_cdc_acm_write_with_callback(
                 active_cdc, tx_buffer, requested);
         if (status != UX_SUCCESS)
         {
-            active_tx_length = 0U;
+            const auto completion = active_tx.abort();
             bsp::usb::detail::transmit_complete_from_backend(
-                requested, 0U, types::status::error, status);
+                completion.requested, completion.actual,
+                types::status::error, status);
         }
     }
 }
@@ -197,7 +214,7 @@ extern "C" void usb_cdc_deactivate(void* cdc_acm_instance)
             UX_NULL);
     }
     active_cdc = nullptr;
-    active_tx_length = 0U;
+    active_tx.reset();
     pending_connection_event.store(
         connection_event_disconnected, std::memory_order_release);
     bsp::usb::detail::backend_signal_tx();
