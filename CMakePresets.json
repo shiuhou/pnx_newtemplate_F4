@@ -2,117 +2,64 @@
   "version": 6,
   "configurePresets": [
     {
-      "name": "firmware-default",
+      "name": "f407-base",
       "hidden": true,
       "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
       "toolchainFile": "${sourceDir}/cmake/gcc-arm-none-eabi.cmake",
       "cacheVariables": {
         "CMAKE_EXPORT_COMPILE_COMMANDS": true
       }
     },
     {
-      "name": "host-tests",
-      "generator": "Ninja",
-      "binaryDir": "${sourceDir}/build/${presetName}",
+      "name": "f407-debug",
+      "inherits": "f407-base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": true,
-        "PNX_HOST_TESTS": true
+        "PNX_ENABLE_USB_CDC": false
       }
     },
     {
-      "name": "board-smoke",
-      "inherits": "firmware-default",
-      "binaryDir": "${sourceDir}/build/dji-c-board",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "PNX_DEMO": "board_smoke"
-      }
-    },
-    {
-      "name": "can-rx",
-      "inherits": "firmware-default",
-      "binaryDir": "${sourceDir}/build/dji-c-board-can-rx",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "PNX_DEMO": "can_receive"
-      }
-    },
-    {
-      "name": "motor-safe",
-      "inherits": "firmware-default",
-      "binaryDir": "${sourceDir}/build/dji-c-board-motor-safe",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "PNX_DEMO": "motor_safe",
-        "PNX_ENABLE_NONZERO_MOTOR_TEST": false
-      }
-    },
-    {
-      "name": "board-smoke-release",
-      "inherits": "firmware-default",
-      "binaryDir": "${sourceDir}/build/dji-c-board-release",
+      "name": "f407-release",
+      "inherits": "f407-base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "PNX_DEMO": "board_smoke"
+        "PNX_ENABLE_USB_CDC": false
       }
     },
     {
-      "name": "usb-cdc",
-      "inherits": "firmware-default",
-      "binaryDir": "${sourceDir}/build/dji-c-board-usb-cdc",
+      "name": "f407-usb-cdc-debug",
+      "inherits": "f407-base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "PNX_DEMO": "usb_cdc"
+        "PNX_ENABLE_USB_CDC": true
       }
     },
     {
-      "name": "usb-cdc-release",
-      "inherits": "firmware-default",
-      "binaryDir": "${sourceDir}/build/dji-c-board-usb-cdc-release",
+      "name": "f407-usb-cdc-release",
+      "inherits": "f407-base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "PNX_DEMO": "usb_cdc"
+        "PNX_ENABLE_USB_CDC": true
       }
     }
   ],
   "buildPresets": [
     {
-      "name": "board-smoke",
-      "configurePreset": "board-smoke"
+      "name": "f407-debug",
+      "configurePreset": "f407-debug"
     },
     {
-      "name": "can-rx",
-      "configurePreset": "can-rx"
+      "name": "f407-release",
+      "configurePreset": "f407-release"
     },
     {
-      "name": "motor-safe",
-      "configurePreset": "motor-safe"
+      "name": "f407-usb-cdc-debug",
+      "configurePreset": "f407-usb-cdc-debug"
     },
     {
-      "name": "board-smoke-release",
-      "configurePreset": "board-smoke-release"
-    },
-    {
-      "name": "usb-cdc",
-      "configurePreset": "usb-cdc"
-    },
-    {
-      "name": "usb-cdc-release",
-      "configurePreset": "usb-cdc-release"
-    },
-    {
-      "name": "host-tests",
-      "configurePreset": "host-tests"
-    }
-  ],
-  "testPresets": [
-    {
-      "name": "host-tests",
-      "configurePreset": "host-tests",
-      "output": {
-        "outputOnFailure": true
-      }
+      "name": "f407-usb-cdc-release",
+      "configurePreset": "f407-usb-cdc-release"
     }
   ]
 }

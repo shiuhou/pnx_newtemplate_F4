@@ -2,7 +2,7 @@
   "build": {
     "usbx": true,
     "motors": {
-      "dji": true,
+      "dji": false,
       "dm": false,
       "lk": false
     },
@@ -13,7 +13,7 @@
       "referee": false,
       "ui": false,
       "indicator": true,
-      "motors": true
+      "motors": false
     }
   },
   "bindings": {
