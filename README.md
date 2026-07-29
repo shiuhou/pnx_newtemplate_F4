@@ -29,6 +29,37 @@ images；它不是把所有 template demo 編進同一個 firmware。
 | DBUS RX | 已驗證 | attended live-frame PASS | receiver DBUS → PC11 → USART3 DMA → DR16 → message bus 已實機驗證；validation image，不是產品 image |
 | CAN/M2006 | 已驗證 | 保留 attended PASS | 僅 explicit attended validation；不提供 preset |
 
+## 第一次使用：安全 Core 路徑
+
+第一次接觸此 repository 時，只建置並燒錄 `f407-debug`。它選入 Core
+smoke closure；不選入 USB、CAN、PWM、SPI、BMI088、DBUS 或 Flash
+closure，因此是唯一的日常安全起點。不要以 PWM、BMI088、DBUS 或 CAN
+validation image 作為第一次上板 image。
+
+從空目錄取得固定 RC 與全部 submodule：
+
+```powershell
+git clone --branch f407-architecture-rc.1 --recurse-submodules `
+  https://github.com/shiuhou/pnx_newtemplate_F4.git
+cd pnx_newtemplate_F4
+```
+
+建置並以 CMSIS-DAP 燒錄：
+
+```powershell
+cmake --preset f407-debug
+cmake --build --preset f407-debug
+openocd -f interface/cmsis-dap.cfg -f target/stm32f4x.cfg `
+  -c "adapter speed 1000" `
+  -c "program build/f407-debug/pnx_embedded.elf verify reset exit"
+```
+
+成功標準：C-board 綠燈（PH11）約每 500 ms 切換一次。這表示
+`Reset_Handler → main → tx_application_define → app_start → ThreadX`
+已進入 Core thread；Core 不會啟動 motor、servo、USB CDC、IMU 或 DBUS
+application。若紅燈常亮或綠燈不閃，停止並先檢查 SWD、板卡供電與 Core
+build／燒錄輸出；不要改選 attended validation image 來排除問題。
+
 ## 快速建置
 
 需求：CMake 3.22+、Ninja、GNU Arm Embedded Toolchain
