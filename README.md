@@ -26,7 +26,7 @@ images；它不是把所有 template demo 編進同一個 firmware。
 | USB CDC | 已驗證 | 保留 USB CDC 證據 | 可選 CDC echo；未確認 identity 時 fail-closed |
 | PWM A2 | 已驗證 | 保留 servo slice PASS | attended validation，不是產品 image |
 | BMI088 | 已驗證 | 保留 BMI088 PASS | attended validation，不是產品 image |
-| DBUS RX | 已驗證 | `DBUS_LIVE_FRAME=NOT_RUN` | software-only；不可宣稱實機完成 |
+| DBUS RX | 已驗證 | attended live-frame PASS | receiver DBUS → PC11 → USART3 DMA → DR16 → message bus 已實機驗證；validation image，不是產品 image |
 | CAN/M2006 | 已驗證 | 保留 attended PASS | 僅 explicit attended validation；不提供 preset |
 
 ## 快速建置
@@ -48,7 +48,7 @@ f407-usb-cdc-debug         optional USB CDC
 f407-usb-cdc-release       optional USB CDC
 f407-pwm-a2-debug          attended PWM/A2 validation
 f407-bmi088-debug          attended BMI088 validation
-f407-dbus-rx-debug         DBUS software-validation image
+f407-dbus-rx-debug         attended DBUS RX validation
 ```
 
 CAN/M2006 不屬於一般 preset。只有在已取得專門硬體操作授權、限制輸出
@@ -72,6 +72,28 @@ ctest --test-dir build/host --output-on-failure
 
 `tests/host` 是 root project 的子目錄，必須從 repository root configure；
 不要直接以 `tests/host` 作為 CMake source directory。
+
+## 本機 SWD 除錯
+
+`.vscode/` 保持本機忽略，因 probe 路徑與序號屬於個人環境；不提交
+`launch.json`。使用 CMSIS-DAP 時，可先啟動 OpenOCD：
+
+```powershell
+openocd -f interface/cmsis-dap.cfg -f target/stm32f4x.cfg `
+  -c 'adapter speed 1000' -c 'reset_config none'
+```
+
+另一個終端以對應 ELF 連線：
+
+```powershell
+arm-none-eabi-gdb build/f407-debug/pnx_embedded.elf
+(gdb) target extended-remote 127.0.0.1:3333
+(gdb) monitor reset halt
+```
+
+DBUS 實機驗證使用 `f407-dbus-rx-debug`，接收機 DBUS signal 接
+PC11/USART3_RX 並共地；它不需要 microUSB。日常安全基線仍使用 Core
+image。
 
 ## 架構與邊界
 

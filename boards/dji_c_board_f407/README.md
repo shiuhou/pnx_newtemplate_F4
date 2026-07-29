@@ -19,6 +19,16 @@ reviewed. The SPI backend may reassert the IOC-defined BMI088 chip-select safe
 state before enabling SPI1; this is a same-polarity handoff, not a second
 configuration source.
 
+## ThreadX composition boundary
+
+`app_start()` is called by `tx_application_define()` before ThreadX starts
+scheduling application threads. It may initialize peripherals, create static
+resources, and create auto-start threads. It must not call a ThreadX API that
+can wait or suspend, such as `tx_mutex_get(..., TX_WAIT_FOREVER)`,
+`tx_semaphore_get`, or `tx_thread_sleep`; place that work in the thread entry
+function instead. This keeps composition deterministic before a current
+application thread exists.
+
 ## CubeMX regeneration rule
 
 Regenerate only after reviewing the IOC diff and generated-source diff. Keep

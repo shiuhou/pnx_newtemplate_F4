@@ -636,3 +636,85 @@ This revalidation is software-only. `DBUS_LIVE_FRAME=NOT_RUN`, the shortened
 Core smoke scope, long soak, concurrent-peripheral runtime, and destructive
 Flash testing retain their previously recorded evidence status. No new
 hardware claim is made here.
+
+## 2026-07-29 attended DBUS live-frame validation
+
+### Actual source corrections
+
+- `pnx_modules/remoter/include/remoter.hpp` increases only the DR16 ThreadX
+  stack from 768 to 1536 bytes. The original image entered the registered
+  ThreadX stack-error handler with the DR16 `TX_THREAD` control block as the
+  context; its saved stack pointer was below its effective stack start.
+- `demo/cboard/dbus_rx/dbus_rx.cpp` creates the message subscription in the
+  already-running monitor thread rather than in `app_start()`. `app_start()`
+  is invoked by `tx_application_define()`, where `msg::subscribe()` cannot
+  wait on its ThreadX mutex. This is a lifecycle correction; no message-bus
+  API or ThreadX policy was changed.
+
+### Validation facts
+
+- `f407-dbus-rx-debug` rebuilt successfully with RAM usage 51,696 B / 128 KiB
+  (39.44%) and no observed build warnings.
+- `ctest --test-dir build/host --output-on-failure`: **25/25 PASS**.
+- The attended DBUS ELF SHA-256 was
+  `C924BB2C35829997F9E8B8642F35CFF984B375C42F7106DF30F382B14C94FA67`;
+  OpenOCD program and verify both passed on the STM32F407.
+- With the receiver DBUS signal connected to USART3 RX (PC11) and common
+  ground, live telemetry reached `offline=0`, `init_failed=0`, and the UART
+  DMA reported 18-byte frames. The counters advanced from
+  heartbeat/update `283436/44397` to `286047/46263`.
+- Operator stick movement produced decoded values
+  `right_x=-0.215151519` and `right_y=-0.506060600`; the remaining two axes
+  were centered for that sample. This is physical evidence for receiver ->
+  PC11 -> USART3 DMA -> DR16 decode -> message bus -> monitor telemetry.
+- The board was restored to `f407-debug`; Core ELF SHA-256
+  `78F5C5C7B8A9E920370EAE43973F913988F1B6838EE81594C945FB78497A5463` was
+  programmed and verified successfully.
+
+### Status
+
+`DBUS_LIVE_FRAME=PASS`. This validation did not exercise USB, CAN, PWM,
+BMI088, or Flash.
+
+## 2026-07-29 release-hardening follow-up
+
+### Actual changes
+
+- `README.md` now records DBUS RX attended live-frame PASS, labels its preset
+  as an attended validation image, and documents a local CMSIS-DAP/OpenOCD/GDB
+  procedure. `.vscode/launch.json` remains intentionally local and ignored.
+- `boards/dji_c_board_f407/README.md` records the composition rule discovered
+  in DBUS validation: `app_start()` runs in `tx_application_define()` before
+  application thread scheduling, so potentially suspending ThreadX calls
+  belong in thread entries.
+- `pnx_bsp/usart/src/bsp_usart.cpp` classifies a `restart_rx()` backend
+  `busy` result as `busy_count`, not `error_count`, matching the existing
+  transmit diagnostic semantics. The circular DMA may already be active when
+  a DR16 timeout asks for a restart; this is contention, not a transport
+  failure.
+- `tests/host/usart_contract_host_tests.cpp` and its fake backend now cover
+  that busy/error diagnostic distinction. The focused test was observed to
+  fail before the production change and pass afterwards.
+- `.github/workflows/f407-ci.yml` adds the smallest remote gate: recursive
+  checkout, host CTest, F407 Core build, and F407 DBUS build. It uses only
+  `actions/checkout@v7` with `contents: read` permission.
+
+### Fresh local validation
+
+- All seven normal embedded presets configured and built successfully:
+  `f407-debug`, `f407-release`, `f407-usb-cdc-debug`,
+  `f407-usb-cdc-release`, `f407-pwm-a2-debug`, `f407-bmi088-debug`, and
+  `f407-dbus-rx-debug`.
+- The isolated `PNX_ENABLE_CAN_M2006_VALIDATION=ON` image configured and
+  built successfully with all other optional selectors OFF.
+- Native host configuration/build succeeded; `ctest --test-dir build/host
+  --output-on-failure` reported **25/25 PASS**. The focused USART contract
+  test also passed after the red/green change.
+- `git diff --check` passed. No hardware was operated during this follow-up.
+
+### Remaining boundary
+
+The GitHub Actions workflow has not run yet because it is uncommitted and
+unpushed. Before publication, commit and push `pnx_bsp` and `pnx_modules`,
+verify both remote SHAs, then commit/push the parent gitlinks and require one
+successful remote CI run plus a fresh recursive clone gate.

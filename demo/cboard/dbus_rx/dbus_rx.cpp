@@ -23,6 +23,13 @@ msg::subscriber remote_sub{};
 
 void monitor_entry(ULONG)
 {
+    remote_sub = msg::subscribe<remoter::dr16_state>();
+    if (!remote_sub.valid())
+    {
+        pnx_f407_dbus_telemetry.init_failed = 1U;
+        return;
+    }
+
     remoter::dr16_state sample{};
     for (;;)
     {
@@ -60,9 +67,7 @@ void run() noexcept
         pnx_f407_dbus_telemetry.init_failed = 1U;
         return;
     }
-    remote_sub = msg::subscribe<remoter::dr16_state>();
-    if (!remote_sub.valid() ||
-        tx_thread_create(
+    if (tx_thread_create(
             &monitor_thread, const_cast<CHAR*>("dbus monitor"),
             monitor_entry, 0U, monitor_stack,
             sizeof(monitor_stack), 3U, 3U, TX_NO_TIME_SLICE,

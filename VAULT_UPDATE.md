@@ -112,6 +112,40 @@ superseded by the separately authorized `P0-F407-USB-ZLP-BOUNDARY-FIX`:
 
 The Vault was not modified.
 
+## 2026-07-29 release-hardening proposal delta
+
+- Record the corrected release state: attended DBUS live-frame validation is
+  PASS, superseding DBUS software-only language in current release guidance.
+- Record the ThreadX lifecycle rule: the F407 composition root runs in
+  `tx_application_define()` before a schedulable application thread exists;
+  waiting ThreadX APIs belong in thread entries.
+- Record the USART diagnostic semantic fix: a circular-DMA restart returning
+  `busy` increments `busy_count` rather than falsely reporting an error. A
+  host regression test was observed RED before the change and PASS after it.
+- Record the minimal CI gate proposal: recursive submodule checkout, host
+  CTest, F407 Core build, and F407 DBUS build. It remains unexecuted remotely
+  until the corresponding parent and submodule commits are pushed.
+- Fresh local evidence after these changes: seven normal embedded builds,
+  isolated CAN build, and 25/25 host tests PASS. No Vault content was
+  modified.
+
+## 2026-07-29 DBUS live-frame proposal delta
+
+- Supersede the former `DBUS_LIVE_FRAME=NOT_RUN` boundary: attended F407
+  validation is now PASS. USART3 PC11 DMA received 18-byte frames, the DR16
+  parser published live data, and observed stick movement changed decoded
+  axes.
+- Record the two narrow source corrections needed by the live test: DR16
+  ThreadX stack 768 -> 1536 bytes in `pnx_modules`, and DBUS demo subscription
+  moved from `tx_application_define()` context into its monitor thread.
+- Record software evidence for the corrected tree: DBUS embedded build PASS
+  and 25/25 host tests PASS.
+- Record safe restoration to Core artifact SHA-256
+  `78F5C5C7B8A9E920370EAE43973F913988F1B6838EE81594C945FB78497A5463`, with
+  OpenOCD program/verify PASS.
+- No Vault content was modified. These changes remain uncommitted and were
+  not pushed by this validation task.
+
 ## 2026-07-29 team-internal documentation and local revalidation proposal
 
 - Record that the team-internal RC README now defines the backend, closure,

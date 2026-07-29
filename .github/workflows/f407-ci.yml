@@ -1,0 +1,36 @@
+name: F407 CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  host-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+      - name: Configure host tests
+        run: cmake -S . -B build/host -G Ninja -DPNX_HOST_TESTS=ON
+      - name: Build host tests
+        run: cmake --build build/host --parallel
+      - name: Run host tests
+        run: ctest --test-dir build/host --output-on-failure
+
+  f407-builds:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+      - name: Install GNU Arm toolchain
+        run: sudo apt-get update && sudo apt-get install --yes gcc-arm-none-eabi ninja-build
+      - name: Build Core
+        run: cmake --preset f407-debug && cmake --build --preset f407-debug --parallel
+      - name: Build DBUS validation image
+        run: cmake --preset f407-dbus-rx-debug && cmake --build --preset f407-dbus-rx-debug --parallel

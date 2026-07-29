@@ -8,6 +8,7 @@ namespace
 std::array<std::uint8_t*, bsp::usart::port_count> rx_buffers{};
 std::array<std::size_t, bsp::usart::port_count> rx_lengths{};
 types::status transmit_result = types::status::ok;
+types::status restart_result = types::status::ok;
 
 } // namespace
 
@@ -19,11 +20,17 @@ void reset() noexcept
     rx_buffers = {};
     rx_lengths = {};
     transmit_result = types::status::ok;
+    restart_result = types::status::ok;
 }
 
 void set_transmit_result(types::status result) noexcept
 {
     transmit_result = result;
+}
+
+void set_restart_result(types::status result) noexcept
+{
+    restart_result = result;
 }
 
 void receive(
@@ -76,10 +83,11 @@ types::status backend_start_rx(
 
 types::status backend_restart_rx(port selected) noexcept
 {
-    return selected < port_count &&
-                   rx_buffers[selected] != nullptr
-               ? types::status::ok
-               : types::status::invalid_arg;
+    if (selected >= port_count || rx_buffers[selected] == nullptr)
+    {
+        return types::status::invalid_arg;
+    }
+    return restart_result;
 }
 
 } // namespace bsp::usart::detail

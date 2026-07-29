@@ -7,6 +7,7 @@ namespace host_test::fake_usart
 {
 void reset() noexcept;
 void set_transmit_result(types::status result) noexcept;
+void set_restart_result(types::status result) noexcept;
 void receive(
     bsp::usart::port selected, std::size_t len) noexcept;
 } // namespace host_test::fake_usart
@@ -56,6 +57,14 @@ int main()
     require(rx_stats.last_rx_len == rx.size());
     require(bsp::usart::restart_rx(0U) ==
             types::status::ok);
+
+    host_test::fake_usart::set_restart_result(
+        types::status::busy);
+    require(bsp::usart::restart_rx(0U) ==
+            types::status::busy);
+    const auto restart_stats = bsp::usart::snapshot(0U);
+    require(restart_stats.busy_count == 1U);
+    require(restart_stats.error_count == 0U);
 
     require(bsp::usart::init(
                 1U, bsp::usart::mode::block) ==
