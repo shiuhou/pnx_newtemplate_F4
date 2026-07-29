@@ -538,8 +538,9 @@ runtime code, but no new binary was programmed in this cleanup pass.
 ### Remaining release gates
 
 - `DBUS_LIVE_FRAME=NOT_RUN`; DBUS remains software-validated only.
-- Fresh-clone/submodule retrieval must be verified after the recorded
-  submodule commits and parent commit are available from `origin`.
+- The remote fresh-clone/submodule retrieval gate passed at
+  `4a3a101a3d201b3d61cad71df730ed059559b7e0`; rerun it after any later
+  source, submodule, preset, or toolchain-affecting commit.
 - A public release still requires a repository-owner decision on LICENSE,
   NOTICE, and third-party distribution terms. No legal metadata is invented
   by this engineering cleanup.
@@ -570,3 +571,18 @@ In that independent checkout, all seven normal embedded presets and the
 isolated CAN attended image built successfully; `ctest` reported 25/25 host
 tests PASS. The only observed transient was one HTTPS connection timeout while
 cloning `pnx_modules`; Git retried automatically and checkout completed.
+
+### Fact: final remote gate revalidation
+
+On 2026-07-29, a second independent recursive checkout of
+`origin/refactor/f407-minimal-architecture@957ce253a44d229b1aced496e8381956ace57bf0`
+checked out the same four published submodule SHAs. From empty build
+directories it configured and built all seven named presets, then built the
+isolated `PNX_ENABLE_CAN_M2006_VALIDATION=ON` image. Native host configuration
+used the root CMake project with `PNX_HOST_TESTS=ON`; `ctest` reported 25/25
+PASS. No hardware was connected or operated.
+
+Result: the remote fresh-clone gate is **PASS** for `957ce25`. A first
+attempted host configuration against `tests/host` directly was invalid because
+that directory is a subdirectory, not a standalone CMake project; it was not
+a firmware build or test failure.

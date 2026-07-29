@@ -100,9 +100,9 @@ VID/PID/manufacturer/product/serial。
 
 ```text
 push pnx_bsp / pnx_devices / pnx_libs / pnx_modules commits
+→ push parent commit
 → verify fresh clone --recurse-submodules
 → build all presets and run host tests
-→ push parent commit
 ```
 
 `testing.md` 是本機未追蹤測試計畫，不是 release evidence，也不應被自動

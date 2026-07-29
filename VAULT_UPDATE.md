@@ -112,6 +112,18 @@ superseded by the separately authorized `P0-F407-USB-ZLP-BOUNDARY-FIX`:
 
 The Vault was not modified.
 
+## 2026-07-29 final remote-gate revalidation proposal
+
+- Record a second independent `--recurse-submodules` checkout of remote
+  parent `957ce253a44d229b1aced496e8381956ace57bf0`.
+- Record that it retrieved the four published F407 submodule commits, built
+  all seven named F407 presets plus the isolated attended CAN image, and
+  passed 25/25 host tests using root CMake with `PNX_HOST_TESTS=ON`.
+- No hardware was operated. The DBUS live-frame and destructive Flash hardware
+  limitations remain unchanged.
+
+The Vault was not modified.
+
 ## 2026-07-29 release-candidate cleanup proposal delta
 
 - Record the F407 release-hygiene cleanup: unused H7-template SPI2/SPI6 and
