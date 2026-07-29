@@ -718,3 +718,36 @@ The GitHub Actions workflow has not run yet because it is uncommitted and
 unpushed. Before publication, commit and push `pnx_bsp` and `pnx_modules`,
 verify both remote SHAs, then commit/push the parent gitlinks and require one
 successful remote CI run plus a fresh recursive clone gate.
+
+## 2026-07-29 CI authentication and release gate
+
+### Actual changes
+
+- `.github/workflows/f407-ci.yml` now supplies the repository-managed
+  read-only submodule token to both recursive `actions/checkout@v7` steps.
+  This is required because the default `GITHUB_TOKEN` for the parent repository
+  cannot read the private sibling submodules.
+
+### Remote validation facts
+
+- Parent commit `648da10df13acd93b16053eb2d2921539b8fe7a3` was pushed to
+  `origin/refactor/f407-minimal-architecture`.
+- GitHub Actions run `30448274030` completed successfully:
+  <https://github.com/shiuhou/pnx_newtemplate_F4/actions/runs/30448274030>.
+- Its `host-tests` job completed recursive checkout, configured and built the
+  host target, and ran CTest successfully.
+- Its `f407-builds` job completed recursive checkout, installed the GNU Arm
+  toolchain, and built both `f407-debug` and `f407-dbus-rx-debug` successfully.
+
+### Scope and remaining boundary
+
+- This change only authenticates CI checkout. It does not alter firmware,
+  public interfaces, generated code, CMake presets, submodule gitlinks, or
+  hardware behavior.
+- The CI secret value is intentionally not recorded in this repository.
+- With the remote CI gate now passing, the next release action is to create an
+  architecture RC tag from the final documentation commit. A production
+  release still requires an owner decision on licensing and USB product
+  identity.
+
+The Vault was not modified.

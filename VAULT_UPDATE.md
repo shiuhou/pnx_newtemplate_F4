@@ -165,6 +165,20 @@ The Vault was not modified.
 
 The Vault was not modified.
 
+## 2026-07-29 CI release-gate proposal
+
+- Record parent commit `648da10df13acd93b16053eb2d2921539b8fe7a3` as the
+  minimal GitHub Actions authentication correction for private recursive
+  submodule checkout; it injects only a repository-managed read-only secret
+  into `actions/checkout@v7`.
+- Record GitHub Actions run `30448274030` as remote evidence that recursive
+  submodule checkout, host CTest, F407 Core build, and F407 DBUS build all
+  succeeded from the pushed branch.
+- Do not record the CI secret value. The remaining non-code release decisions
+  are licensing and authorized production USB identity.
+
+The Vault was not modified.
+
 ## 2026-07-29 final remote-gate revalidation proposal
 
 - Record a second independent `--recurse-submodules` checkout of remote
