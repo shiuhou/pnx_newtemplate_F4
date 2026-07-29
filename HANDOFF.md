@@ -586,3 +586,53 @@ Result: the remote fresh-clone gate is **PASS** for `957ce25`. A first
 attempted host configuration against `tests/host` directly was invalid because
 that directory is a subdirectory, not a standalone CMake project; it was not
 a firmware build or test failure.
+
+## 2026-07-29 team-internal RC documentation and local revalidation
+
+### Actual changes
+
+- Retained `HANDOFF.md` in the repository as the detailed evidence record.
+- Moved the transient `testing.md` checklist to the parent `firmware/`
+  directory; it is not tracked by this repository and is not release evidence.
+- Updated `README.md` for team onboarding only:
+  - defined `backend`, `closure`, and `fail-closed` at first use;
+  - added a high-level repository tree and the actual CMake composition flow;
+  - removed references to transient handoff/testing files and public-release
+    legal metadata that are out of scope for this team-internal repository.
+
+No firmware source, public interface, IOC/generated file, preset, submodule,
+toolchain configuration, or hardware state was changed. Documentation commits,
+remote synchronization, and tag state are recorded by Git history.
+
+### Fresh local software validation
+
+Working tree under test: `7f0129ad6a789e4cb466a51697d0bad2a10854d1` plus the
+document-only `README.md` modification above. No hardware was connected or
+operated.
+
+- Fresh configure and build PASS for all normal presets using
+  `cmake --fresh --preset <preset>` followed by
+  `cmake --build --preset <preset> --parallel 4`:
+  `f407-debug`, `f407-release`, `f407-usb-cdc-debug`,
+  `f407-usb-cdc-release`, `f407-pwm-a2-debug`, `f407-bmi088-debug`, and
+  `f407-dbus-rx-debug`.
+- Fresh isolated CAN/M2006 configure and build PASS in
+  `build/f407-can-m2006-debug`, with USB, PWM, BMI088, and DBUS selectors OFF
+  and `PNX_ENABLE_CAN_M2006_VALIDATION=ON`.
+- Fresh native host configure/build PASS in `build/host-release-check` with
+  `PNX_HOST_TESTS=ON`; `ctest --output-on-failure` reported **25/25 PASS**.
+- `ninja -C build/f407-debug -t commands` contained none of
+  `usb_backend`, `can_backend`, `pwm_backend`, `spi_backend`, `bmi088`,
+  `usart_backend`, `bsp_flash`, or `flash_backend`.
+- Shared-layer leakage scan across `pnx_bsp`, `pnx_devices`, `pnx_libs`, and
+  `pnx_modules` found no `stm32h7`, `fdcan`, `RAM_D[0-3]`, STM32 HAL, GPIO
+  handle, or peripheral-handle identifiers.
+- `git diff --check`: PASS. Git emitted only the existing LF-to-CRLF checkout
+  notice for `README.md`.
+
+### Remaining boundary
+
+This revalidation is software-only. `DBUS_LIVE_FRAME=NOT_RUN`, the shortened
+Core smoke scope, long soak, concurrent-peripheral runtime, and destructive
+Flash testing retain their previously recorded evidence status. No new
+hardware claim is made here.

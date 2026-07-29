@@ -112,6 +112,25 @@ superseded by the separately authorized `P0-F407-USB-ZLP-BOUNDARY-FIX`:
 
 The Vault was not modified.
 
+## 2026-07-29 team-internal documentation and local revalidation proposal
+
+- Record that the team-internal RC README now defines the backend, closure,
+  and fail-closed terms and documents the repository tree plus CMake source
+  composition flow.
+- Record the fresh local software evidence on parent
+  `7f0129ad6a789e4cb466a51697d0bad2a10854d1` plus document-only changes:
+  seven normal embedded presets and isolated CAN/M2006 built successfully;
+  native host tests passed 25/25.
+- Record that the Core compile graph excludes all optional backend/closure
+  sources and the shared-layer leakage scan remained clean.
+- Retain the existing evidence boundary: no hardware was operated in this
+  pass; `DBUS_LIVE_FRAME=NOT_RUN`, long soak, concurrent runtime, and
+  destructive Flash validation remain unverified.
+- `testing.md` is a transient checklist outside this repository; `HANDOFF.md`
+  remains the detailed evidence record.
+
+The Vault was not modified.
+
 ## 2026-07-29 final remote-gate revalidation proposal
 
 - Record a second independent `--recurse-submodules` checkout of remote
