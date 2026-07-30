@@ -4,6 +4,7 @@
 [submodule "pnx_bsp"]
 	path = pnx_bsp
 	url = https://github.com/HKUSTGZ-ROBOMASTER-PNX/pnx_bsp.git
+	branch = F4_version
 [submodule "pnx_devices"]
 	path = pnx_devices
 	url = https://github.com/HKUSTGZ-ROBOMASTER-PNX/pnx_devices.git
