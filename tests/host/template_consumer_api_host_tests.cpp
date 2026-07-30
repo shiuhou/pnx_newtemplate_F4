@@ -41,6 +41,12 @@ static_assert(std::is_same_v<
               decltype(&bsp::usart::start_rx_to_idle),
               template_start_rx>);
 
+using template_configure = types::status (*)(
+    bsp::usart::port, const bsp::usart::line_config&);
+static_assert(std::is_same_v<
+              decltype(&bsp::usart::configure),
+              template_configure>);
+
 int main()
 {
     return 0;

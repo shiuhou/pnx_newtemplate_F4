@@ -75,6 +75,39 @@ add_test(
     COMMAND pnx_template_consumer_api_host_tests
 )
 
+add_test(
+    NAME config_generation_contract
+    COMMAND ${CMAKE_COMMAND}
+        "-DPNX_SOURCE_DIR=${CMAKE_SOURCE_DIR}"
+        "-DPNX_BINARY_DIR=${CMAKE_BINARY_DIR}"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/config_generation_contract.cmake"
+)
+
+add_executable(pnx_shared_module_api_host_tests
+    shared_module_api_host_tests.cpp
+)
+target_include_directories(pnx_shared_module_api_host_tests PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/fakes"
+    "${CMAKE_SOURCE_DIR}/pnx_bsp/can/include"
+    "${CMAKE_SOURCE_DIR}/pnx_bsp/usart/include"
+    "${CMAKE_SOURCE_DIR}/pnx_devices/imu/bmi088/include"
+    "${CMAKE_SOURCE_DIR}/pnx_devices/imu/imu/include"
+    "${CMAKE_SOURCE_DIR}/pnx_devices/motors/lk/include"
+    "${CMAKE_SOURCE_DIR}/pnx_devices/motors/motor/include"
+    "${CMAKE_SOURCE_DIR}/pnx_libs/common/include"
+    "${CMAKE_SOURCE_DIR}/pnx_libs/control/include"
+    "${CMAKE_SOURCE_DIR}/pnx_libs/filter/include"
+    "${CMAKE_SOURCE_DIR}/pnx_libs/math/include"
+    "${CMAKE_SOURCE_DIR}/pnx_libs/msg/include"
+    "${CMAKE_SOURCE_DIR}/pnx_modules/remoter/include"
+    "${CMAKE_SOURCE_DIR}/boards/dji_c_board_f407/Middlewares/ST/threadx/common/inc"
+    "${CMAKE_SOURCE_DIR}/boards/dji_c_board_f407/Middlewares/ST/threadx/ports/cortex_m4/gnu/inc"
+)
+add_test(
+    NAME shared_module_api
+    COMMAND pnx_shared_module_api_host_tests
+)
+
 add_executable(pnx_spi_contract_host_tests
     spi_contract_host_tests.cpp
     fake_spi.cpp

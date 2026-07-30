@@ -114,17 +114,21 @@ _pnx_feature_override("remoter" "${HAS_REMOTER}" HAS_REMOTER)
 _pnx_feature_override("vt03" "${HAS_VT03}" HAS_VT03)
 _pnx_feature_override("referee" "${HAS_REFEREE}" HAS_REFEREE)
 _pnx_feature_override("ui" "${HAS_UI}" HAS_UI)
+set(HAS_PS2 ${HAS_REMOTER})
 
 if(remoter_source STREQUAL "")
     if(HAS_REMOTER)
         set(ENABLE_DR16 1)
         set(ENABLE_VT03 0)
+        set(ENABLE_PS2 0)
     elseif(HAS_VT03)
         set(ENABLE_DR16 0)
         set(ENABLE_VT03 1)
+        set(ENABLE_PS2 0)
     else()
         set(ENABLE_DR16 0)
         set(ENABLE_VT03 0)
+        set(ENABLE_PS2 0)
     endif()
 elseif(remoter_source STREQUAL "dr16")
     if(NOT HAS_REMOTER)
@@ -132,20 +136,31 @@ elseif(remoter_source STREQUAL "dr16")
     endif()
     set(ENABLE_DR16 1)
     set(ENABLE_VT03 0)
+    set(ENABLE_PS2 0)
 elseif(remoter_source STREQUAL "vt03")
     if(NOT HAS_VT03)
         message(FATAL_ERROR "params.remoter.source=vt03 requires UART7 RX DMA support in board/board.ioc")
     endif()
     set(ENABLE_DR16 0)
     set(ENABLE_VT03 1)
+    set(ENABLE_PS2 0)
+elseif(remoter_source STREQUAL "ps2")
+    if(NOT HAS_PS2)
+        message(FATAL_ERROR
+            "params.remoter.source=ps2 requires the bound remoter UART to have RX DMA support")
+    endif()
+    set(ENABLE_DR16 0)
+    set(ENABLE_VT03 0)
+    set(ENABLE_PS2 1)
 elseif(remoter_source STREQUAL "none"
        OR remoter_source STREQUAL "off"
        OR remoter_source STREQUAL "disabled")
     set(ENABLE_DR16 0)
     set(ENABLE_VT03 0)
+    set(ENABLE_PS2 0)
 else()
     message(FATAL_ERROR
-        "params.remoter.source must be one of: dr16, vt03, none")
+        "params.remoter.source must be one of: dr16, vt03, ps2, none")
 endif()
 
 list(LENGTH PNX_IOC_CAN_HW can_hw_count)
@@ -290,6 +305,7 @@ list(JOIN usart_config_list ", " usart_config_cpp)
 list(LENGTH PNX_IOC_UART_HW usart_port_count)
 
 pnx_ioc_uart_index("${PNX_IOC_UART_HW}" "${remoter_uart}" dr16_port_idx)
+pnx_ioc_uart_index("${PNX_IOC_UART_HW}" "${remoter_uart}" ps2_port_idx)
 pnx_ioc_uart_index("${PNX_IOC_UART_HW}" "uart7" vt03_port_idx)
 pnx_ioc_uart_index("${PNX_IOC_UART_HW}" "${referee_uart}" referee_port_idx)
 
@@ -303,6 +319,11 @@ if(vt03_port_idx GREATER_EQUAL 0)
 else()
     set(vt03_binding "bsp::usart::none")
 endif()
+if(ps2_port_idx GREATER_EQUAL 0)
+    set(ps2_binding "${remoter_uart}")
+else()
+    set(ps2_binding "bsp::usart::none")
+endif()
 if(referee_port_idx GREATER_EQUAL 0)
     set(referee_binding "${referee_uart}")
 else()
@@ -314,6 +335,8 @@ if(ENABLE_DR16)
     set(active_remoter_uart "${remoter_uart}")
 elseif(ENABLE_VT03)
     set(active_remoter_uart "uart7")
+elseif(ENABLE_PS2)
+    set(active_remoter_uart "${remoter_uart}")
 endif()
 
 string(JSON test_report_uart ERROR_VARIABLE json_err GET "${params_json}" test report_uart)
@@ -383,14 +406,30 @@ endif()
 
 set(params_remoter_body "")
 _pnx_param_uint("remoter" "thread_priority" _line)
+if(_line STREQUAL "")
+    set(_line "  inline constexpr std::uint32_t thread_priority = 2${generated_semicolon_token}\n")
+endif()
 string(APPEND params_remoter_body "${_line}")
 _pnx_param_uint("remoter" "rx_timeout_ticks" _line)
-string(APPEND params_remoter_body "${_line}")
-if(params_remoter_body STREQUAL "")
-    string(CONCAT params_remoter_body
-        "  inline constexpr std::uint32_t thread_priority = 2${generated_semicolon_token}\n"
-        "  inline constexpr std::uint32_t rx_timeout_ticks = 100${generated_semicolon_token}\n")
+if(_line STREQUAL "")
+    set(_line "  inline constexpr std::uint32_t rx_timeout_ticks = 100${generated_semicolon_token}\n")
 endif()
+string(APPEND params_remoter_body "${_line}")
+_pnx_param_uint("remoter" "ps2_offline_timeout_ticks" _line)
+if(_line STREQUAL "")
+    set(_line "  inline constexpr std::uint32_t ps2_offline_timeout_ticks = 600${generated_semicolon_token}\n")
+endif()
+string(APPEND params_remoter_body "${_line}")
+_pnx_param_uint("remoter" "ps2_frame_timeout_ticks" _line)
+if(_line STREQUAL "")
+    set(_line "  inline constexpr std::uint32_t ps2_frame_timeout_ticks = 20${generated_semicolon_token}\n")
+endif()
+string(APPEND params_remoter_body "${_line}")
+_pnx_param_float("remoter" "ps2_deadzone" _line)
+if(_line STREQUAL "")
+    set(_line "  inline constexpr float ps2_deadzone = 0.08f${generated_semicolon_token}\n")
+endif()
+string(APPEND params_remoter_body "${_line}")
 
 set(params_referee_body "")
 _pnx_param_uint("referee" "thread_priority" _line)
@@ -457,8 +496,10 @@ file(WRITE "${CONFIG_HPP}"
 "#define ENABLE_USBX ${ENABLE_USBX_C}\n"
 "#define HAS_REMOTER ${HAS_REMOTER}\n"
 "#define HAS_VT03 ${HAS_VT03}\n"
+"#define HAS_PS2 ${HAS_PS2}\n"
 "#define ENABLE_DR16 ${ENABLE_DR16}\n"
 "#define ENABLE_VT03 ${ENABLE_VT03}\n"
+"#define ENABLE_PS2 ${ENABLE_PS2}\n"
 "#define HAS_REFEREE ${HAS_REFEREE}\n"
 "#define HAS_UI ${HAS_UI}\n"
 "#define HAS_MOTORS ${HAS_MOTORS}\n"
@@ -472,8 +513,10 @@ file(WRITE "${CONFIG_HPP}"
 "inline constexpr bool enable_usbx = ${ENABLE_USBX_C};\n"
 "inline constexpr bool has_remoter = ${HAS_REMOTER};\n"
 "inline constexpr bool has_vt03 = ${HAS_VT03};\n"
+"inline constexpr bool has_ps2 = ${HAS_PS2};\n"
 "inline constexpr bool enable_dr16 = ${ENABLE_DR16};\n"
 "inline constexpr bool enable_vt03 = ${ENABLE_VT03};\n"
+"inline constexpr bool enable_ps2 = ${ENABLE_PS2};\n"
 "inline constexpr bool has_referee = ${HAS_REFEREE};\n"
 "inline constexpr bool has_ui = ${HAS_UI};\n"
 "inline constexpr bool has_motors = ${HAS_MOTORS};\n"
@@ -524,6 +567,7 @@ file(WRITE "${CONFIG_HPP}"
 "${uart_binding_body}\n\n"
 "inline constexpr bsp::usart::port dr16 = ${dr16_binding};\n"
 "inline constexpr bsp::usart::port vt03 = ${vt03_binding};\n"
+"inline constexpr bsp::usart::port ps2 = ${ps2_binding};\n"
 "inline constexpr bsp::usart::port referee = ${referee_binding};\n"
 "inline constexpr bsp::usart::port test_report = ${test_report_binding};\n\n"
 "} // namespace uart\n"
@@ -611,6 +655,10 @@ function(_pnx_motor_model_expr model out_var)
         set(${out_var} "model::dm_dm4310" PARENT_SCOPE)
     elseif(model_lower STREQUAL "dm_dm8009p")
         set(${out_var} "model::dm_dm8009p" PARENT_SCOPE)
+    elseif(model_lower STREQUAL "lk_lk8016")
+        set(${out_var} "model::lk_lk8016" PARENT_SCOPE)
+    elseif(model_lower STREQUAL "lk_lk9025")
+        set(${out_var} "model::lk_lk9025" PARENT_SCOPE)
     elseif(model_lower STREQUAL "unknown" OR model_lower STREQUAL "")
         set(${out_var} "model::unknown" PARENT_SCOPE)
     else()
@@ -747,6 +795,8 @@ file(WRITE "${ROBOT_CONFIG_HPP}"
 "    dji_xroll,\n"
 "    dm_dm4310,\n"
 "    dm_dm8009p,\n"
+"    lk_lk8016,\n"
+"    lk_lk9025,\n"
 "};\n\n"
 "namespace dm {\n"
 "inline constexpr std::uint32_t id_base = ${robot_dm_id_base}U;\n"

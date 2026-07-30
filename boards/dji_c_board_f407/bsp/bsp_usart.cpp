@@ -357,6 +357,85 @@ types::status init(port selected, mode selected_mode)
     return types::status::ok;
 }
 
+types::status configure(port selected, const line_config& line)
+{
+    if (selected >= port_count || line.baud_rate == 0U ||
+        (!line.enable_tx && !line.enable_rx))
+    {
+        return types::status::invalid_arg;
+    }
+    if (!port_enabled(selected))
+    {
+        return types::status::not_configured;
+    }
+    port_state* ctx = port_state_of(selected);
+    hardware_state* hw = hardware_state_of(selected);
+    UART_HandleTypeDef* handle = handle_of(selected);
+    if (ctx == nullptr || hw == nullptr || handle == nullptr)
+    {
+        return types::status::invalid_arg;
+    }
+    if (ctx->rx_buffer != nullptr ||
+        hw->tx_in_flight.load(std::memory_order_acquire))
+    {
+        return types::status::busy;
+    }
+
+    switch (line.data_bits)
+    {
+    case word_length::bits_8:
+        handle->Init.WordLength = UART_WORDLENGTH_8B;
+        break;
+    case word_length::bits_9:
+        handle->Init.WordLength = UART_WORDLENGTH_9B;
+        break;
+    default:
+        return types::status::invalid_arg;
+    }
+
+    switch (line.stop)
+    {
+    case stop_bits::one:
+        handle->Init.StopBits = UART_STOPBITS_1;
+        break;
+    case stop_bits::two:
+        handle->Init.StopBits = UART_STOPBITS_2;
+        break;
+    default:
+        return types::status::invalid_arg;
+    }
+
+    switch (line.parity_mode)
+    {
+    case parity::none:
+        handle->Init.Parity = UART_PARITY_NONE;
+        break;
+    case parity::even:
+        handle->Init.Parity = UART_PARITY_EVEN;
+        break;
+    case parity::odd:
+        handle->Init.Parity = UART_PARITY_ODD;
+        break;
+    default:
+        return types::status::invalid_arg;
+    }
+
+    handle->Init.BaudRate = line.baud_rate;
+    handle->Init.Mode =
+        (line.enable_tx ? UART_MODE_TX : 0U) |
+        (line.enable_rx ? UART_MODE_RX : 0U);
+    handle->Init.HwFlowCtl = UART_HWCONTROL_NONE;
+    if (HAL_UART_Init(handle) != HAL_OK)
+    {
+        ctx->error_count.fetch_add(
+            1U, std::memory_order_relaxed);
+        return types::status::error;
+    }
+
+    ctx->initialized = false;
+    return types::status::ok;
+}
+
 types::status transmit(port selected, const std::uint8_t* data,
                        std::size_t len, std::uint32_t timeout_ms)
 {

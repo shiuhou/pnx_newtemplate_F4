@@ -70,6 +70,30 @@ int main()
     host_test::fake_usart::reset();
 
     require(bsp::usart::port_enabled(0U));
+    const bsp::usart::line_config ps2_line{
+        9600U,
+        bsp::usart::word_length::bits_8,
+        bsp::usart::stop_bits::one,
+        bsp::usart::parity::none,
+        true,
+        true,
+    };
+    require(bsp::usart::configure(
+                0U, ps2_line) == types::status::ok);
+    auto invalid_line = ps2_line;
+    invalid_line.baud_rate = 0U;
+    require(bsp::usart::configure(
+                0U, invalid_line) == types::status::invalid_arg);
+    invalid_line = ps2_line;
+    invalid_line.enable_tx = false;
+    invalid_line.enable_rx = false;
+    require(bsp::usart::configure(
+                0U, invalid_line) == types::status::invalid_arg);
+    require(bsp::usart::configure(
+                3U, ps2_line) == types::status::not_configured);
+    require(bsp::usart::configure(
+                bsp::usart::port_count,
+                ps2_line) == types::status::invalid_arg);
     require(bsp::usart::init(
                 0U, bsp::usart::mode::dma) ==
             types::status::ok);

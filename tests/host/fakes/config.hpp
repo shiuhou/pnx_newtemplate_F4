@@ -30,7 +30,7 @@ inline constexpr std::array<port_config, port_count> configs{{
     {true, handle_id::fake0, true, true},
     {true, handle_id::fake1, true, true},
     {true, handle_id::fake2, true, true},
-    {true, handle_id::fake3, true, true},
+    {false, handle_id::fake3, true, true},
 }};
 
 } // namespace bsp::usart
@@ -85,6 +85,24 @@ inline constexpr std::array<bus_config, bus_count> configs{{
 }};
 
 } // namespace bsp::can
+
+namespace app::uart
+{
+
+inline constexpr bsp::usart::port dr16 = 0U;
+inline constexpr bsp::usart::port vt03 = 1U;
+inline constexpr bsp::usart::port ps2 = 2U;
+
+} // namespace app::uart
+
+namespace config::feature
+{
+
+inline constexpr bool enable_dr16 = false;
+inline constexpr bool enable_vt03 = false;
+inline constexpr bool enable_ps2 = false;
+
+} // namespace config::feature
 
 namespace params::usb
 {

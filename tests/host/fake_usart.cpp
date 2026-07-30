@@ -10,6 +10,7 @@ struct port_state
 {
     bool initialized = false;
     bsp::usart::mode active_mode = bsp::usart::mode::block;
+    bsp::usart::line_config line{};
     bsp::usart::rx_handler handler = nullptr;
     void* user_data = nullptr;
     bsp::usart::notify_handler notify = nullptr;
@@ -129,6 +130,27 @@ types::status init(port selected, mode selected_mode)
     }
     ctx->active_mode = selected_mode;
     ctx->initialized = true;
+    return types::status::ok;
+}
+
+types::status configure(port selected, const line_config& line)
+{
+    port_state* ctx = state_of(selected);
+    if (ctx == nullptr || line.baud_rate == 0U ||
+        (!line.enable_tx && !line.enable_rx))
+    {
+        return types::status::invalid_arg;
+    }
+    if (!port_enabled(selected))
+    {
+        return types::status::not_configured;
+    }
+    if (ctx->rx_buffer != nullptr)
+    {
+        return types::status::busy;
+    }
+    ctx->line = line;
+    ctx->initialized = false;
     return types::status::ok;
 }
 
