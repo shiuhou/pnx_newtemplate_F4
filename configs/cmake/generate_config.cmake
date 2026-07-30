@@ -245,6 +245,16 @@ list(JOIN can_id_type_list ", " can_id_type_cpp)
 list(JOIN can_config_list ", " can_config_cpp)
 list(LENGTH PNX_IOC_CAN_HW can_bus_count)
 
+set(can_template_compat_aliases "")
+list(FIND PNX_IOC_CAN_HW "CAN1" can1_index)
+if(can1_index GREATER_EQUAL 0)
+    string(APPEND can_template_compat_aliases ", fdcan1 = can1")
+endif()
+list(FIND PNX_IOC_CAN_HW "CAN2" can2_index)
+if(can2_index GREATER_EQUAL 0)
+    string(APPEND can_template_compat_aliases ", fdcan2 = can2")
+endif()
+
 set(usart_enabled_list "")
 set(usart_config_list "")
 set(usart_handle_enum_entries "")
@@ -476,7 +486,7 @@ file(WRITE "${CONFIG_HPP}"
 "enum class bus_type : std::uint8_t { classic = 0, fd = 1 };\n"
 "enum class id_type : std::uint8_t { standard = 0, extended = 1 };\n"
 "enum class handle_id : std::uint8_t { none = 0${can_handle_enum_entries} };\n"
-"enum class bus : std::uint8_t { ${can_bus_enum_entries} };\n\n"
+"enum class bus : std::uint8_t { ${can_bus_enum_entries}${can_template_compat_aliases} };\n\n"
 "struct bus_config\n"
 "{\n"
 "    bool enabled = false;\n"

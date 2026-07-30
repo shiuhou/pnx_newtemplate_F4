@@ -3,16 +3,32 @@
 #include "pwm_channels.hpp"
 #include "stm32f4xx_hal.h"
 
+#include <array>
+#include <cmath>
+
+namespace bsp::pwm
+{
 namespace
 {
 
 TIM_HandleTypeDef timer{};
 bool initialized = false;
 constexpr std::uint32_t timer_channel = TIM_CHANNEL_2;
+constexpr std::size_t tracked_channel_count = 8U;
+std::array<std::uint32_t, tracked_channel_count> periods_us{
+    20000U, 20000U, 20000U, 20000U,
+    20000U, 20000U, 20000U, 20000U};
 
-bool selected_channel(bsp::pwm::channel selected) noexcept
+bool selected_channel(channel selected) noexcept
 {
     return selected == board::pwm::servo_c2;
+}
+
+std::uint32_t* period_of(channel selected) noexcept
+{
+    return selected.value < periods_us.size()
+               ? &periods_us[selected.value]
+               : nullptr;
 }
 
 std::uint32_t timer_clock_hz() noexcept
@@ -78,17 +94,14 @@ types::status ensure_initialized() noexcept
 
 } // namespace
 
-namespace bsp::pwm::detail
-{
-
-bool backend_enabled(channel selected) noexcept
+bool is_enabled(channel selected) noexcept
 {
     return selected_channel(selected);
 }
 
-types::status backend_start(channel selected) noexcept
+types::status start(channel selected) noexcept
 {
-    if (!selected_channel(selected))
+    if (!is_enabled(selected))
     {
         return types::status::not_configured;
     }
@@ -101,9 +114,9 @@ types::status backend_start(channel selected) noexcept
                : types::status::error;
 }
 
-types::status backend_stop(channel selected) noexcept
+types::status stop(channel selected) noexcept
 {
-    if (!selected_channel(selected))
+    if (!is_enabled(selected))
     {
         return types::status::not_configured;
     }
@@ -123,36 +136,85 @@ types::status backend_stop(channel selected) noexcept
                             : types::status::error;
 }
 
-types::status backend_set_period_us(
-    channel selected, std::uint32_t period_us) noexcept
+types::status set_period_us(channel selected,
+                            std::uint32_t period_us) noexcept
 {
-    if (!selected_channel(selected))
+    std::uint32_t* current = period_of(selected);
+    if (!is_enabled(selected))
     {
         return types::status::not_configured;
     }
-    if (period_us == 0U || period_us > 65536U ||
-        ensure_initialized() != types::status::ok)
+    if (current == nullptr || period_us == 0U || period_us > 65536U)
     {
         return types::status::invalid_arg;
     }
-    __HAL_TIM_SET_AUTORELOAD(&timer, period_us - 1U);
-    __HAL_TIM_SET_COUNTER(&timer, 0U);
-    return types::status::ok;
-}
-
-types::status backend_set_pulse_us(
-    channel selected, std::uint32_t pulse_us) noexcept
-{
-    if (!selected_channel(selected))
-    {
-        return types::status::not_configured;
-    }
-    if (!initialized && ensure_initialized() != types::status::ok)
+    if (ensure_initialized() != types::status::ok)
     {
         return types::status::error;
     }
+
+    __HAL_TIM_SET_AUTORELOAD(&timer, period_us - 1U);
+    __HAL_TIM_SET_COUNTER(&timer, 0U);
+    *current = period_us;
+    return types::status::ok;
+}
+
+types::status set_pulse_us(channel selected,
+                           std::uint32_t pulse_us) noexcept
+{
+    std::uint32_t* current = period_of(selected);
+    if (!is_enabled(selected))
+    {
+        return types::status::not_configured;
+    }
+    if (current == nullptr || pulse_us > *current)
+    {
+        return types::status::invalid_arg;
+    }
+    if (ensure_initialized() != types::status::ok)
+    {
+        return types::status::error;
+    }
+
     __HAL_TIM_SET_COMPARE(&timer, timer_channel, pulse_us);
     return types::status::ok;
 }
 
-} // namespace bsp::pwm::detail
+types::status set_duty(channel selected, float duty_ratio) noexcept
+{
+    std::uint32_t* current = period_of(selected);
+    if (!is_enabled(selected))
+    {
+        return types::status::not_configured;
+    }
+    if (current == nullptr || !std::isfinite(duty_ratio))
+    {
+        return types::status::invalid_arg;
+    }
+    if (duty_ratio < 0.0F)
+    {
+        duty_ratio = 0.0F;
+    }
+    else if (duty_ratio > 1.0F)
+    {
+        duty_ratio = 1.0F;
+    }
+    return set_pulse_us(
+        selected,
+        static_cast<std::uint32_t>(
+            duty_ratio * static_cast<float>(*current)));
+}
+
+void set_period(channel selected, float period_s) noexcept
+{
+    if (!is_enabled(selected) || !std::isfinite(period_s) ||
+        period_s <= 0.0F || period_s > 0.065536F)
+    {
+        return;
+    }
+    (void)set_period_us(
+        selected,
+        static_cast<std::uint32_t>(period_s * 1000000.0F));
+}
+
+} // namespace bsp::pwm

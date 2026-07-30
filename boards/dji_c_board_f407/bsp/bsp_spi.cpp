@@ -117,27 +117,27 @@ types::status transfer_byte(
 
 } // namespace
 
-namespace bsp::spi::detail
+namespace bsp::spi
 {
 
-bool backend_bus_enabled(bus selected) noexcept
+bool bus_enabled(bus selected) noexcept
 {
     return selected_bus(selected);
 }
 
-bool backend_select_enabled(chip_select selected) noexcept
+bool select_enabled(chip_select selected) noexcept
 {
     return select_port(selected) != nullptr;
 }
 
-types::status backend_init(bus selected) noexcept
+types::status init(bus selected) noexcept
 {
     return selected_bus(selected)
                ? initialize_spi1()
                : types::status::not_configured;
 }
 
-types::status backend_wait_ready(
+types::status wait_ready(
     bus selected, std::uint32_t timeout_ms) noexcept
 {
     if (!selected_bus(selected) || !initialized)
@@ -150,17 +150,17 @@ types::status backend_wait_ready(
                : types::status::error;
 }
 
-types::status backend_transmit(
+types::status transmit(
     bus selected, const std::uint8_t* data, std::size_t len,
     std::uint32_t timeout_ms) noexcept
 {
-    if (!selected_bus(selected) || !initialized)
-    {
-        return types::status::not_configured;
-    }
     if (data == nullptr || len == 0U)
     {
         return types::status::invalid_arg;
+    }
+    if (!selected_bus(selected) || !initialized)
+    {
+        return types::status::not_configured;
     }
     const std::uint32_t started = HAL_GetTick();
     std::uint8_t discarded = 0U;
@@ -178,17 +178,17 @@ types::status backend_transmit(
                : types::status::error;
 }
 
-types::status backend_receive(
+types::status receive(
     bus selected, std::uint8_t* data, std::size_t len,
     std::uint32_t timeout_ms) noexcept
 {
-    if (!selected_bus(selected) || !initialized)
-    {
-        return types::status::not_configured;
-    }
     if (data == nullptr || len == 0U)
     {
         return types::status::invalid_arg;
+    }
+    if (!selected_bus(selected) || !initialized)
+    {
+        return types::status::not_configured;
     }
     const std::uint32_t started = HAL_GetTick();
     for (std::size_t index = 0U; index < len; ++index)
@@ -205,7 +205,7 @@ types::status backend_receive(
                : types::status::error;
 }
 
-types::status backend_set_select(
+types::status set_select(
     chip_select selected, bool active) noexcept
 {
     GPIO_TypeDef* const port = select_port(selected);
@@ -219,4 +219,9 @@ types::status backend_set_select(
     return types::status::ok;
 }
 
-} // namespace bsp::spi::detail
+void cs_set(cs selected, bool active) noexcept
+{
+    (void)set_select(selected, active);
+}
+
+} // namespace bsp::spi

@@ -61,6 +61,8 @@ enum class bus : std::uint8_t
 {
     can1 = 0,
     can2,
+    fdcan1 = can1,
+    fdcan2 = can2,
     none,
 };
 

@@ -1,4 +1,4 @@
-#include "fake_spi_backend.hpp"
+#include "fake_spi.hpp"
 
 #include "bsp_spi.hpp"
 
@@ -47,22 +47,22 @@ std::size_t receive_count() noexcept
 
 } // namespace host_test::fake_spi
 
-namespace bsp::spi::detail
+namespace bsp::spi
 {
 
-bool backend_bus_enabled(bus selected) noexcept
+bool bus_enabled(bus selected) noexcept
 {
     return selected == bus{0U};
 }
 
-bool backend_select_enabled(chip_select selected) noexcept
+bool select_enabled(chip_select selected) noexcept
 {
     return selected.value < selected_lines.size();
 }
 
-types::status backend_init(bus selected) noexcept
+types::status init(bus selected) noexcept
 {
-    if (!backend_bus_enabled(selected))
+    if (!bus_enabled(selected))
     {
         return types::status::not_configured;
     }
@@ -70,18 +70,22 @@ types::status backend_init(bus selected) noexcept
     return types::status::ok;
 }
 
-types::status backend_wait_ready(bus selected, std::uint32_t) noexcept
+types::status wait_ready(bus selected, std::uint32_t) noexcept
 {
-    return backend_bus_enabled(selected) && ready
+    return bus_enabled(selected) && ready
                ? types::status::ok
                : types::status::not_configured;
 }
 
-types::status backend_transmit(
-    bus selected, const std::uint8_t*, std::size_t,
+types::status transmit(
+    bus selected, const std::uint8_t* data, std::size_t len,
     std::uint32_t) noexcept
 {
-    if (!backend_bus_enabled(selected) || !ready)
+    if (data == nullptr || len == 0U)
+    {
+        return types::status::invalid_arg;
+    }
+    if (!bus_enabled(selected) || !ready)
     {
         return types::status::not_configured;
     }
@@ -89,11 +93,15 @@ types::status backend_transmit(
     return types::status::ok;
 }
 
-types::status backend_receive(
+types::status receive(
     bus selected, std::uint8_t* data, std::size_t len,
     std::uint32_t) noexcept
 {
-    if (!backend_bus_enabled(selected) || !ready)
+    if (data == nullptr || len == 0U)
+    {
+        return types::status::invalid_arg;
+    }
+    if (!bus_enabled(selected) || !ready)
     {
         return types::status::not_configured;
     }
@@ -105,10 +113,10 @@ types::status backend_receive(
     return types::status::ok;
 }
 
-types::status backend_set_select(
+types::status set_select(
     chip_select selected, bool active) noexcept
 {
-    if (!backend_select_enabled(selected))
+    if (!select_enabled(selected))
     {
         return types::status::not_configured;
     }
@@ -116,4 +124,9 @@ types::status backend_set_select(
     return types::status::ok;
 }
 
-} // namespace bsp::spi::detail
+void cs_set(cs selected, bool active) noexcept
+{
+    (void)set_select(selected, active);
+}
+
+} // namespace bsp::spi

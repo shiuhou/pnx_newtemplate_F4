@@ -1,5 +1,5 @@
 #include "bsp_pwm.hpp"
-#include "fake_pwm_backend.hpp"
+#include "fake_pwm.hpp"
 
 #include <cstdlib>
 
@@ -28,6 +28,13 @@ int main()
     require(bsp::pwm::set_pulse_us(servo, 20001U) ==
             types::status::invalid_arg);
 
+    require(bsp::pwm::set_period_us(servo, 20000U) ==
+            types::status::ok);
+    bsp::pwm::set_period(servo, 0.010F);
+    require(host_test::fake_pwm::period_us() == 10000U);
+    bsp::pwm::set_period(
+        bsp::pwm::channel::tim3_ch4, 0.020F);
+    require(host_test::fake_pwm::period_us() == 10000U);
     require(bsp::pwm::set_period_us(servo, 20000U) ==
             types::status::ok);
     require(bsp::pwm::set_pulse_us(servo, 1500U) ==

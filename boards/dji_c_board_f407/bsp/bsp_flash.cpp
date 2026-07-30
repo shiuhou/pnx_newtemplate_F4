@@ -54,16 +54,23 @@ types::status finish_flash(HAL_StatusTypeDef status) noexcept
 
 } // namespace
 
-namespace bsp::flash::detail
+namespace bsp::flash
 {
 
-geometry backend_geometry() noexcept
+geometry layout() noexcept
 {
     return {0x08000000U, 0x08100000U, 4U};
 }
 
-types::status backend_erase_block(std::uint32_t address) noexcept
+types::status erase_block(std::uint32_t address) noexcept
 {
+    const geometry current = layout();
+    if (current.begin >= current.end ||
+        address < current.begin || address >= current.end)
+    {
+        return types::status::invalid_arg;
+    }
+
     std::uint32_t sector_id = 0U;
     if (!sector_at(address, sector_id))
     {
@@ -85,14 +92,21 @@ types::status backend_erase_block(std::uint32_t address) noexcept
         HAL_FLASHEx_Erase(&erase, &failed_sector));
 }
 
-types::status backend_program(
-    std::uint32_t address, const std::uint8_t* data,
-    std::size_t len) noexcept
+types::status program(
+    std::uint32_t address, const void* source, std::size_t len) noexcept
 {
-    if (data == nullptr || len == 0U || (len % 4U) != 0U)
+    const geometry current = layout();
+    if (source == nullptr || len == 0U ||
+        current.begin >= current.end ||
+        current.program_alignment == 0U ||
+        address < current.begin || address >= current.end ||
+        (address % current.program_alignment) != 0U ||
+        (len % current.program_alignment) != 0U ||
+        len > static_cast<std::size_t>(current.end - address))
     {
         return types::status::invalid_arg;
     }
+    const auto* data = static_cast<const std::uint8_t*>(source);
     if (HAL_FLASH_Unlock() != HAL_OK)
     {
         return types::status::error;
@@ -113,4 +127,4 @@ types::status backend_program(
     return finish_flash(status);
 }
 
-} // namespace bsp::flash::detail
+} // namespace bsp::flash

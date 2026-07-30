@@ -1,5 +1,5 @@
 #include "bsp_can.hpp"
-#include "fake_can_backend.hpp"
+#include "fake_can.hpp"
 
 #include <array>
 #include <cstdlib>
@@ -32,7 +32,7 @@ void init_can() noexcept
 void inject_bus_off() noexcept
 {
     host_test::fake_can::set_tick(10U);
-    bsp::can::detail::error_from_isr(
+    host_test::fake_can::inject_error(
         bsp::can::bus::can1, bsp::can::state::bus_off, 10U);
 }
 

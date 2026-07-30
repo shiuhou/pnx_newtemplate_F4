@@ -1,5 +1,5 @@
 #include "bsp_spi.hpp"
-#include "fake_spi_backend.hpp"
+#include "fake_spi.hpp"
 
 #include <array>
 #include <cstdlib>
@@ -47,9 +47,10 @@ int main()
     require(bsp::spi::set_select(accel, false) ==
             types::status::ok);
     require(!host_test::fake_spi::selected(0U));
-    require(bsp::spi::set_select(gyro, true) ==
-            types::status::ok);
+    bsp::spi::cs_set(bsp::spi::cs::bmi088_gyro, true);
     require(host_test::fake_spi::selected(1U));
+    bsp::spi::cs_set(bsp::spi::cs::bmi088_gyro, false);
+    require(!host_test::fake_spi::selected(1U));
 
     require(bsp::spi::transmit(
                 imu_bus, data.data(), data.size(), 10U) ==

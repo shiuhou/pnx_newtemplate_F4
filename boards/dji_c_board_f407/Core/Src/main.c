@@ -17,11 +17,22 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
+#ifndef PNX_F407_CAN_ENABLED
+#error "PNX_F407_CAN_ENABLED must be derived from the image source graph"
+#endif
+#ifndef PNX_F407_USART_ENABLED
+#error "PNX_F407_USART_ENABLED must be derived from the image source graph"
+#endif
+
 #include "app_threadx.h"
 #include "main.h"
+#if PNX_F407_CAN_ENABLED
 #include "can.h"
+#endif
 #include "dma.h"
+#if PNX_F407_USART_ENABLED
 #include "usart.h"
+#endif
 #if PNX_F407_USB_ENABLED
 #include "usb_otg.h"
 #endif
@@ -94,11 +105,15 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_DMA_Init();
+#if PNX_F407_CAN_ENABLED
   MX_CAN1_Init();
   MX_CAN2_Init();
+#endif
+#if PNX_F407_USART_ENABLED
   MX_USART3_UART_Init();
   MX_USART6_UART_Init();
   MX_USART1_UART_Init();
+#endif
 #if PNX_F407_USB_ENABLED
   MX_USB_OTG_FS_PCD_Init();
 #endif

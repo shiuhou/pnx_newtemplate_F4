@@ -17,10 +17,7 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "PNX_ENABLE_USB_CDC": false,
-        "PNX_ENABLE_CAN_M2006_VALIDATION": false,
-        "PNX_ENABLE_PWM_A2": false,
-        "PNX_ENABLE_BMI088": false,
-        "PNX_ENABLE_DBUS_RX": false
+        "PNX_ENABLE_PWM_A2": false
       }
     },
     {
@@ -29,10 +26,7 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "PNX_ENABLE_USB_CDC": false,
-        "PNX_ENABLE_CAN_M2006_VALIDATION": false,
-        "PNX_ENABLE_PWM_A2": false,
-        "PNX_ENABLE_BMI088": false,
-        "PNX_ENABLE_DBUS_RX": false
+        "PNX_ENABLE_PWM_A2": false
       }
     },
     {
@@ -41,10 +35,7 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "PNX_ENABLE_USB_CDC": true,
-        "PNX_ENABLE_CAN_M2006_VALIDATION": false,
-        "PNX_ENABLE_PWM_A2": false,
-        "PNX_ENABLE_BMI088": false,
-        "PNX_ENABLE_DBUS_RX": false
+        "PNX_ENABLE_PWM_A2": false
       }
     },
     {
@@ -53,10 +44,7 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "PNX_ENABLE_USB_CDC": true,
-        "PNX_ENABLE_CAN_M2006_VALIDATION": false,
-        "PNX_ENABLE_PWM_A2": false,
-        "PNX_ENABLE_BMI088": false,
-        "PNX_ENABLE_DBUS_RX": false
+        "PNX_ENABLE_PWM_A2": false
       }
     },
     {
@@ -65,34 +53,7 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "PNX_ENABLE_USB_CDC": false,
-        "PNX_ENABLE_CAN_M2006_VALIDATION": false,
-        "PNX_ENABLE_PWM_A2": true,
-        "PNX_ENABLE_BMI088": false,
-        "PNX_ENABLE_DBUS_RX": false
-      }
-    },
-    {
-      "name": "f407-bmi088-debug",
-      "inherits": "f407-base",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "PNX_ENABLE_USB_CDC": false,
-        "PNX_ENABLE_CAN_M2006_VALIDATION": false,
-        "PNX_ENABLE_PWM_A2": false,
-        "PNX_ENABLE_BMI088": true,
-        "PNX_ENABLE_DBUS_RX": false
-      }
-    },
-    {
-      "name": "f407-dbus-rx-debug",
-      "inherits": "f407-base",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "PNX_ENABLE_USB_CDC": false,
-        "PNX_ENABLE_CAN_M2006_VALIDATION": false,
-        "PNX_ENABLE_PWM_A2": false,
-        "PNX_ENABLE_BMI088": false,
-        "PNX_ENABLE_DBUS_RX": true
+        "PNX_ENABLE_PWM_A2": true
       }
     }
   ],
@@ -116,14 +77,6 @@
     {
       "name": "f407-pwm-a2-debug",
       "configurePreset": "f407-pwm-a2-debug"
-    },
-    {
-      "name": "f407-bmi088-debug",
-      "configurePreset": "f407-bmi088-debug"
-    },
-    {
-      "name": "f407-dbus-rx-debug",
-      "configurePreset": "f407-dbus-rx-debug"
     }
   ]
 }

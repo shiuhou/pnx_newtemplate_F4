@@ -19,6 +19,8 @@ struct tx_record
 void reset() noexcept;
 void set_tick(std::uint32_t tick) noexcept;
 void set_recover_status(types::status status) noexcept;
+void inject_error(bsp::can::bus bus, bsp::can::state state,
+                  std::uint32_t tick) noexcept;
 std::uint32_t recover_calls() noexcept;
 std::uint32_t transmit_calls() noexcept;
 bool observed_recovering_state() noexcept;

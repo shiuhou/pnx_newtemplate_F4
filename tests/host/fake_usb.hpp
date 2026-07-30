@@ -10,11 +10,16 @@ namespace host_test::fake_usb
 
 void reset() noexcept;
 void set_init_status(types::status status) noexcept;
+void set_identity_confirmed(bool confirmed) noexcept;
+void complete_startup(types::status status) noexcept;
+void complete_activation(types::status status) noexcept;
+void set_write_gate_available(bool available) noexcept;
 std::uint32_t init_calls() noexcept;
 std::uint32_t signal_calls() noexcept;
 void set_connected(bool connected) noexcept;
 bool pop_tx(std::array<std::uint8_t, 128>& output,
             std::uint16_t& length) noexcept;
+void poll_worker() noexcept;
 void complete_tx(std::uint16_t requested, std::uint16_t actual,
                  types::status status,
                  std::uint32_t native_status) noexcept;

@@ -1,4 +1,5 @@
 #include "bsp_usart.hpp"
+#include "usart_support.hpp"
 
 #include <array>
 #include <cstdlib>
@@ -36,6 +37,36 @@ void on_rx(
 
 int main()
 {
+    std::array<std::uint8_t, 8U> activation_rx{};
+    board::usart::rx_activation_state activation{};
+    bool metadata_visible_during_start = false;
+    require(board::usart::activate_rx(
+                activation, activation_rx.data(),
+                activation_rx.size(),
+                bsp::usart::rx_delivery::stream_segments,
+                [&]() noexcept {
+                    metadata_visible_during_start =
+                        activation.buffer == activation_rx.data() &&
+                        activation.len == activation_rx.size() &&
+                        activation.cursor == 0U &&
+                        activation.delivery ==
+                            bsp::usart::rx_delivery::stream_segments;
+                    return types::status::ok;
+                }) == types::status::ok);
+    require(metadata_visible_during_start);
+
+    std::array<std::uint8_t, 4U> rejected_rx{};
+    require(board::usart::activate_rx(
+                activation, rejected_rx.data(), rejected_rx.size(),
+                bsp::usart::rx_delivery::frame_snapshot,
+                []() noexcept {
+                    return types::status::error;
+                }) == types::status::error);
+    require(activation.buffer == activation_rx.data());
+    require(activation.len == activation_rx.size());
+    require(activation.delivery ==
+            bsp::usart::rx_delivery::stream_segments);
+
     host_test::fake_usart::reset();
 
     require(bsp::usart::port_enabled(0U));

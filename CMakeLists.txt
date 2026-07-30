@@ -17,19 +17,25 @@ endif()
 
 option(PNX_ENABLE_USB_CDC "Build the additive F407 USB CDC closure" OFF)
 set(PNX_F407_USB_ENABLED "${PNX_ENABLE_USB_CDC}")
-option(PNX_ENABLE_CAN_M2006_VALIDATION
-    "Build the attended-only F407 CAN1/M2006 validation image" OFF)
 option(PNX_ENABLE_PWM_A2
     "Build the attended F407 TIM1/PE11 servo vertical slice" OFF)
-option(PNX_ENABLE_BMI088
-    "Build the F407 onboard BMI088 vertical slice" OFF)
-option(PNX_ENABLE_DBUS_RX
-    "Build the F407 USART3/DBUS receive vertical slice" OFF)
+
+foreach(PNX_RETIRED_VALIDATION_OPTION
+        PNX_ENABLE_CAN_M2006_VALIDATION
+        PNX_ENABLE_BMI088
+        PNX_ENABLE_DBUS_RX)
+    if(DEFINED ${PNX_RETIRED_VALIDATION_OPTION} AND
+       ${PNX_RETIRED_VALIDATION_OPTION})
+        message(FATAL_ERROR
+            "${PNX_RETIRED_VALIDATION_OPTION} was retired when "
+            "pnx_devices/pnx_libs/pnx_modules returned to the pnx_template "
+            "gitlinks; this repository no longer claims that validation image")
+    endif()
+endforeach()
+
 set(PNX_SELECTED_OPTIONAL_APPLICATIONS 0)
 foreach(PNX_APPLICATION_OPTION
-        PNX_ENABLE_USB_CDC PNX_ENABLE_CAN_M2006_VALIDATION
-        PNX_ENABLE_PWM_A2
-        PNX_ENABLE_BMI088 PNX_ENABLE_DBUS_RX)
+        PNX_ENABLE_USB_CDC PNX_ENABLE_PWM_A2)
     if(${PNX_APPLICATION_OPTION})
         math(EXPR PNX_SELECTED_OPTIONAL_APPLICATIONS
             "${PNX_SELECTED_OPTIONAL_APPLICATIONS}+1")
@@ -37,7 +43,7 @@ foreach(PNX_APPLICATION_OPTION
 endforeach()
 if(PNX_SELECTED_OPTIONAL_APPLICATIONS GREATER 1)
     message(FATAL_ERROR
-        "USB CDC, CAN/M2006, PWM/A2, BMI088 and DBUS select different applications")
+        "USB CDC and PWM/A2 select different applications")
 endif()
 
 option(PNX_USB_DEVICE_IDENTITY_CONFIRMED
@@ -85,6 +91,7 @@ endif()
 
 set(PNX_BOARD_ROOT
     "${CMAKE_CURRENT_SOURCE_DIR}/boards/dji_c_board_f407")
+set(PNX_BOARD_BSP_ROOT "${PNX_BOARD_ROOT}/bsp")
 set(PNX_BOARD_IOC
     "${PNX_BOARD_ROOT}/dji_c_board_f407.ioc")
 set(PNX_BOARD_PARAMS
@@ -135,12 +142,10 @@ unset(OUT_DIR)
 
 set(PNX_EMBEDDED_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/demo/app.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/diagnostics/src/bsp_diagnostics.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/dwt/src/bsp_dwt.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/indicator/src/bsp_indicator.cpp"
-    "${PNX_BOARD_ROOT}/pnx_backends/diagnostics_backend.cpp"
-    "${PNX_BOARD_ROOT}/pnx_backends/fault_handlers.S"
-    "${PNX_BOARD_ROOT}/pnx_backends/indicator_backend.cpp"
+    "${PNX_BOARD_BSP_ROOT}/bsp_diagnostics.cpp"
+    "${PNX_BOARD_BSP_ROOT}/bsp_indicator.cpp"
+    "${PNX_BOARD_BSP_ROOT}/fault_handlers.S"
 )
 
 set(PNX_EMBEDDED_INCLUDE_DIRS
@@ -148,66 +153,22 @@ set(PNX_EMBEDDED_INCLUDE_DIRS
     "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/dwt/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/indicator/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/pnx_libs/common/include"
-    "${PNX_BOARD_ROOT}/pnx_backends"
+    "${PNX_BOARD_BSP_ROOT}"
     "${PNX_EMBEDDED_GENERATED_DIR}"
 )
 
-if(PNX_ENABLE_BMI088)
+if(PNX_ENABLE_PWM_A2)
     list(APPEND PNX_EMBEDDED_SOURCES
-        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/spi/src/bsp_spi.cpp"
-        "${PNX_BOARD_ROOT}/pnx_backends/spi_backend.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_devices/imu/bmi088/src/bmi088_transport.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/demo/cboard/imu_bmi088/imu_bmi088.cpp"
-    )
-    list(APPEND PNX_EMBEDDED_INCLUDE_DIRS
-        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/spi/include"
-        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_devices/imu/bmi088/include"
-        "${CMAKE_CURRENT_SOURCE_DIR}/demo/cboard/imu_bmi088"
-    )
-elseif(PNX_ENABLE_DBUS_RX)
-    list(APPEND PNX_EMBEDDED_SOURCES
-        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/usart/src/bsp_usart.cpp"
-        "${PNX_BOARD_ROOT}/pnx_backends/usart_backend.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_libs/msg/src/msg.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_modules/remoter/src/dr16_protocol.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_modules/remoter/src/dr16.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/demo/cboard/dbus_rx/dbus_rx.cpp"
-    )
-    list(APPEND PNX_EMBEDDED_INCLUDE_DIRS
-        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/usart/include"
-        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_libs/msg/include"
-        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_modules/remoter/include"
-        "${CMAKE_CURRENT_SOURCE_DIR}/demo/cboard/dbus_rx"
-    )
-elseif(PNX_ENABLE_PWM_A2)
-    list(APPEND PNX_EMBEDDED_SOURCES
-        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/pwm/src/bsp_pwm.cpp"
-        "${PNX_BOARD_ROOT}/pnx_backends/pwm_backend.cpp"
+        "${PNX_BOARD_BSP_ROOT}/bsp_pwm.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/demo/cboard/pwm_a2/pwm_a2.cpp"
     )
     list(APPEND PNX_EMBEDDED_INCLUDE_DIRS
         "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/pwm/include"
         "${CMAKE_CURRENT_SOURCE_DIR}/demo/cboard/pwm_a2"
     )
-elseif(PNX_ENABLE_CAN_M2006_VALIDATION)
-    list(APPEND PNX_EMBEDDED_SOURCES
-        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/can/src/bsp_can.cpp"
-        "${PNX_BOARD_ROOT}/pnx_backends/can_backend.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_devices/motors/motor/src/motorhandler.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_devices/motors/dji/src/djimotors.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_devices/motors/dji/src/djimotorhandler.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/demo/cboard/can_m2006/can_m2006.cpp"
-    )
-    list(APPEND PNX_EMBEDDED_INCLUDE_DIRS
-        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/can/include"
-        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_devices/motors/motor/include"
-        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_devices/motors/dji/include"
-        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_libs/math/include"
-    )
 elseif(PNX_ENABLE_USB_CDC)
     list(APPEND PNX_EMBEDDED_SOURCES
-        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/usb/src/bsp_usb.cpp"
-        "${PNX_BOARD_ROOT}/pnx_backends/usb_backend.cpp"
+        "${PNX_BOARD_BSP_ROOT}/bsp_usb.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/demo/cboard/usb_cdc/usb_cdc.cpp"
     )
     list(APPEND PNX_EMBEDDED_INCLUDE_DIRS
@@ -219,6 +180,24 @@ else()
     )
 endif()
 
+set(PNX_F407_CAN_ENABLED OFF)
+list(FIND PNX_EMBEDDED_SOURCES
+    "${PNX_BOARD_BSP_ROOT}/bsp_can.cpp"
+    PNX_F407_CAN_SOURCE_INDEX
+)
+if(NOT PNX_F407_CAN_SOURCE_INDEX EQUAL -1)
+    set(PNX_F407_CAN_ENABLED ON)
+endif()
+
+set(PNX_F407_USART_ENABLED OFF)
+list(FIND PNX_EMBEDDED_SOURCES
+    "${PNX_BOARD_BSP_ROOT}/bsp_usart.cpp"
+    PNX_F407_USART_SOURCE_INDEX
+)
+if(NOT PNX_F407_USART_SOURCE_INDEX EQUAL -1)
+    set(PNX_F407_USART_ENABLED ON)
+endif()
+
 add_executable(${PROJECT_NAME})
 add_subdirectory("${PNX_BOARD_CUBEMX_DIR}" board_support)
 
@@ -227,15 +206,8 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${PNX_EMBEDDED_INCLUDE_DIRS}
 )
 target_link_libraries(${PROJECT_NAME} stm32cubemx)
-if(PNX_ENABLE_BMI088)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE PNX_APP_BMI088=1)
-elseif(PNX_ENABLE_DBUS_RX)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE PNX_APP_DBUS_RX=1)
-elseif(PNX_ENABLE_PWM_A2)
+if(PNX_ENABLE_PWM_A2)
     target_compile_definitions(${PROJECT_NAME} PRIVATE PNX_APP_PWM_A2=1)
-elseif(PNX_ENABLE_CAN_M2006_VALIDATION)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE
-        PNX_APP_CAN_M2006_VALIDATION=1)
 elseif(PNX_ENABLE_USB_CDC)
     target_compile_definitions(${PROJECT_NAME} PRIVATE
         PNX_APP_USB_CDC=1
@@ -250,14 +222,12 @@ else()
     target_compile_definitions(${PROJECT_NAME} PRIVATE PNX_APP_BOARD_SMOKE=1)
 endif()
 target_compile_definitions(${PROJECT_NAME} PRIVATE
+    "PNX_F407_CAN_ENABLED=$<BOOL:${PNX_F407_CAN_ENABLED}>"
+    "PNX_F407_USART_ENABLED=$<BOOL:${PNX_F407_USART_ENABLED}>"
     "PNX_F407_USB_ENABLED=$<BOOL:${PNX_F407_USB_ENABLED}>"
 )
 
 message(STATUS "PnX target: DJI C-board STM32F407")
 message(STATUS "PnX USB CDC closure: ${PNX_ENABLE_USB_CDC}")
-message(STATUS
-    "PnX attended CAN/M2006 validation: ${PNX_ENABLE_CAN_M2006_VALIDATION}")
 message(STATUS "PnX PWM/A2 closure: ${PNX_ENABLE_PWM_A2}")
-message(STATUS "PnX BMI088 closure: ${PNX_ENABLE_BMI088}")
-message(STATUS "PnX DBUS RX closure: ${PNX_ENABLE_DBUS_RX}")
 list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_LIBRARIES ob)
