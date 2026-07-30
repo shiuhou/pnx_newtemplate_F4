@@ -2,6 +2,119 @@
 
 This file is a proposal only. The Vault was not modified.
 
+## 2026-07-30 RC2 release-closure proposal
+
+- Record local `pnx_bsp` candidate
+  `4d3ce2abb3dee18ad551cb03428563b38e384050`, which removes the shared
+  forwarding implementation/contracts while keeping MCU-neutral public
+  headers. It is an atomic commit now remotely reachable through official
+  `pnx_bsp/F4_version@c83e892d9ba76e2671e8d1c8fbc2939a7a77e9df`;
+  the merge tip adds only the official Feishu workflow.
+- Record the USB lifecycle contract: `init(ok)` accepts raw config/callback
+  ownership, creates required ThreadX resources, and schedules async startup;
+  `connected()` means CDC transport usable; startup failures become
+  observable fault state; writes are bounded; same-config re-init is
+  idempotent and incompatible ownership is rejected.
+- Record fresh local evidence: all five retained F407 presets configure,
+  compile, and link with zero warnings, exactly one `app_start`, and no
+  duplicate strong `bsp::*`; native CTest is **33/33 PASS**; all three retired
+  validation selectors fail fast.
+- Record the corrected source-graph definition: generated Board source
+  presence alone is not Direct-BSP closure leakage. Core links no optional
+  CAN/USART/SPI/Flash BSP or consumer closure. CMake derives CAN/USART init
+  guards from the existing embedded source list; all five RC2 images compile
+  those values as false. Their fresh ELFs contain zero CAN1/CAN2 or
+  USART1/3/6 init calls and zero matching init symbols, while generated
+  `can.c`/`usart.c` remain dormant compiled capability source.
+- Record the corrected repository boundary:
+  `H7_REGRESSION=OUT_OF_SCOPE`. F407 and H7 use independent BSP
+  implementations and release paths; prior cross-injection results are void
+  as F407 RC2 findings.
+- Preserve current pre-publication status:
+  `H7_REGRESSION=OUT_OF_SCOPE`, `SOURCE_GRAPH_ISOLATION=PASS`,
+  `PNX_BSP_PUSH=PASS`, `PARENT_PUSH=NOT_RUN`,
+  `FRESH_RECURSIVE_CLONE=NOT_RUN`, `RC2_TAG=NOT_CREATED`,
+  `HARDWARE_REVALIDATION=NOT_RUN`.
+- Preserve deferred capability status:
+  `FLASH_CAPABILITY=UNSUPPORTED_UNTIL_RESERVED_PARTITION`,
+  `BMI088_AHRS_CAPABILITY=NOT_IN_RC2_PRODUCT_GRAPH`, and
+  `USB_TYPED_ADAPTER=UNSUPPORTED_UNTIL_CONTRACT_FIX`.
+
+The Vault was not modified.
+
+## Pre-RC2 direct F407 BSP proposal — historical
+
+This section records the earlier uncommitted working-tree and hardware
+evidence. Its software counts, H7 wording, and publication state are
+superseded by the current RC2 release-closure proposal above.
+
+- Record the architecture decision: one HAL-free public BSP contract and one
+  F407 source per peripheral that directly defines the public symbols. The
+  pure `detail::backend_*` forwarding layer is removed; no H7 work is included.
+- Record the reusable-layer boundary: Device and Module code may consume the
+  public BSP contract but cannot see F407 HAL handles, pins, DMA or IRQ names.
+- Record that `pnx_devices`, `pnx_libs` and `pnx_modules` returned to the exact
+  `pnx_template` commits:
+  `8a6783e63d77a15940aea8245bbe2eb13a2f2b11`,
+  `55bd94060b7be562ce7a6773822a6a4d2bcab9c0`, and
+  `a54c493020ba9bcd5b43b99e068a06cdda9dd018`.
+- Record that BMI088, DBUS RX and CAN/M2006 validation closures and dependent
+  claims were retired because the template gitlinks do not reproduce their
+  former APIs.
+- Record fresh local software evidence: 23/23 host tests PASS; Core
+  Debug/Release, USB Debug/Release and PWM Debug builds PASS; F407 ARM syntax
+  checks for dormant CAN/SPI/Flash/USART direct sources and representative
+  template Motor/Remoter consumers PASS; source graphs contain no former
+  backend directory or retired validation source.
+- Record that board-private host-tested policy now publishes USART RX metadata
+  before enabling reception and serializes USB connection/TX lifecycle with a
+  generation check so callbacks from retired connections are ignored.
+- Record the authorized short Core hardware result: clean-first Core Debug
+  ELF SHA-256
+  `EDB72454568B5C719C622B5492BDCDF0B9AB61D1792343FD04D630E7A64A78CA`
+  programmed and verified successfully; reset reached `app_start` twice;
+  ThreadX PendSV execution, advancing DWT, and PH11 GPIO state activity were
+  observed through SWD.
+- Record the authorized optional hardware evidence:
+  - PWM/servo machine evidence passed 5/5 bounded steps and disabled TIM1
+    output with no fault.
+  - Current direct CAN plus unchanged template Motor/DJI Device sources
+    received ID `0x203`, completed the guarded `+500`/125-cycle pulse, returned
+    current to zero, and reported no CAN error/bus-off/drop/fault.
+  - A user-authorized five-second M2006 follow-up retained `+500` and measured
+    exactly 5000 ThreadX ticks at 1000 Hz. It received 7712 CAN frames,
+    completed 2501 guarded control cycles, returned current and final speed to
+    zero, and reported no CAN error/bus-off/drop/fault, ESR, crash, or harness
+    fault. Physical rotation and temperature require user observation.
+  - Current direct SPI plus unchanged template BMI088 Device polling passed
+    chip-ID self-test, accel/gyro reads, changing samples, and valid
+    `32.875 C` temperature with the heater disabled.
+  - Preserve the BMI088 portability limitation: template `bmi088.cpp`
+    references `GYRO_INT_Pin`, which this IOC does not define. The disposable
+    polling build used inert `GYRO_INT_Pin=0U`; DRDY was not exercised.
+  - Current direct USART plus unchanged template Msg/DR16 sources received
+    and parsed live 18-byte DBUS frames. The decisive run reported RX/update
+    `310/310`, errors/busy `0/0`, `offline=0`, 272 motion samples, and non-zero
+    decoded axes. The unchanged 768-byte DR16 stack showed no crash/fault.
+  - Preserve the DBUS limitation: one intervening run observed 225
+    short-frame/error/busy events and went offline; repeating the exact
+    artifact was healthy. Cable placement and signal quality need attended
+    follow-up.
+  - Physical actuator motion was not observed by Codex.
+- Preserve the evidence boundary:
+  `CORE_HARDWARE=PASS_SHORT_DEBUGGER_OBSERVED`,
+  `PHYSICAL_LED=NOT_OBSERVED`, `LONG_SOAK=NOT_RUN`,
+  `USB_HARDWARE=NOT_RUN_FAIL_CLOSED_UNASSIGNED_IDENTITY`,
+  `SERVO_MACHINE_EVIDENCE=PASS`, `CAN_M2006_MACHINE_EVIDENCE=PASS`,
+  `BMI088_POLLING=PASS_WITH_DRDY_LIMITATION`,
+  `PHYSICAL_ACTUATOR_MOTION=NOT_OBSERVED_BY_CODEX`,
+  `DBUS=PASS_WITH_INTERMITTENT_SIGNAL_OBSERVATION`, `H7=NOT_RUN`,
+  `REMOTE_CI=NOT_RUN`, `FRESH_RECURSIVE_CLONE=NOT_RUN`.
+- Record that the repository working tree is uncommitted and unpushed; publish
+  `pnx_bsp` before the parent gitlink, then verify a recursive fresh clone.
+
+The Vault was not modified.
+
 ## Project-state proposal
 
 - Repository:

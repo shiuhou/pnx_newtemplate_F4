@@ -1,4 +1,329 @@
-# F407 Core Hardware Validation Handoff
+# F407 Engineering Handoff
+
+## RC2 release-closure result — 2026-07-30
+
+This section is the current authority for
+`F407-DIRECT-BSP-RC2-RELEASE-CLOSURE`. The user corrected two acceptance
+definitions after the first closure report: H7 is out of scope, and generated
+Board source presence alone is not Direct-BSP closure leakage. Parent
+publication and tagging remain pending, but the user-authorized compile-time
+guards now satisfy the corrected F407 Core call-graph Gate. No hardware was
+operated in this closure.
+
+### Git and architecture state
+
+- Initial parent:
+  `refactor/f407-minimal-architecture@a9d63a3c7c733529fe02df181b8dfcaeb09d0e00`.
+- The Direct BSP architecture/build/test change is committed locally as
+  `2e4b80d211bb660d08bf48f3484d2922a80fff85`. Parent push,
+  official-branch integration, fresh remote clone, and the RC2 tag are still
+  pending at this snapshot.
+- `pnx_bsp` has one local atomic candidate commit:
+  `4d3ce2abb3dee18ad551cb03428563b38e384050`
+  (`refactor: finalize board-selected direct BSP contracts`). Its worktree is
+  clean. It is remotely reachable through official
+  `pnx_bsp/F4_version@c83e892d9ba76e2671e8d1c8fbc2939a7a77e9df`;
+  that non-force merge tip differs from the tested candidate only by retaining
+  the official Feishu workflow. The previous H7-based stop condition is void.
+- Template-shared pins remain source-clean and exact:
+  - `pnx_devices@8a6783e63d77a15940aea8245bbe2eb13a2f2b11`
+  - `pnx_libs@55bd94060b7be562ce7a6773822a6a4d2bcab9c0`
+  - `pnx_modules@a54c493020ba9bcd5b43b99e068a06cdda9dd018`
+- Public BSP headers have zero forbidden STM32 HAL/MCU-handle matches.
+- F407 sources and host fakes directly define public `bsp::*`; no
+  `detail::backend_*` or `pnx_backends` implementation is restored.
+- The official targets exist at
+  `pnx_template/F4_version@cf6577765358822a1bc57c1ea17fe65a795ceb62`
+  and `pnx_bsp/F4_version@c83e892d9ba76e2671e8d1c8fbc2939a7a77e9df`.
+  The local parent has no common ancestor with the official parent branch;
+  the BSP branches share a base but have diverged. A force push is prohibited,
+  so official integration remains a separate reviewed non-force step.
+
+### USB contract closure
+
+- `init(ok)` means raw config/callback ownership accepted, required ThreadX
+  resources created, and asynchronous startup worker scheduled. It does not
+  mean enumerated, host-connected, or CDC-ready.
+- `connected()` is true only while the controller and CDC transport are
+  usable. Controller/activation/resource failure enters observable
+  `link_state::fault`.
+- `write()` is bounded and copies caller data. Before ready, after disconnect,
+  or when the bounded queue cannot accept data it returns a non-`ok` status.
+- Same-config re-init is idempotent. Incompatible callback, user context, or
+  config is rejected without replacing ownership.
+- `fill_tx` runs in the BSP worker, `on_rx` in the USBX bulk-OUT thread, and
+  `on_tx_done` in the USBX bulk-IN thread. Buffers live only for the callback;
+  callbacks must not block. Disconnect retires queued/in-flight ownership and
+  suppresses late success.
+- Fresh native configure/build and CTest:
+  **33/33 PASS**, including resource failure, async success, controller
+  failure, ready transition, write-before-ready, pending-TX disconnect,
+  re-init/ownership, identity fail-closed, and 64-byte/ZLP regressions.
+
+The CubeMX PCD initialization still runs before the BSP lifecycle exists.
+Its failure follows the existing diagnostic fail-stop `Error_Handler()` path;
+it is observable fail-stop, not a BSP runtime-state transition.
+
+### Final local F407 software evidence
+
+All builds used fresh ASCII temporary build directories and GNU Arm
+13.3.1. Configure, compile, and link passed with zero compiler/linker warnings:
+
+| Preset | RAM | Flash | `app_start` | duplicate strong `bsp::*` |
+| --- | ---: | ---: | ---: | ---: |
+| `f407-debug` | 49,792 B | 23,736 B | 1 | 0 |
+| `f407-release` | 49,792 B | 15,188 B | 1 | 0 |
+| `f407-usb-cdc-debug` | 66,040 B | 67,952 B | 1 | 0 |
+| `f407-usb-cdc-release` | 66,000 B | 40,056 B | 1 | 0 |
+| `f407-pwm-a2-debug` | 49,864 B | 27,656 B | 1 | 0 |
+
+The three retired selectors for CAN/M2006, BMI088, and DBUS RX each failed
+configure with exit code 1 and the intended retirement message.
+
+Direct-BSP source selection is isolated: Core links no
+`bsp_can.cpp`/`bsp_usart.cpp`/`bsp_spi.cpp`/`bsp_flash.cpp`, USB adds only its
+USB closure, and PWM adds only its PWM closure. Generated Board source
+presence is not leakage by itself. CMake now derives CAN/USART capability
+macros from membership of the corresponding Direct BSP source in
+`PNX_EMBEDDED_SOURCES`; there is no second cache option or runtime selector.
+`main.c` guards the CAN1/CAN2 and USART1/3/6 headers and init calls with those
+derived values. All five RC2 images compile both values as `0`; fresh ELFs
+contain zero matching calls, zero retained `MX_*_Init` symbols, and zero
+`HAL_CAN_Init`/`HAL_UART_Init` symbols. Generated `can.c` and `usart.c` still
+compile as dormant Board capability source. Direct `bsp::can::init()` and
+`bsp::usart::init()` do not call `MX_*_Init` or HAL peripheral init again.
+
+H7 is a separate BSP implementation and release path. No H7 result is an RC2
+finding or Gate:
+
+```text
+H7_REGRESSION=OUT_OF_SCOPE
+```
+
+### Deferred capability and release boundary
+
+```text
+FLASH_CAPABILITY=UNSUPPORTED_UNTIL_RESERVED_PARTITION
+BMI088_AHRS_CAPABILITY=NOT_IN_RC2_PRODUCT_GRAPH
+USB_TYPED_ADAPTER=UNSUPPORTED_UNTIL_CONTRACT_FIX
+HARDWARE_REVALIDATION=NOT_RUN
+H7_REGRESSION=OUT_OF_SCOPE
+SOURCE_GRAPH_ISOLATION=PASS
+PNX_BSP_PUSH=PASS
+PARENT_PUSH=NOT_RUN
+FRESH_RECURSIVE_CLONE=NOT_RUN
+RC2_TAG=NOT_CREATED
+```
+
+Historical hardware observations below remain evidence for their exact older
+artifacts and scopes. They are not RC2 hardware revalidation.
+
+## Pre-RC2 direct BSP working-tree record — 2026-07-30
+
+This older section is retained as historical engineering evidence. Its
+build counts and current-support statements are superseded by the RC2
+release-closure result above.
+
+### Scope and Git state
+
+- Repository: `pnx_f4_minimal`
+- Parent branch: `refactor/f407-minimal-architecture`
+- Parent baseline: `a9d63a3c7c733529fe02df181b8dfcaeb09d0e00`
+- Pre-existing dirty path at task intake: `AGENTS.md`
+- No commit, push, tag, remote change or Vault write was performed by this
+  task. User-authorized Core, servo, CAN/M2006, BMI088 and DBUS hardware
+  checks were performed; their exact boundaries are recorded below.
+- `pnx_bsp` remains the only shared submodule with F407 architecture changes;
+  its current checkout starts at
+  `d827ca06cde685cccae5274a3e5c689fb7d9a6ba` and has uncommitted changes.
+- The other three submodules now exactly match `pnx_template`:
+  - `pnx_devices@8a6783e63d77a15940aea8245bbe2eb13a2f2b11`
+  - `pnx_libs@55bd94060b7be562ce7a6773822a6a4d2bcab9c0`
+  - `pnx_modules@a54c493020ba9bcd5b43b99e068a06cdda9dd018`
+
+### Architecture result
+
+- Public MCU-neutral contracts remain under `pnx_bsp/*/include`.
+- F407 sources under `boards/dji_c_board_f407/bsp/` directly define public
+  `bsp::*` symbols for CAN, diagnostics, Flash, indicator, PWM, SPI, USART and
+  USB.
+- The former `public -> detail::backend_* -> board backend -> HAL` forwarding
+  path and `boards/dji_c_board_f407/pnx_backends` sources were removed.
+- Host fakes now directly define the same public symbols. They verify API
+  contracts, not F407 HAL runtime.
+- Device and Module code may depend on public BSP headers; HAL handles, pins,
+  DMA and IRQ details remain board-private.
+- No H7 source or validation was added or claimed.
+
+### Reproducibility cleanup
+
+BMI088, DBUS RX and CAN/M2006 validation presets/options, demos, CI builds and
+dependent host tests were removed when Device/Lib/Module returned to template
+gitlinks. CMake rejects their retired selectors rather than silently producing
+an incomplete image.
+
+CAN, SPI, USART and Flash direct BSP sources remain available for future
+application repositories, but no active application closure in this
+repository selects them. Historical BMI088, DBUS and CAN hardware observations
+later in this file remain historical only.
+
+### Fresh local software evidence
+
+Observed on 2026-07-30:
+
+- Native host configure/build and CTest:
+  `cmake -S . -B build/final-20260730-host -G Ninja -DPNX_HOST_TESTS=ON`,
+  `cmake --build build/final-20260730-host`,
+  `ctest --test-dir build/final-20260730-host --output-on-failure`:
+  **23/23 PASS**.
+  The suite includes direct tests of the board-private USB session/generation
+  policy, USART RX publish-before-start rollback, the actual template
+  `motor.hpp` default CAN configuration, and SPI/PWM compatibility entry
+  points.
+- Embedded presets configured and built successfully:
+  - `f407-debug`: RAM 49,792 B; Flash 28,308 B.
+  - `f407-release`: RAM 49,792 B; Flash 17,468 B.
+  - `f407-usb-cdc-debug`: RAM 66,040 B; Flash 70,468 B.
+  - `f407-usb-cdc-release`: RAM 66,000 B; Flash 41,908 B.
+  - `f407-pwm-a2-debug`: RAM 49,864 B; Flash 32,188 B.
+- Focused F407 ARM `-fsyntax-only` checks passed for the dormant direct
+  `bsp_can.cpp`, `bsp_spi.cpp`, `bsp_flash.cpp` and `bsp_usart.cpp`.
+- Focused ARM syntax checks also passed for the actual template consumers
+  `pnx_devices/motors/motor/src/motorhandler.cpp` and
+  `pnx_modules/remoter/src/dr16.cpp`.
+- Actual Ninja command graphs:
+  - Core selected only diagnostics, indicator and fault-handler direct BSP
+    sources.
+  - USB additionally selected `bsp_usb.cpp`.
+  - PWM additionally selected `bsp_pwm.cpp`.
+  - No graph contained `pnx_backends`, BMI088, DBUS RX or CAN/M2006
+    validation sources.
+- Public-header scan found no STM32 HAL type or peripheral handle in the
+  retained CAN/SPI/USART/Flash/USB/PWM/indicator public headers.
+- Template compatibility names stay HAL-free: `fdcan1/fdcan2` alias the F407
+  CAN slots, while unsupported template PWM timer names fail closed.
+- Independent static re-review found no remaining Critical or Important issue
+  after USB lifecycle serialization/generation checks and USART RX ordering
+  were corrected.
+
+### Fresh Core hardware evidence
+
+Observed on the connected DJI C-board on 2026-07-30:
+
+- A clean-first 199-step `f407-debug` build produced
+  `build/f407-debug/pnx_embedded.elf`, SHA-256
+  `EDB72454568B5C719C622B5492BDCDF0B9AB61D1792343FD04D630E7A64A78CA`.
+- Horco CMSIS-DAP v2 serial `482752132243` identified a Cortex-M4 r0p1 target,
+  SWD DPIDR `0x2ba01477`, STM32 device ID `0x10076413`, and 1024 KiB Flash.
+- OpenOCD program and read-back verification completed with `Verified OK`.
+- Two reset/run attempts both reached the fresh ELF's `app_start` at
+  `0x08006266`.
+- After resume, PC samples were in the ThreadX PendSV handler.
+  `DWT_CTRL=0x40000001` and `DWT_CYCCNT` advanced from `0x08331bdf` through
+  `0x0e3fd50a` to `0x144ede84`.
+- `GPIOH_ODR` changed from `0x00000000` to `0x00000800`, proving electrical
+  activity on the Core smoke image's PH11 green-indicator output.
+- The final command returned the verified Core image to reset/run and shut
+  OpenOCD down.
+
+This is a short, debugger-observed Core check. Physical LED appearance and
+abnormal heat/motion were not remotely observed, and no long soak was run.
+At this Core-check stage, optional peripherals were not started. The later
+authorized servo, CAN/M2006 and BMI088 checks are recorded next. USB hardware
+was not run because the current identity remains unassigned and intentionally
+fails closed.
+
+### Fresh optional hardware evidence
+
+These tests used either the retained PWM validation image or task-local
+disposable harnesses. The retired CAN/BMI088/DBUS release options were not
+restored, and no task harness is part of a product source graph.
+
+- PWM/servo:
+  - Fresh ELF SHA-256:
+    `BC298B1BB221DE881F1EB4E82C3CFE892C919300F86D30A2D039E212C30C3043`.
+  - OpenOCD program/verify passed.
+  - The bounded `1500 -> 1450 -> 1500 -> 1550 -> 1500 us` sequence completed
+    5/5 steps with `faulted=0`, `output_enabled=0`; TIM1 `CR1=0`,
+    `CCER=0` after completion.
+  - Physical servo movement was not observed by Codex.
+- CAN/M2006:
+  - Task-local ELF SHA-256:
+    `ED16B2CE2CE759D9A16E24E7B41BD93B554D4394D50F323D6370B82B3E548BA3`.
+  - It linked the current direct `bsp_can.cpp` and unchanged template
+    Motor/DJI Device sources.
+  - OpenOCD program/verify passed. First-halt telemetry reported RX/TX
+    `2328/1148`, last ID `0x203`, error/bus-off/drop/fault `0/0/0/0`,
+    ten stable feedback samples, exactly 125 non-zero `+500` cycles, final
+    current `0`, complete/faulted `1/0`; CAN1 ESR was `0`.
+  - Physical M2006 movement was not observed by Codex.
+  - A later explicit five-second follow-up retained the same `+500` command
+    and safety guards. Clean-first task-local ELF SHA-256
+    `C5A70AAE960321256CD63BFA57177BBAFB816EC8D9D67A67AA1719B17DD43259`
+    programmed and verified successfully.
+  - The measured command window was exactly 5000 ThreadX ticks at 1000 Hz
+    (`start=20`, `end=5020`). Telemetry reported RX/TX `7712/3797`, ID
+    `0x203`, error/bus-off/drop/fault `0/0/0/0`, 2501 control cycles, final
+    current/speed `0/0`, and complete/faulted `1/0`; CAN1 ESR and the crash
+    record were zero.
+  - This proves the bounded command and safe final state. Physical rotation,
+    sound, load, and temperature during those five seconds were not observable
+    by Codex and require the user's confirmation.
+- BMI088:
+  - Task-local ELF SHA-256:
+    `1DD5905EAD92F671B00E898493744A09C17C7875A5EE50B0CC327D3FABAF0DA0`.
+  - It linked the current direct `bsp_spi.cpp` and unchanged template BMI088
+    Device source; the heater was disabled.
+  - SPI init, Device initialized, accel/gyro self-test, and reads all passed.
+    Samples advanced `150 -> 251`, changing samples `149 -> 250`, all six axes
+    changed, temperature was `32.875 C`, and `faulted=0`.
+  - The template Device contains a hidden board dependency:
+    `bmi088.cpp` references `GYRO_INT_Pin`, but this F407 IOC defines no
+    BMI088 DRDY EXTI label. The polling-only task build used inert
+    `GYRO_INT_Pin=0U` and never called the callback API. DRDY integration is
+    therefore not validated and the Device is not fully drop-in on this board.
+- DBUS:
+  - Task-local ELF SHA-256:
+    `8327445A9BF23D12B47B15DE9FB21C55595BE26A572BCBDE4EE56669D6846D08`.
+  - It linked the current direct `bsp_usart.cpp`, unchanged template
+    `msg.cpp`, and unchanged template `dr16.cpp`; the DR16 thread stack
+    remained 768 bytes.
+  - OpenOCD program/verify passed. The decisive four-second run reported
+    heartbeat `434`, RX/update `310/310`, last length `18`,
+    init/error/busy `0/0/0`, active source `1`, `offline=0`, and 272 motion
+    samples.
+  - Current and latched axes included `right_y=-0.286363631`,
+    `left_x=0.0166666675`, and `left_y=-0.683333337`, proving live non-zero
+    DR16 data reached the template parser.
+  - One intervening 12-second run observed 225 short-frame/error/busy events
+    and `offline=1`; repeating the exact artifact returned to healthy frames.
+    No fault-handler entry, crash record, or reset was observed. Treat cable
+    placement and signal quality as an attended follow-up, not a hidden pass.
+- Every optional image was followed by successful Core program/verify. The
+  board was left running Core ELF SHA-256
+  `EDB72454568B5C719C622B5492BDCDF0B9AB61D1792343FD04D630E7A64A78CA`.
+
+### Evidence boundary and next gate
+
+`CORE_HARDWARE=PASS_SHORT_DEBUGGER_OBSERVED`,
+`PHYSICAL_LED=NOT_OBSERVED`, `LONG_SOAK=NOT_RUN`,
+`USB_HARDWARE=NOT_RUN_FAIL_CLOSED_UNASSIGNED_IDENTITY`,
+`SERVO_MACHINE_EVIDENCE=PASS`, `CAN_M2006_MACHINE_EVIDENCE=PASS`,
+`BMI088_POLLING=PASS_WITH_DRDY_LIMITATION`,
+`PHYSICAL_ACTUATOR_MOTION=NOT_OBSERVED_BY_CODEX`,
+`DBUS=PASS_WITH_INTERMITTENT_SIGNAL_OBSERVATION`, `H7=NOT_RUN`,
+`REMOTE_CI=NOT_RUN`, and `FRESH_RECURSIVE_CLONE=NOT_RUN` for this working
+tree.
+
+Before publication:
+
+1. Review and commit the `pnx_bsp` change, then push that exact commit.
+2. Commit the parent changes and gitlinks; do not create new Device/Lib/Module
+   branches.
+3. Verify a fresh `git clone --recurse-submodules`.
+4. Re-run the five retained presets and 23 host tests from that clone.
+5. Run remote CI. Product-specific USB and optional-peripheral hardware
+   validation remain separate attended gates.
 
 ## Context
 

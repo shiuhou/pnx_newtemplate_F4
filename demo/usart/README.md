@@ -5,14 +5,9 @@ release candidate 的 application closure。`CMakeLists.txt` 不會選入
 `demo/usart/usart_demo.cpp`，因此它沒有 F407 preset、燒錄流程或硬體驗證
 狀態。
 
-目前 F407 的 USART vertical slice 是 USART3/DBUS RX：
-
-```text
-PNX_ENABLE_DBUS_RX
-→ pnx_bsp/usart
-→ boards/dji_c_board_f407/pnx_backends/usart_backend.cpp
-→ demo/cboard/dbus_rx
-```
+目前 F407 repository 沒有 USART/DBUS application closure。先前的 DBUS
+validation evidence 屬於歷史記錄；在 `pnx_modules` 回到 `pnx_template`
+gitlink 後，不再宣稱目前 source graph 可以重現該 validation image。
 
 不要使用本目錄早期記錄的 template 專用建置、燒錄或 host-script 指令；
 它們對本 repository 無效。若未來要啟用 USART1，應以獨立 vertical slice
