@@ -6,7 +6,7 @@ an isolated validation closure, not a product profile. BMI088, DBUS RX,
 and CAN/M2006 evidence is historical and is not a build surface after the
 Device/Lib/Module gitlinks return to the `pnx_template` baseline.
 
-- Use `pnx_template@c025ad41b370faaeab128cf6389963a12e154a68` as the
+- Use `pnx_template@cf6577765358822a1bc57c1ea17fe65a795ceb62` as the
   shared-architecture baseline.
 - Keep F407 compiler, generated code, Board, startup, linker, ThreadX, HAL,
   and resource mapping below the Board/platform boundary.

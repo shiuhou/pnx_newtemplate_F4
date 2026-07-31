@@ -51,11 +51,12 @@ runtime registry、factory、service locator、function-pointer table，亦
 | USB CDC Release | `f407-usb-cdc-release` | RC2 local PASS，RAM 66,000 B／Flash 40,056 B | 可選 USB CDC |
 | PWM/A2 Debug | `f407-pwm-a2-debug` | RC2 local PASS，RAM 49,864 B／Flash 27,656 B | attended hardware validation，不是產品 composition |
 
-以上是 F407 code commit
-`2e4b80d211bb660d08bf48f3484d2922a80fff85` 的本地 build/link 證據；
-不是 RC2 tag 已發布的宣稱。五個 preset 均為 0 compiler/linker
-warnings、恰有一個 `app_start`，且沒有重複的 strong `bsp::*`
-definition。
+以上數字已在更新 shared pins 後的本地 working tree 重新 fresh
+build/link；working tree 的 parent base 是
+`d9d85acdca5a82a330762e02c7dd9b0f580d54bb`，但本次修改尚未 commit，
+因此不是新 release commit 或 RC2 tag 已發布的宣稱。五個 preset 均為
+0 compiler/linker warnings、恰有一個 `app_start`，且沒有重複的
+strong `bsp::*` definition。
 
 BMI088、DBUS RX 與 CAN/M2006 validation closure 已撤下。它們先前依賴
 非 template 的 Device/Lib/Module API；在三個 submodule 回到 template
@@ -260,22 +261,30 @@ closure 的失敗。
 
 ## Submodule 與發布邊界
 
-目前 Device/Lib/Module 已回到 `pnx_template` 的 exact commits：
+目前 Device/Lib/Module 已更新到
+`pnx_template@cf6577765358822a1bc57c1ea17fe65a795ceb62` 的 exact commits：
 
 ```text
-pnx_devices  8a6783e63d77a15940aea8245bbe2eb13a2f2b11
-pnx_libs     55bd94060b7be562ce7a6773822a6a4d2bcab9c0
-pnx_modules  a54c493020ba9bcd5b43b99e068a06cdda9dd018
+pnx_devices  2349cc108c9ed477ccdcd700e802ea888975cdfd
+pnx_libs     e7c3e7a2b9d825586ab3e0c413877180c4295df8
+pnx_modules  8ba925b60b11fec511a57622c199b57bb23f8f4e
 ```
 
 這三個 submodule 不需要為 F407 另開長期 branch。F407 所需的公共 BSP
 contract 變更在 `pnx_bsp`，F407 HAL 實作在 parent repository 的
 `boards/dji_c_board_f407/bsp/`。
 
-Host suite 會直接 include template 的 `motor.hpp`，並編譯其預設 CAN
-設定；SPI/PWM contract tests 也會檢查上述相容入口及 unsupported PWM
-不改動有效 channel。這只能證明 API 與 fail-closed software contract，
-不能代替實機驗證。
+最新 `pnx_modules` 內含 PS2 receiver 與 Tactical AHRS source，但 RC2
+image graph 不選入兩者。F407 config generator 已提供 disabled-by-default
+的 PS2 symbols，Direct USART BSP 也提供 board-neutral line configuration
+contract，讓之後的 application repository 不必恢復 backend。BMI088
+source 仍需要正式的 F407 `GYRO_INT_Pin`／EXTI mapping，因此
+BMI088/AHRS 的 deferred status 不變。
+
+Host suite 會直接編譯 template 的新 BMI088、LK9025、PID 與 PS2 public
+API，並驗證 F407 config generation；SPI/PWM/USART contract tests 也會
+檢查相容入口。這只能證明 API 與 fail-closed software contract，不能
+代替實機驗證。
 
 RC2 發布必須先讓新的 F407 `pnx_bsp` SHA 可由官方 remote 取得，再提交
 parent gitlink。只有 remote recursive clone 重跑五個 presets、完整

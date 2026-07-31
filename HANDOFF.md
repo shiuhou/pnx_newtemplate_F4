@@ -1,5 +1,89 @@
 # F407 Engineering Handoff
 
+## Latest pnx_template main alignment — local working tree, 2026-07-30
+
+This section supersedes the shared-pin and current-working-tree statements
+below. It records a local-only alignment with
+`pnx_template/main@cf6577765358822a1bc57c1ea17fe65a795ceb62`.
+No commit, push, tag, remote change, CubeMX regeneration, or hardware
+operation was performed.
+
+### Compared remote state
+
+- Official `pnx_template/main` is
+  `cf6577765358822a1bc57c1ea17fe65a795ceb62`.
+- Official `pnx_template/F4_version` remains
+  `aafa57c7f0b7f20276efa14fd74cbc060cc2902b`. It is a merge of the prior
+  F407 work and `cf65777`, but deliberately retained the older shared
+  Device/Lib/Module gitlinks.
+- The Feishu workflow blob is already identical on official `main` and
+  `F4_version`. No local workflow change is required.
+- H7 USART10 Board/IOC changes, H7 demo composition, temporary IMU
+  live-watch diagnostics, `.clangd`, and `.settings` files were not ported
+  into the F407 architecture.
+
+### Local modifications for review
+
+- Parent base:
+  `refactor/f407-minimal-architecture@d9d85acdca5a82a330762e02c7dd9b0f580d54bb`.
+- Updated exact shared pins:
+  - `pnx_devices@2349cc108c9ed477ccdcd700e802ea888975cdfd`
+  - `pnx_libs@e7c3e7a2b9d825586ab3e0c413877180c4295df8`
+  - `pnx_modules@8ba925b60b11fec511a57622c199b57bb23f8f4e`
+- `pnx_bsp` remains on the Direct BSP lineage at
+  `4d3ce2abb3dee18ad551cb03428563b38e384050` with an uncommitted,
+  board-neutral USART line-configuration declaration. The F407 Board source
+  directly implements it; no `detail::backend_*` or runtime registry was
+  added.
+- The F407 config generator now emits disabled-by-default PS2 feature,
+  binding, and timing symbols plus LK8016/LK9025 model identifiers. It does
+  not add PS2, AHRS, BMI088, or motor source to an RC2 image.
+- Host contracts cover the new USART API, generated PS2/LK config, and the
+  latest BMI088/LK9025/PID/PS2 public API surface.
+
+### Fresh local evidence
+
+- Host configure/build and CTest: **35/35 PASS**.
+- All five F407 presets configure, compile, and link with zero warnings.
+  RAM/Flash usage is unchanged from the prior RC2 table.
+- Every ELF contains exactly one `app_start` and no duplicate strong
+  `bsp::*` definition.
+- Core, USB, and PWM command graphs remain isolated. No graph includes CAN,
+  USART, SPI, Flash, Device, Module, PS2, BMI088, or retired validation
+  source; USB and PWM add only their respective closures.
+- All three retired selectors still fail fast.
+- GNU Arm `-Wall -Wextra -Werror -fsyntax-only` passes for the modified
+  F407 `bsp_usart.cpp` and the latest PS2, merged Remoter, DR16, VT03, and
+  Referee consumers.
+- Public shared headers contain no STM32 HAL type or handle leakage.
+
+### Deferred findings retained
+
+- The latest BMI088 source still requires a Board-owned
+  `GYRO_INT_Pin`/EXTI mapping. A focused F407 syntax check stops at that
+  unresolved symbol, so BMI088/AHRS remains
+  `NOT_IN_RC2_PRODUCT_GRAPH`.
+- The latest AHRS service directly contains the Tactical EKF and an enlarged
+  8192-byte IMU thread stack. Because AHRS is outside RC2, no runtime,
+  memory-budget, or hardware claim is made for it.
+- Shared Remoter sources still use the legacy `RAM_D1_BSS` portability macro;
+  current `memory.h` maps it for non-H7 builds, but a future shared cleanup
+  may rename it without creating an F407 fork.
+
+```text
+PNX_TEMPLATE_BASELINE=cf6577765358822a1bc57c1ea17fe65a795ceb62
+PNX_DEVICES_TEMPLATE_REUSE=PASS
+PNX_LIBS_TEMPLATE_REUSE=PASS
+PNX_MODULES_TEMPLATE_REUSE=PASS
+PNX_BSP_DIRECT_CONTRACT=LOCAL_UNCOMMITTED
+HOST_TESTS=35/35_PASS
+F407_5_PRESETS=PASS
+SOURCE_GRAPH_ISOLATION=PASS
+HARDWARE_REVALIDATION=NOT_RUN
+PARENT_PUSH=NOT_RUN
+RC2_TAG=NOT_CREATED
+```
+
 ## RC2 release-closure result — 2026-07-30
 
 This section is the current authority for

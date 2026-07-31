@@ -2,6 +2,37 @@
 
 This file is a proposal only. The Vault was not modified.
 
+## 2026-07-30 latest pnx_template main alignment proposal
+
+- Record a local-only comparison and alignment against
+  `pnx_template/main@cf6577765358822a1bc57c1ea17fe65a795ceb62`.
+- Record exact shared pins:
+  `pnx_devices@2349cc108c9ed477ccdcd700e802ea888975cdfd`,
+  `pnx_libs@e7c3e7a2b9d825586ab3e0c413877180c4295df8`, and
+  `pnx_modules@8ba925b60b11fec511a57622c199b57bb23f8f4e`.
+- Record that `pnx_bsp/main` was not adopted because it diverges from the
+  Direct BSP branch and leaks Board/HAL dependencies into its USART public
+  surface. The F407 branch instead adds only the board-neutral line
+  configuration declaration and a direct F407 implementation.
+- Record parent config compatibility for disabled-by-default PS2 symbols and
+  LK8016/LK9025 model identifiers. PS2, BMI088, AHRS, and Tactical EKF remain
+  outside every RC2 image graph.
+- Record fresh software evidence: Host CTest **35/35 PASS**; all five F407
+  presets PASS with zero warnings and unchanged RAM/Flash; source/symbol
+  gates PASS; Arm syntax checks PASS for Direct USART and latest
+  PS2/Remoter/DR16/VT03/Referee sources.
+- Preserve the deferred BMI088 boundary: the latest Device source still
+  requires a Board-owned `GYRO_INT_Pin`/EXTI mapping. No BMI088/AHRS build or
+  runtime support is claimed.
+- Record that official `pnx_template/F4_version@aafa57c7` already retains the
+  same Feishu workflow as main, while H7 USART10/IOC, temporary IMU
+  diagnostics, IDE metadata, and PS2 demo composition were intentionally not
+  ported.
+- Preserve local-only state: no commit, push, tag, remote change, hardware
+  operation, or Vault write was performed.
+
+The Vault was not modified.
+
 ## 2026-07-30 RC2 release-closure proposal
 
 - Record local `pnx_bsp` candidate
