@@ -1,5 +1,135 @@
 # F407 Engineering Handoff
 
+## MyCar DR16 + four-M2006 chassis software gate — 2026-07-31
+
+**Status: SOFTWARE PASS; hardware gated.** The final cross-task review found
+startup switch-history, fault-reset and runtime-fault PI-reset gaps. Those
+findings were corrected test-first, passed fresh validation and were
+independently re-reviewed with no remaining Critical or Important code issue.
+
+This section is the current authority for the uncommitted `mycar/f4`
+vehicle worktree. It supersedes the older MyCar planning-only statements in
+this file, but it does not supersede the public F407 architecture history
+below.
+
+### Scope and provenance
+
+- Repository: `pnx_f4_mycar`; branch: `mycar/f4`.
+- Baseline HEAD remains
+  `ed9a2271371c61001fd7440f413b542c2ba64218`; all vehicle work is an
+  unstaged working-tree change.
+- Pinned, clean submodules:
+  - `pnx_bsp@c097c5b581baf9b8cb7cff90bc8a22d2136a2437`
+  - `pnx_devices@2349cc108c9ed477ccdcd700e802ea888975cdfd`
+  - `pnx_libs@e7c3e7a2b9d825586ab3e0c413877180c4295df8`
+  - `pnx_modules@8ba925b60b11fec511a57622c199b57bb23f8f4e`
+- The public `pnx_f4_minimal` worktree remains clean on `F4_version` at
+  `ed9a2271371c61001fd7440f413b542c2ba64218`.
+- No source was staged, committed or pushed. No remote, shared submodule,
+  Board/CubeMX file, Vault file or hardware state was changed.
+- The pre-existing untracked `demo/chassis_mecanum/` remains preserved and is
+  not part of this implementation. An early Windows exclusion error exposed
+  exactly four matching source-line snippets from that directory; they were
+  treated as tainted and were not used or cited for any design decision. The
+  file was not opened or modified, and later work used exact allowlisted
+  paths.
+
+### Implemented vehicle-local software
+
+- Pure `vehicle/chassis` modules implement X-mecanum inverse kinematics,
+  continuous deadband/manual mapping, startup-safe arming, sticky health-loss
+  handling, four explicit-dt PI loops, uniform wheel-target saturation and
+  bounded signed raw-current formation.
+- Coordinates are `+x` forward, `+y` left and `+yaw` counter-clockwise;
+  wheel order is FL/FR/RL/RR.
+- MyCar generated configuration selects DR16 on USART3 and four M2006s on
+  classic CAN1 feedback IDs `0x201` through `0x204`, all initially in
+  `relax` mode.
+- The MyCar-only ThreadX adapter owns the four static M2006 objects, one-shot
+  registration, a 200 Hz control thread and a separate remote-ingest thread.
+  The control thread never calls the potentially unbounded message read.
+- Remote input is forced offline when unseen or older than 120 ticks. Motor
+  health is sampled every four control iterations. Retained CAN
+  error/drop/fault-epoch changes and timing overruns latch zero output.
+- Offline/invalid remote samples cannot satisfy the startup release interlock.
+  Controller health faults clear only after a fresh online switch release;
+  runtime-sticky faults inhibit the controller and every overrun path resets
+  PI state. Non-finite manual samples fault-latch an armed controller and
+  always select zero output.
+- Telemetry publication and reads are coherent whole-object copies. The
+  runtime applies neither direction nor current clamping twice.
+- The default product configuration deliberately retains zero sentinels for
+  unmeasured geometry, speed limits, PI limits and current limit. It is
+  invalid by construction, latches `invalid_config`, and the built MyCar
+  image is therefore a zero-only integration image.
+- Independent task reviews approved Tasks 1-6 after correction. Final review
+  status has Critical 0 and Important 0. The only retained nonblocking note
+  is that the source-order contract is intentionally a textual regression
+  check rather than an AST check; the Task 5 follow-up has no remaining
+  finding.
+
+### Fresh final software evidence
+
+- Host configure/build: PASS, `49/49` Ninja steps, zero compiler/linker
+  warnings.
+- Host CTest: **41/41 PASS**, including kinematics, manual/safety,
+  controller, fail-closed configuration, runtime policy and runtime source
+  ordering contracts.
+- All six visible F407 presets were configured and rebuilt with
+  `--clean-first`; every build linked with zero compiler/linker warnings and
+  exactly one `app_start`:
+
+| Preset | Steps | RAM | Flash | ELF SHA-256 |
+| --- | ---: | ---: | ---: | --- |
+| `f407-debug` | 199/199 | 49,792 B | 23,736 B | `76533AB440EA66ECA26EA7F20781BD74D547B929038F0200F46596EB79E9A9AD` |
+| `f407-release` | 199/199 | 49,792 B | 15,188 B | `AC9B2ECA96CEDE40C8F9B3705193347CBCE758EC4D22D4E412F6166488B89D91` |
+| `f407-usb-cdc-debug` | 311/311 | 66,040 B | 67,952 B | `9BEE15E7687E97DA9BC62C45CAC63B452A551B6DEF9ACEDABA6E4613F5499847` |
+| `f407-usb-cdc-release` | 311/311 | 66,000 B | 40,056 B | `95A1984239B22410D5D8B3936E01506F8E31B61877B2DC53035B8550ADA529A3` |
+| `f407-pwm-a2-debug` | 200/200 | 49,864 B | 27,656 B | `B851F9DCDA2AA571892571DFEB1644BB58AEBB9A53084B744574BC5C4B191D99` |
+| `f407-mycar-chassis-debug` | 215/215 | 55,368 B | 69,448 B | `D6A2EDD14562D15D0065B4FD71E3F17E3E502C77C70869DB57E2F3892EB5003E` |
+
+- Compile-database checks found zero vehicle, CAN, USART, DR16, remoter or
+  DJI-motor closure in the five non-MyCar presets. MyCar contains exactly one
+  copy of each of the nine vehicle translation units, direct CAN/USART BSP
+  sources, DR16/remoter sources and three DJI motor sources.
+- Generated-config checks found all five non-MyCar presets disabled for
+  remoter/DR16/motors. MyCar has DR16/USART3, four DJI motors and exactly four
+  generated `mode::relax` initializers at IDs `0x201..0x204`.
+- ELF checks found no vehicle/M2006/DR16 symbol leakage in the five normal
+  images. The MyCar ELF retains runtime start, DR16, all four wheel motor
+  objects, both ThreadX thread/stack pairs, controller and runtime policy.
+- The pure control-module allowlist from `types` through `controller` and
+  configuration has no HAL, ThreadX, BSP, message, remoter or motor
+  dependency. `git diff --check` passes; the Git index, four submodules and
+  public worktree are clean.
+
+GNU `nm` initially rejected Unicode absolute ELF paths on this Windows host.
+The symbol checks were rerun successfully from each build directory with an
+ASCII relative ELF path; this was a tool-path limitation, not a firmware
+build failure.
+
+### Evidence boundary and next gates
+
+```text
+TASKS_1_TO_6_SOFTWARE=PASS
+TASK_7_PHYSICAL_MEASUREMENTS=NOT_RUN
+TASK_8_FLASH_AND_HARDWARE=NOT_RUN
+DEFAULT_MYCAR_IMAGE=INVALID_CONFIG_ZERO_ONLY
+SAME_CYCLE_CAN_SEND_ACCEPTANCE=UNKNOWN
+WCET_AND_STACK_HIGH_WATER=NOT_RUN
+COMMIT_STAGE_PUSH=NOT_RUN
+VAULT_WRITE=NOT_RUN
+```
+
+Wheel radius, wheelbase, track, wheel-to-ID identity and physical positive
+directions still require power-off/attended measurement. Flashing, live DR16
+and CAN feedback, zero-current bench checks, non-zero current, PI tuning,
+lifted-wheel tests, ground motion, timing measurements, three repetitions and
+the 120-second soak were not performed. The pinned
+`djimotorhandler::send_control()` returns `void`, so same-cycle CAN acceptance
+cannot be claimed from this software task; only command formation and delayed
+CAN telemetry are observable.
+
 ## Latest pnx_template main alignment — local working tree, 2026-07-30
 
 This section supersedes the shared-pin and current-working-tree statements
@@ -1158,5 +1288,48 @@ successful remote CI run plus a fresh recursive clone gate.
   architecture RC tag from the final documentation commit. A production
   release still requires an owner decision on licensing and USB product
   identity.
+
+The Vault was not modified.
+
+## 2026-07-31 MyCar DR16/M2006 chassis planning handoff
+
+### Repository state
+
+- Repository/worktree:
+  `C:\Users\USER\Desktop\RM\rm校內賽\2026\firmware\pnx_f4_mycar`
+- Branch/HEAD:
+  `mycar/f4@ed9a2271371c61001fd7440f413b542c2ba64218`
+- Pre-existing working-tree state: untracked `demo/chassis_mecanum/`.
+- All four submodules were uninitialized in this worktree at planning time.
+
+### Actual changes
+
+- Added the decision-complete implementation plan:
+  `docs/superpowers/plans/2026-07-31-f4-mycar-dr16-m2006-chassis.md`.
+- Added the engineering task packet under
+  `.codex/tasks/2026-07-31-f4-mycar-dr16-m2006-chassis/`.
+- No chassis source, CMake product profile, configuration, submodule, remote,
+  commit, push, firmware or hardware state was changed.
+
+### Decision and planned architecture
+
+- The user selected `pnx_f4_mycar`, four M2006s and a DR16 manual closed loop.
+- Vehicle code will live under `vehicle/chassis`; no `pnx_application` or
+  shared-interface change is planned.
+- Pure kinematics, mapping, safety and velocity PI remain Host-testable.
+  ThreadX, DR16, CAN and M2006 integration remains in a vehicle runtime
+  adapter.
+- Product geometry, speed, gains and current limits start at zero and fail
+  closed. Non-zero motor output requires separate authorization.
+
+### Validation and limitations
+
+- `git` inspection confirmed the branch, HEAD, dirty state and uninitialized
+  gitlinks.
+- A native Host configure succeeded in `build/plan-baseline-host`; compilation
+  failed on missing shared headers because the submodules were not initialized.
+- Embedded build, flash, DR16 runtime, CAN runtime and physical motion were
+  `NOT_RUN`.
+- Commit and push remain unauthorized.
 
 The Vault was not modified.

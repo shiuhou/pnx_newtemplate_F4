@@ -1,0 +1,40 @@
+{
+  "build": {
+    "motors": {
+      "dji": true,
+      "dm": false,
+      "lk": false
+    },
+    "features": {
+      "ahrs": false,
+      "remoter": true,
+      "vt03": false,
+      "referee": false,
+      "ui": false,
+      "indicator": true,
+      "motors": true
+    }
+  },
+  "bindings": {
+    "remoter_uart": "usart3",
+    "referee_uart": "none"
+  },
+  "can": {
+    "can1": {
+      "id_type": "standard"
+    },
+    "can2": {
+      "id_type": "standard"
+    }
+  },
+  "remoter": {
+    "source": "dr16",
+    "thread_priority": 2,
+    "rx_timeout_ticks": 100
+  },
+  "test": {
+    "thread_priority": 10,
+    "report_uart": "usart1",
+    "auto_run_on_boot": true
+  }
+}

@@ -2,6 +2,56 @@
 
 This file is a proposal only. The Vault was not modified.
 
+## 2026-07-31 MyCar chassis Tasks 1-6 software implementation proposal
+
+Status: **READY FOR REVIEW as a proposal only; do not ingest automatically.**
+The final safety corrections passed fresh software validation and independent
+code re-review. Hardware acceptance remains gated and the Vault was not
+modified.
+
+Proposed durable project update after repository review:
+
+- Record `pnx_f4_mycar` on `mycar/f4` with baseline HEAD
+  `ed9a2271371c61001fd7440f413b542c2ba64218`; the vehicle implementation is
+  present only as unstaged working-tree changes.
+- Record the completed vehicle-local path: DR16 manual mapping, X-mecanum
+  inverse kinematics, four explicit-dt PI loops, sticky safety policy and a
+  MyCar-only ThreadX adapter for four static M2006s on CAN1 IDs
+  `0x201..0x204`.
+- Record the fail-closed runtime corrections: blocking topic reads are
+  isolated in a separate ingest thread; remote freshness is bounded to 120
+  ticks; snapshot copy precedes the current-time sample; the motor watchdog
+  has an independent modulo-four phase; terminal CAN deltas and timing
+  overruns latch; telemetry is copied coherently.
+- Record the final safety closure: offline switch history cannot release the
+  startup interlock; controller faults require a fresh online switch release;
+  runtime-sticky faults inhibit the controller and reset PI; malformed manual
+  input faults closed; and all overrun paths reset controller state.
+- Record final software evidence: Host **41/41 PASS**; all six F407 presets
+  clean-built warning-free; exactly one `app_start` per ELF; Core/USB/PWM
+  graphs contain no MyCar/CAN/USART/DR16/M2006 closure; MyCar generated config
+  and ELF contain the expected four-motor runtime.
+- Record the six final ELF SHA-256 values and memory figures from the current
+  `HANDOFF.md` section rather than duplicating them into a less reviewable
+  summary.
+- Record that the default MyCar configuration deliberately remains invalid
+  and zero-only because geometry, wheel identity/direction, limits and gains
+  have not been measured or authorized.
+- Keep Task 7 physical measurements and every Task 8 flash/live/non-zero/
+  ground acceptance stage as `NOT_RUN`. Keep WCET and stack high-water as
+  `NOT_RUN`, and same-cycle CAN send acceptance as `UNKNOWN` because the
+  pinned handler returns `void`.
+- Record that Tasks 1-6 received independent review with no remaining
+  Critical or Important issue. Do not call this an operational chassis or
+  hardware-validated closed loop.
+- Record the procedural scope event: a failed Windows exclusion displayed
+  four line snippets from the excluded prototype once; those snippets were
+  treated as tainted, not used, and the file was neither opened nor modified.
+- No commit, stage, push, remote change, shared-submodule change, hardware
+  operation or Vault write occurred in this task.
+
+The Vault was not modified.
+
 ## 2026-07-30 latest pnx_template main alignment proposal
 
 - Record a local-only comparison and alignment against
@@ -425,3 +475,22 @@ The Vault was not modified.
   DBUS live frames and destructive Flash hardware remain unverified.
 
 The Vault was not modified.
+
+## 2026-07-31 MyCar chassis planning proposal
+
+Proposed durable project update after repository review:
+
+- Record that the vehicle worktree is `pnx_f4_mycar`, branch `mycar/f4`, with
+  planning baseline `ed9a2271371c61001fd7440f413b542c2ba64218`.
+- Record the user-approved v1 scope: DR16 manual control, four M2006s, mecanum
+  inverse kinematics and four wheel-speed PI loops.
+- Record the ownership decision: vehicle code under `vehicle/chassis`, no
+  `pnx_application`, and no shared submodule/API change.
+- Record the fail-closed policy: unmeasured geometry, directions, speed limits,
+  gains and non-zero current limits cannot enable output.
+- Record the baseline limitation: car-worktree submodules were uninitialized;
+  Host configure passed but compilation failed on missing shared headers.
+- Keep build, flash, runtime, hardware motion and repeated acceptance as
+  unverified until the implementation plan produces fresh evidence.
+
+No Vault file was modified by this repository task.

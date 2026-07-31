@@ -5,6 +5,15 @@
 USB CDC image，以及隔離的 PWM/A2 驗證 image；正式 chassis、gimbal、
 shooter 等車組 application 應放在各自 repository。
 
+## mycar/f4 vehicle ownership
+
+This mycar/f4 branch is the vehicle-specific composition.
+F407 Board/HAL ownership remains unchanged.
+Vehicle code belongs under vehicle/.
+Shared pnx_* gitlinks and public APIs remain upstream-owned.
+Normal Core/USB/PWM images remain zero-motor images.
+Non-zero motor output remains separately authorized.
+
 本 repository 只實作 F407；不在這裡加入、修改或驗收 H7 source。
 F407 與 H7 的 BSP 私有實作及發布流程彼此獨立；兩者的 public API 形式
 協調屬於另一個跨 repository 任務，不是本 RC 的發布依賴。
