@@ -27,6 +27,8 @@ below.
   `ed9a2271371c61001fd7440f413b542c2ba64218`.
 - No source was staged, committed or pushed. No remote, shared submodule,
   Board/CubeMX file, Vault file or hardware state was changed.
+- Review snapshot files under `.superpowers/sdd/` were removed on 2026-08-01;
+  their contents can be reconstructed with `git log` and `git diff`.
 - The pre-existing untracked `demo/chassis_mecanum/` remains preserved and is
   not part of this implementation. An early Windows exclusion error exposed
   exactly four matching source-line snippets from that directory; they were
