@@ -58,6 +58,14 @@ Non-zero motor output remains separately authorized.
 - `HANDOFF_UPDATE`：只在使用者明確要求，或任務屬於重大里程碑時更新。
   重大里程碑包括 public contract、safety/fail-closed 狀態、release/RC gate
   或跨 repository 邊界變更。
+- `HANDOFF_SCOPE`：只有重大或實質建設性的進度才放入 `HANDOFF.md`；例如
+  可交接的功能完成、架構／安全決策、跨 repository 變更、正式驗證結論或
+  release gate。探索、微小修正與一般日常進度不更新 handoff。
+- `CURRENT_TASK_CHECKPOINT`：若有未 commit 的工作預期跨 session 繼續，或
+  使用者要求暫停／明天續作，更新 `.codex/CURRENT_TASK.md`。內容只保留
+  objective、目前狀態、已驗證項目、下一步與禁止事項；開始續作非全新任務前，
+  若此檔存在必須先讀取。已 commit 的完成工作以 Git history 為主要進度來源，
+  不需要 checkpoint。
 - `FULL_PRESET_MATRIX`：目前六個 F407 preset 的完整 clean rebuild、ELF 與
   SHA 核對只在 release 前執行；日常開發只 build 本次變更實際影響的
   preset。
