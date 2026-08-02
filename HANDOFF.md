@@ -1,5 +1,35 @@
 # F407 Engineering Handoff
 
+## Parallel branch topology — 2026-08-03
+
+**Supersedes the "uncommitted worktree" framing in the section below.** The
+MyCar chassis work — restructure into `vehicle/chassis/{control,runtime,common}`
+plus the M2006 P36 controller and its contract tests — is now committed as
+`ff1897e` on `mycar/f4`. Host tests: 42/42 pass (includes `m2006_p36_contract`
+and the full chassis suite). `mycar/f4` is the stable, zero-motor mainline
+baseline; the baseline is no longer an unstaged working-tree change.
+
+Three independent feature branches, all forked from `ff1897e`:
+
+- `feat/chassis` — chassis hardware bring-up / on-vehicle tuning. C-board #1.
+  This is the only branch that may enable non-zero motor output, and that
+  change stays test-branch-local — never merged to mainline.
+- `feat/arm` — robotic arm. New code under `vehicle/arm/`, from scratch.
+  C-board #2. Currently zero coupling to chassis, so no cross-branch sync is
+  needed.
+- `feat/maixcam` — MaixCam vision-follow (spec: `../vision-follow-spec.md`).
+  Proceeds independently of chassis. The MaixCam side (AprilTag + Kalman
+  filter + UART fixed-length frames) and the STM32 receive/state-machine logic
+  (DMA+IDLE framing, checksum, TRACKING/COASTING/SEARCHING, timeout safety,
+  feedforward+PID) are both developable and host-testable without a vehicle.
+  Only the final step — feeding vx/vy into `Chassis_SetVelocity` and
+  on-vehicle tuning — depends on `feat/chassis` being validated on hardware.
+
+Mainline `mycar/f4` stays zero-motor / fail-closed per AGENTS.md. Any "enable
+motor output" debug change lives only in its own test branch and is never
+merged to mainline. No push / remote / hardware / CubeMX changes without
+separate explicit authorization.
+
 ## MyCar DR16 + four-M2006 chassis software gate — 2026-07-31
 
 **Status: SOFTWARE PASS; hardware gated.** The final cross-task review found
