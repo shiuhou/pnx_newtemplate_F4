@@ -1,5 +1,7 @@
 #pragma once
 
+// PWM validation closure 的 C2 通道映射；實體腳位仍以 IOC 與 board README 為準。
+
 #include "bsp_pwm.hpp"
 
 namespace board::pwm

@@ -7,6 +7,7 @@ namespace vehicle::chassis
 namespace
 {
 
+// 以下三個函式只驗證純資料，讓 controller 本體可以專注於資料流與安全順序。
 bool valid_geometry(const geometry& value) noexcept
 {
     return std::isfinite(value.wheel_radius_m) &&
@@ -45,6 +46,7 @@ bool valid_manual_sample(const manual_input& value) noexcept
 
 bool valid(const controller_configuration& config) noexcept
 {
+    // 幾何、搖桿映射、PI 或任一馬達方向非法，都讓整個 controller 無效。
     if (!valid_geometry(config.geometry) ||
         !valid_manual_limits(config.manual) || !valid(config.pi))
     {
@@ -76,9 +78,12 @@ controller_output controller::update(
     const safety_input& safety,
     float dt_s) noexcept
 {
+    // 每個週期都從全零輸出開始組裝；任何提前 return 自然保持零 current。
     controller_output output{};
+
+    // runtime_policy 與 manual snapshot 可能來自不同的複製時刻，因此 safety
+    // 同時要求兩邊都認為 DR16 online/up，避免時間差造成誤解鎖。
     safety_input gated_safety = safety;
-    // 解鎖資料必須同時通過 runtime 狀態與本次 manual snapshot，避免兩份資料不同步。
     gated_safety.remote_online = safety.remote_online && manual.online;
     gated_safety.arm_switches_up =
         safety.arm_switches_up && manual.arm_switches_up;
@@ -86,6 +91,7 @@ controller_output controller::update(
                                 valid_manual_sample(manual);
     output.state = safety_.update(gated_safety);
 
+    // 先把 DR16 映射成 vx/vy/yaw，再做 X 型麥輪逆解；任何一步無效都不出力。
     bool target_valid = false;
     if (config_valid_)
     {
@@ -101,11 +107,12 @@ controller_output controller::update(
     if (!safety_.output_enabled() || !target_valid ||
         !std::isfinite(dt_s) || dt_s <= 0.0F)
     {
-        // 停止輸出時同時重置積分，下一次解鎖不會沿用舊輪速誤差。
+        // 未 armed、目標失敗或 dt 無效時，本週期輸出保持全零並清積分。
         reset_pi();
         return output;
     }
 
+    // 一顆回饋出現 NaN/Inf 就拒絕整組四輪輸出，不讓其他三輪繼續推車。
     for (const float measured : measured_motor_rad_s.rad_s)
     {
         if (!std::isfinite(measured))
@@ -118,7 +125,8 @@ controller_output controller::update(
     std::array<float, 4U> motor_target_rad_s{};
     for (std::size_t index = 0U; index < pi_.size(); ++index)
     {
-        // 逆解固定產生車體輪方向；此處才套用各馬達安裝／接線的正負方向。
+        // 逆解中的正輪速是車體定義；乘 motor_direction 後才成為這顆
+        // 實體 M2006 encoder 應追蹤的正負目標。
         motor_target_rad_s[index] =
             output.wheel_target_rad_s.rad_s[index] *
             config_.motor_direction[index];
@@ -132,6 +140,7 @@ controller_output controller::update(
         }
     }
 
+    // 四顆 PI 使用相同 dt，但各自保存積分，輸出仍按 FL/FR/RL/RR 排列。
     for (std::size_t index = 0U; index < pi_.size(); ++index)
     {
         output.motor_current_raw[index] = pi_[index].update(
@@ -142,6 +151,7 @@ controller_output controller::update(
 
 void controller::reset() noexcept
 {
+    // safety_ 只有在已觀察人工釋放時才可能解除自身 fault；PI 一律清零。
     safety_.reset();
     reset_pi();
 }

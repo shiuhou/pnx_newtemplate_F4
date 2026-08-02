@@ -1,4 +1,5 @@
 .syntax unified
+/* 例外向量的最小組語入口，轉交 bsp_diagnostics；修改前須了解 Cortex-M exception frame。 */
 .cpu cortex-m4
 .fpu fpv4-sp-d16
 .thumb

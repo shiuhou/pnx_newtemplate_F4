@@ -1,5 +1,9 @@
 # DJI C-board STM32F407 ownership
 
+> 中文定位：這裡是「車輛程式需要下探到 F407 時」才閱讀的 board 層。先由根 README
+> 進入 MyCar，只有追查 CAN1、USART3、ThreadX 啟動或 HAL callback 時才依下表開啟對應
+> `bsp/bsp_*.cpp`。不要從應用程式直接包含本資料夾的 HAL handle、腳位或 IRQ 名稱。
+
 This directory is the only F407/board-specific layer. Public contracts remain
 in `pnx_bsp`; STM32 HAL handles, pins, registers, DMA channels and IRQ details
 must not leave this directory.

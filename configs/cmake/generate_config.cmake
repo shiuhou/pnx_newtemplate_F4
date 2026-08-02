@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.22)
 
+# 組態生成入口：驗證 board/vehicle JSON 與 IOC 後輸出到 build/generated。
+# 請改 JSON 或本檔規則，不要直接手改 generated 檔案。
+
 include(${CMAKE_CURRENT_LIST_DIR}/import_ioc.cmake)
 
 if(NOT DEFINED IOC OR NOT DEFINED PARAMS OR NOT DEFINED OUT_DIR)

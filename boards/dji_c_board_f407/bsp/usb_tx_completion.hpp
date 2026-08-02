@@ -1,5 +1,7 @@
 #pragma once
 
+// USB CDC 傳送完成狀態機；僅供板級 USB 實作與 Host 測試共用。
+
 #include <atomic>
 #include <cstdint>
 

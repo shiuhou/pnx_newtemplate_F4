@@ -1,6 +1,8 @@
 #include "bsp_diagnostics.h"
 #include "diagnostics_f407.hpp"
 
+// 跨 reset 保留啟動／fault 快照的板級診斷實作；它不是控制迴圈的一部分。
+
 #include "stm32f4xx.h"
 
 #include <cstddef>

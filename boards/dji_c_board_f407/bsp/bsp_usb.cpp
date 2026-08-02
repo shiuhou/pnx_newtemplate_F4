@@ -1,5 +1,7 @@
 #include "bsp_usb.hpp"
 
+// USBX CDC 的板級實作；僅由 USB closure 編譯，與 MyCar 的 CAN/DR16 閉環相互獨立。
+
 #include "bridge_usb.h"
 #include "tx_api.h"
 #include "usb_otg.h"

@@ -1,5 +1,7 @@
-#include "vehicle/chassis/controller.hpp"
-#include "vehicle/chassis/velocity_pi.hpp"
+#include "vehicle/chassis/control/controller.hpp"
+#include "vehicle/chassis/control/velocity_pi.hpp"
+
+// 可執行規格：驗證四輪 PI、方向修正、飽和／重置與 safety gate 交界的零輸出行為。
 
 #include <array>
 #include <cmath>
@@ -183,6 +185,11 @@ void test_controller_configuration_validation() noexcept
     config = base_config;
     config.pi.current_limit_raw =
         static_cast<float>(std::numeric_limits<std::int16_t>::max()) + 1.0F;
+    require(!valid(config));
+    config = base_config;
+    config.pi.current_limit_raw = 10000.0F;
+    require(valid(config));
+    config.pi.current_limit_raw = 10001.0F;
     require(!valid(config));
     config = base_config;
     config.pi.kp = nan;

@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.22)
 
+# CubeMX IOC 匯入／一致性檢查；IOC 是周邊、腳位與時鐘資源的權威來源。
+
 function(pnx_ioc_get_value ioc_lines key out_var)
     set(prefix "${key}=")
     foreach(line ${ioc_lines})

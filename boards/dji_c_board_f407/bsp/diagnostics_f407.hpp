@@ -1,5 +1,7 @@
 #pragma once
 
+// 僅供 F407 診斷實作使用的暫存器／堆疊框架輔助；不可洩漏到 board-neutral API。
+
 #include "bsp_diagnostics.h"
 
 #include <cstddef>

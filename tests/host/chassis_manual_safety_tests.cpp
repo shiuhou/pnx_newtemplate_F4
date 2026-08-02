@@ -1,5 +1,7 @@
-#include "vehicle/chassis/manual_control.hpp"
-#include "vehicle/chassis/safety_gate.hpp"
+#include "vehicle/chassis/control/manual_control.hpp"
+#include "vehicle/chassis/control/safety_gate.hpp"
+
+// 可執行規格：DR16 死區映射，以及「先釋放、後上撥」解鎖與故障鎖定規則。
 
 #include <cmath>
 #include <cstdlib>

@@ -1,5 +1,7 @@
 #include "bsp_indicator.hpp"
 
+// PH10/PH11 指示燈的板級實作；它是基礎診斷能力，不代表底盤已啟動。
+
 #include "main.h"
 
 namespace bsp::indicator

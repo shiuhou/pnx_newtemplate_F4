@@ -1,4 +1,6 @@
-#include "vehicle/chassis/kinematics.hpp"
+#include "vehicle/chassis/control/kinematics.hpp"
+
+// 可執行規格：固定車體座標與 FL/FR/RL/RR 輪序的 X 麥輪逆解及等比例限速。
 
 #include <array>
 #include <cmath>

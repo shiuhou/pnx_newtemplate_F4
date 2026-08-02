@@ -1,9 +1,24 @@
+# 靜態 contract：控制 thread 不可直接讀訊息；DR16 由 ingest thread 取樣後交給快照。
 if(NOT DEFINED PNX_RUNTIME_SOURCE)
     message(FATAL_ERROR
         "chassis_runtime_source_contract requires PNX_RUNTIME_SOURCE")
 endif()
 
 file(READ "${PNX_RUNTIME_SOURCE}" runtime_source)
+
+# Hardware fault evidence showed the control thread descending to within one
+# exception frame of its 1024-byte stack boundary during message startup.
+# Keep enough headroom for ThreadX bookkeeping and the control call chain.
+string(REGEX MATCH
+    "control_stack_bytes[ \t]*=[ \t]*([0-9]+)U"
+    control_stack_match "${runtime_source}")
+if(NOT control_stack_match)
+    message(FATAL_ERROR "Runtime control stack declaration is missing")
+endif()
+if(CMAKE_MATCH_1 LESS 2048)
+    message(FATAL_ERROR
+        "Runtime control stack must be at least 2048 bytes; found ${CMAKE_MATCH_1}")
+endif()
 
 string(FIND "${runtime_source}" "void remote_ingest_entry(ULONG)"
     ingest_entry_index)

@@ -1,5 +1,7 @@
 #include "bsp_flash.hpp"
 
+// 內部 Flash 的板級實作；目前未保留 partition，勿作為 MyCar 資料儲存。
+
 #include "stm32f4xx_hal.h"
 
 #include <array>

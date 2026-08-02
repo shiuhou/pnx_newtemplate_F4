@@ -33,6 +33,29 @@ Same-cycle CAN send acceptance: UNKNOWN
 
 ## Start here
 
+## 中文閱讀路線
+
+不要由 STM32 HAL、CMSIS、ThreadX、USBX 或 `pnx_*` 子模組往上猜設計；它們分別是
+第三方／上游實作。建議依下列順序閱讀目前 MyCar 路徑：
+
+1. [`AGENTS.md`](AGENTS.md)：先確定車輛程式歸屬、fail-closed 與授權邊界。
+2. [`CMakeLists.txt`](CMakeLists.txt) 與 `CMakePresets.json`：確認選的是
+   `PNX_ENABLE_MYCAR_CHASSIS`，以及它實際編譯哪些 source。
+3. [`configs/vehicles/mycar/params.json`](configs/vehicles/mycar/params.json) 與
+   [`robot.json`](configs/vehicles/mycar/robot.json)：前者選 DR16／UART 等組態，後者
+   綁定四個 M2006 的 CAN ID；JSON 不支援註釋，語意在本表與生成 CMake 中說明。
+4. [`demo/app.cpp`](demo/app.cpp) → [`vehicle/mycar.cpp`](vehicle/mycar.cpp)：
+   從共同入口進入 MyCar runtime 的最短呼叫鏈。
+5. `vehicle/chassis/common/` → `control/` → `runtime/`：依資料型別、純控制、ThreadX/
+   CAN/DR16 整合的方向閱讀。這是車輛功能的權威實作。
+6. [`boards/dji_c_board_f407/README.md`](boards/dji_c_board_f407/README.md) 再配合
+   `bsp_can.cpp`、`bsp_usart.cpp`：只在需要追到 F407 HAL 或腳位時才進入。
+7. `tests/host/chassis_*`：將前述安全、運動學與控制規則當作可執行規格閱讀。
+
+`demo/cboard/*`、USB、PWM、SPI、BMI088 與其他 demo 是獨立 closure 或歷史驗證；它們
+可以用來了解 F407 基線，但不是本車 DR16/M2006 的執行鏈。CubeMX 生成檔與第三方資料夾
+同理，只在追查底層問題時閱讀，不在車輛功能中直接修改。
+
 For a fresh checkout of the published vehicle branch:
 
 ```powershell
@@ -81,10 +104,10 @@ Do not replace unmeasured values with guesses merely to make the chassis move.
 
 | Need | Authoritative location |
 | --- | --- |
-| Vehicle control core and runtime adapter | `vehicle/chassis/` |
+| Vehicle control core and runtime adapter | `vehicle/chassis/common/`, `control/`, `runtime/` |
 | Vehicle composition entry point | `vehicle/mycar.cpp` |
-| Geometry, limits, directions and PI/current parameters | `configs/vehicles/mycar/params.json` |
-| DR16 and four M2006 identities | `configs/vehicles/mycar/robot.json` |
+| Geometry, limits, directions and PI/current parameters | `vehicle/chassis/runtime/config.cpp` |
+| DR16/UART build settings and four M2006 identities | `configs/vehicles/mycar/params.json`, `robot.json` |
 | MyCar build selection | `CMakeLists.txt`, `CMakePresets.json` |
 | Host behavior and regression tests | `tests/host/chassis_*` |
 | F407 Board/HAL implementation | `boards/dji_c_board_f407/` |

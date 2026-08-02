@@ -4,8 +4,8 @@
       "list": [
         {"name":"front_left","model":"dji_m2006","can_bus":"can1","can_type":"classic","can_id":"0x201","control_mode":"relax"},
         {"name":"front_right","model":"dji_m2006","can_bus":"can1","can_type":"classic","can_id":"0x202","control_mode":"relax"},
-        {"name":"rear_left","model":"dji_m2006","can_bus":"can1","can_type":"classic","can_id":"0x203","control_mode":"relax"},
-        {"name":"rear_right","model":"dji_m2006","can_bus":"can1","can_type":"classic","can_id":"0x204","control_mode":"relax"}
+        {"name":"rear_left","model":"dji_m2006","can_bus":"can1","can_type":"classic","can_id":"0x204","control_mode":"relax"},
+        {"name":"rear_right","model":"dji_m2006","can_bus":"can1","can_type":"classic","can_id":"0x203","control_mode":"relax"}
       ]
     }
   }

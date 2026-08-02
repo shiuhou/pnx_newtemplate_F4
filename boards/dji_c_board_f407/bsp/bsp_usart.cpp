@@ -1,6 +1,8 @@
 #include "bsp_usart.hpp"
 #include "usart_support.hpp"
 
+// F407 USART 的板級實作；MyCar 的 DR16 使用 USART3，協議解析仍在上游 remoter 模組。
+
 #include "stm32f4xx_hal.h"
 #include "usart.h"
 

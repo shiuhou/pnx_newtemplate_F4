@@ -1,4 +1,5 @@
 set(CMAKE_SYSTEM_NAME Generic)
+# 僅在偵測到 arm-none-eabi 工具鏈時由根 CMake include；Host 測試不經過此檔。
 set(CMAKE_SYSTEM_PROCESSOR arm)
 
 set(CMAKE_C_COMPILER_ID GNU)

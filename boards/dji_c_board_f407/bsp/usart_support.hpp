@@ -1,5 +1,7 @@
 #pragma once
 
+// USART DMA circular-buffer 純演算法；HAL callback 在 bsp_usart.cpp，協議層在上游模組。
+
 #include "bsp_usart.hpp"
 
 #include <atomic>

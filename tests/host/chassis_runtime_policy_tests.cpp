@@ -1,4 +1,6 @@
-#include "vehicle/chassis/runtime.hpp"
+#include "vehicle/chassis/runtime/runtime.hpp"
+
+// 可執行規格：DR16／CAN／watchdog／overrun 任一健康條件失效時 runtime 必須 force zero。
 
 #include <array>
 #include <cstdint>

@@ -1,4 +1,5 @@
 add_executable(pnx_usb_contract_host_tests
+    # Host suite 只驗證硬體無關邏輯與 contract；不能取代 CAN、DR16 或實車證據。
     fake_usb.cpp
     usb_contract_host_tests.cpp
 )
@@ -60,7 +61,7 @@ add_test(NAME pwm_a2_sequence COMMAND pnx_pwm_a2_sequence_tests)
 
 add_executable(pnx_chassis_kinematics_tests
     chassis_kinematics_tests.cpp
-    "${CMAKE_SOURCE_DIR}/vehicle/chassis/kinematics.cpp"
+    "${CMAKE_SOURCE_DIR}/vehicle/chassis/control/kinematics.cpp"
 )
 target_include_directories(pnx_chassis_kinematics_tests PRIVATE
     "${CMAKE_SOURCE_DIR}"
@@ -69,8 +70,8 @@ add_test(NAME chassis_kinematics COMMAND pnx_chassis_kinematics_tests)
 
 add_executable(pnx_chassis_manual_safety_tests
     chassis_manual_safety_tests.cpp
-    "${CMAKE_SOURCE_DIR}/vehicle/chassis/manual_control.cpp"
-    "${CMAKE_SOURCE_DIR}/vehicle/chassis/safety_gate.cpp"
+    "${CMAKE_SOURCE_DIR}/vehicle/chassis/control/manual_control.cpp"
+    "${CMAKE_SOURCE_DIR}/vehicle/chassis/control/safety_gate.cpp"
 )
 target_include_directories(pnx_chassis_manual_safety_tests PRIVATE
     "${CMAKE_SOURCE_DIR}"
@@ -79,11 +80,11 @@ add_test(NAME chassis_manual_safety COMMAND pnx_chassis_manual_safety_tests)
 
 add_executable(pnx_chassis_controller_tests
     chassis_controller_tests.cpp
-    "${CMAKE_SOURCE_DIR}/vehicle/chassis/controller.cpp"
-    "${CMAKE_SOURCE_DIR}/vehicle/chassis/kinematics.cpp"
-    "${CMAKE_SOURCE_DIR}/vehicle/chassis/manual_control.cpp"
-    "${CMAKE_SOURCE_DIR}/vehicle/chassis/safety_gate.cpp"
-    "${CMAKE_SOURCE_DIR}/vehicle/chassis/velocity_pi.cpp"
+    "${CMAKE_SOURCE_DIR}/vehicle/chassis/control/controller.cpp"
+    "${CMAKE_SOURCE_DIR}/vehicle/chassis/control/kinematics.cpp"
+    "${CMAKE_SOURCE_DIR}/vehicle/chassis/control/manual_control.cpp"
+    "${CMAKE_SOURCE_DIR}/vehicle/chassis/control/safety_gate.cpp"
+    "${CMAKE_SOURCE_DIR}/vehicle/chassis/control/velocity_pi.cpp"
 )
 target_include_directories(pnx_chassis_controller_tests PRIVATE
     "${CMAKE_SOURCE_DIR}"
@@ -92,21 +93,38 @@ add_test(NAME chassis_controller COMMAND pnx_chassis_controller_tests)
 
 add_executable(pnx_chassis_config_tests
     chassis_config_tests.cpp
-    "${CMAKE_SOURCE_DIR}/vehicle/chassis/config.cpp"
-    "${CMAKE_SOURCE_DIR}/vehicle/chassis/controller.cpp"
-    "${CMAKE_SOURCE_DIR}/vehicle/chassis/kinematics.cpp"
-    "${CMAKE_SOURCE_DIR}/vehicle/chassis/manual_control.cpp"
-    "${CMAKE_SOURCE_DIR}/vehicle/chassis/safety_gate.cpp"
-    "${CMAKE_SOURCE_DIR}/vehicle/chassis/velocity_pi.cpp"
+    "${CMAKE_SOURCE_DIR}/vehicle/chassis/runtime/config.cpp"
+    "${CMAKE_SOURCE_DIR}/vehicle/chassis/control/controller.cpp"
+    "${CMAKE_SOURCE_DIR}/vehicle/chassis/control/kinematics.cpp"
+    "${CMAKE_SOURCE_DIR}/vehicle/chassis/control/manual_control.cpp"
+    "${CMAKE_SOURCE_DIR}/vehicle/chassis/control/safety_gate.cpp"
+    "${CMAKE_SOURCE_DIR}/vehicle/chassis/control/velocity_pi.cpp"
 )
 target_include_directories(pnx_chassis_config_tests PRIVATE
     "${CMAKE_SOURCE_DIR}"
 )
 add_test(NAME chassis_config COMMAND pnx_chassis_config_tests)
 
+add_executable(pnx_m2006_p36_contract_tests
+    fake_can.cpp
+    m2006_p36_contract_tests.cpp
+    "${CMAKE_SOURCE_DIR}/pnx_devices/motors/motor/src/motorhandler.cpp"
+    "${CMAKE_SOURCE_DIR}/pnx_devices/motors/dji/src/djimotors.cpp"
+    "${CMAKE_SOURCE_DIR}/pnx_devices/motors/dji/src/djimotorhandler.cpp"
+)
+target_include_directories(pnx_m2006_p36_contract_tests PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/fakes"
+    "${CMAKE_SOURCE_DIR}/pnx_bsp/can/include"
+    "${CMAKE_SOURCE_DIR}/pnx_devices/motors/dji/include"
+    "${CMAKE_SOURCE_DIR}/pnx_devices/motors/motor/include"
+    "${CMAKE_SOURCE_DIR}/pnx_libs/common/include"
+    "${CMAKE_SOURCE_DIR}/pnx_libs/math/include"
+)
+add_test(NAME m2006_p36_contract COMMAND pnx_m2006_p36_contract_tests)
+
 add_executable(pnx_chassis_runtime_policy_tests
     chassis_runtime_policy_tests.cpp
-    "${CMAKE_SOURCE_DIR}/vehicle/chassis/runtime_policy.cpp"
+    "${CMAKE_SOURCE_DIR}/vehicle/chassis/runtime/runtime_policy.cpp"
 )
 target_include_directories(pnx_chassis_runtime_policy_tests PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/fakes"
@@ -120,7 +138,7 @@ add_test(NAME chassis_runtime_policy COMMAND pnx_chassis_runtime_policy_tests)
 add_test(
     NAME chassis_runtime_source_contract
     COMMAND ${CMAKE_COMMAND}
-        "-DPNX_RUNTIME_SOURCE=${CMAKE_SOURCE_DIR}/vehicle/chassis/runtime.cpp"
+        "-DPNX_RUNTIME_SOURCE=${CMAKE_SOURCE_DIR}/vehicle/chassis/runtime/runtime.cpp"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/chassis_runtime_source_contract.cmake"
 )
 

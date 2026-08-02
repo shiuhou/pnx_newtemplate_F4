@@ -1,5 +1,7 @@
 #include "bsp_pwm.hpp"
 
+// TIM1_CH2／PE11 的 attended PWM 驗證閉包；MyCar 底盤不使用它作為馬達控制介面。
+
 #include "pwm_channels.hpp"
 #include "stm32f4xx_hal.h"
 

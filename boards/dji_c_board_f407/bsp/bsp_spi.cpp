@@ -1,5 +1,7 @@
 #include "bsp_spi.hpp"
 
+// SPI1 的板級實作與 BMI088 手動資源交接；目前不是 MyCar DR16/M2006 執行路徑。
+
 #include "spi_devices.hpp"
 #include "stm32f4xx_hal.h"
 

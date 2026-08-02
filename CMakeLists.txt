@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.22)
 
+# 學習入口：先看 closure 選項，再看 MyCar 分支的 source/include 清單。
+# 同一映像只能選一個 optional application；Host 測試會在本檔最前面提前 return。
+
 option(PNX_HOST_TESTS "Build host-only shared-logic tests" OFF)
 if(PNX_HOST_TESTS)
     project(pnx_host_tests LANGUAGES CXX)
@@ -97,6 +100,7 @@ set(PNX_BOARD_BSP_ROOT "${PNX_BOARD_ROOT}/bsp")
 set(PNX_BOARD_IOC
     "${PNX_BOARD_ROOT}/dji_c_board_f407.ioc")
 if(PNX_ENABLE_MYCAR_CHASSIS)
+    # MyCar 使用車輛組態，其他 closure 使用純 F407 board 組態。
     set(PNX_BOARD_PARAMS
         "${CMAKE_CURRENT_SOURCE_DIR}/configs/vehicles/mycar/params.json")
     set(PNX_BOARD_ROBOT_CONFIG
@@ -150,6 +154,7 @@ unset(ROBOT_CONFIG)
 unset(OUT_DIR)
 
 set(PNX_EMBEDDED_SOURCES
+    # 不論選哪個 closure，皆從 demo/app.cpp 進入，並連結診斷與指示燈基礎能力。
     "${CMAKE_CURRENT_SOURCE_DIR}/demo/app.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/dwt/src/bsp_dwt.cpp"
     "${PNX_BOARD_BSP_ROOT}/bsp_diagnostics.cpp"
@@ -167,6 +172,7 @@ set(PNX_EMBEDDED_INCLUDE_DIRS
 )
 
 if(PNX_ENABLE_MYCAR_CHASSIS)
+    # DR16 + 四 M2006 的唯一產品組合點；共享 pnx_* 原始碼仍由 gitlink 提供。
     list(APPEND PNX_EMBEDDED_SOURCES
         "${PNX_BOARD_BSP_ROOT}/bsp_can.cpp"
         "${PNX_BOARD_BSP_ROOT}/bsp_usart.cpp"
@@ -177,14 +183,14 @@ if(PNX_ENABLE_MYCAR_CHASSIS)
         "${CMAKE_CURRENT_SOURCE_DIR}/pnx_devices/motors/dji/src/djimotors.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/pnx_devices/motors/dji/src/djimotorhandler.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/mycar.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/chassis/config.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/chassis/kinematics.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/chassis/manual_control.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/chassis/safety_gate.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/chassis/velocity_pi.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/chassis/controller.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/chassis/runtime_policy.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/chassis/runtime.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/chassis/runtime/config.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/chassis/control/kinematics.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/chassis/control/manual_control.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/chassis/control/safety_gate.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/chassis/control/velocity_pi.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/chassis/control/controller.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/chassis/runtime/runtime_policy.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/chassis/runtime/runtime.cpp"
     )
     list(APPEND PNX_EMBEDDED_INCLUDE_DIRS
         "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -220,6 +226,7 @@ else()
 endif()
 
 set(PNX_F407_CAN_ENABLED OFF)
+# 由實際 source list 推導 main.c 是否初始化 CAN／USART，避免選項與生命週期脫節。
 list(FIND PNX_EMBEDDED_SOURCES
     "${PNX_BOARD_BSP_ROOT}/bsp_can.cpp"
     PNX_F407_CAN_SOURCE_INDEX

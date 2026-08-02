@@ -1,3 +1,4 @@
+# 生成 contract：Core 與 MyCar 不能混用 JSON，產物必須反映各自選定的裝置組態。
 if(NOT DEFINED PNX_SOURCE_DIR OR NOT DEFINED PNX_BINARY_DIR)
     message(FATAL_ERROR
         "config_generation_contract requires PNX_SOURCE_DIR and PNX_BINARY_DIR")
@@ -120,8 +121,8 @@ foreach(required_text IN ITEMS
         "rear_right_model = model::dji_m2006"
         "inline constexpr ::motors::config front_left{\n    bsp::can::bus::can1,\n    bsp::can::bus_type::classic,\n    0x201U,\n    ::motors::mode::relax"
         "inline constexpr ::motors::config front_right{\n    bsp::can::bus::can1,\n    bsp::can::bus_type::classic,\n    0x202U,\n    ::motors::mode::relax"
-        "inline constexpr ::motors::config rear_left{\n    bsp::can::bus::can1,\n    bsp::can::bus_type::classic,\n    0x203U,\n    ::motors::mode::relax"
-        "inline constexpr ::motors::config rear_right{\n    bsp::can::bus::can1,\n    bsp::can::bus_type::classic,\n    0x204U,\n    ::motors::mode::relax")
+        "inline constexpr ::motors::config rear_left{\n    bsp::can::bus::can1,\n    bsp::can::bus_type::classic,\n    0x204U,\n    ::motors::mode::relax"
+        "inline constexpr ::motors::config rear_right{\n    bsp::can::bus::can1,\n    bsp::can::bus_type::classic,\n    0x203U,\n    ::motors::mode::relax")
     string(FIND "${mycar_robot_config}" "${required_text}" required_index)
     if(required_index EQUAL -1)
         message(FATAL_ERROR

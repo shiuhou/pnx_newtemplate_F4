@@ -1,5 +1,7 @@
 #include "bsp_can.hpp"
 
+// F407 bxCAN 的板級實作。車輛層只可使用 bsp::can 公開介面，不可接觸 HAL handle 或 IRQ。
+
 #include "can.h"
 #include "stm32f4xx_hal.h"
 
