@@ -49,7 +49,8 @@ Same-cycle CAN send acceptance: UNKNOWN
 5. `vehicle/chassis/common/` → `control/` → `runtime/`：依資料型別、純控制、ThreadX/
    CAN/DR16 整合的方向閱讀。這是車輛功能的權威實作。
 6. [`boards/dji_c_board_f407/README.md`](boards/dji_c_board_f407/README.md) 再配合
-   `bsp_can.cpp`、`bsp_usart.cpp`：只在需要追到 F407 HAL 或腳位時才進入。
+   `pnx_bsp/can/src/bsp_can.cpp`、`pnx_bsp/usart/src/bsp_usart.cpp`：只在需要
+   追到 F407 HAL、generated handle 或腳位時才進入。
 7. `tests/host/chassis_*`：將前述安全、運動學與控制規則當作可執行規格閱讀。
 
 `demo/cboard/*`、USB、PWM、SPI、BMI088 與其他 demo 是獨立 closure 或歷史驗證；它們
@@ -110,7 +111,8 @@ Do not replace unmeasured values with guesses merely to make the chassis move.
 | DR16/UART build settings and four M2006 identities | `configs/vehicles/mycar/params.json`, `robot.json` |
 | MyCar build selection | `CMakeLists.txt`, `CMakePresets.json` |
 | Host behavior and regression tests | `tests/host/chassis_*` |
-| F407 Board/HAL implementation | `boards/dji_c_board_f407/` |
+| F407 Direct BSP implementation | `pnx_bsp/*/src/` |
+| CubeMX/generated handles, startup, linker and RTOS integration | `boards/dji_c_board_f407/` |
 
 The intended data flow is:
 
