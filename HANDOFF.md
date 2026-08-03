@@ -95,9 +95,8 @@ were clean after validation.
 
 ### Live worktree preservation and agent rule
 
-The local worktree at
-`C:\Users\USER\Desktop\RM\rm_inschool\2026\firmware\pnx_f4_mycar` intentionally
-remains on `feat/chassis@ff1897e3bc890bf6078aca08bc2d85064f0d40ca`
+The existing local MyCar worktree intentionally remains on
+`feat/chassis@ff1897e3bc890bf6078aca08bc2d85064f0d40ca`
 with its pre-existing staged, unstaged and untracked chassis, MaixCam,
 ARM/PWM, DR16 and documentation work. It was not reset, cleaned, rebased,
 merged or fast-forwarded during publication. Its `pnx_bsp` checkout is clean
@@ -136,8 +135,7 @@ fresh-clone results.
 
 ### Repository state
 
-- Repository:
-  `C:\Users\USER\Desktop\RM\rm_inschool\2026\firmware\pnx_f4_mycar`.
+- Repository: the existing local MyCar worktree.
 - Parent branch/HEAD: `feat/chassis` at
   `ff1897e3bc890bf6078aca08bc2d85064f0d40ca`.
 - The parent is an intentionally mixed working tree containing pre-existing
