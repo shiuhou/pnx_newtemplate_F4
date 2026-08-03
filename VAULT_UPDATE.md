@@ -2,6 +2,76 @@
 
 This file is a proposal only. The Vault was not modified.
 
+## 2026-08-04 MyCar Direct BSP publication proposal
+
+Status: **READY FOR REPOSITORY REVIEW as a proposal only; do not ingest
+automatically.** The Vault was not modified.
+
+- Record the official BSP publication at
+  `pnx_bsp/F4_version_bsp@ee59c97a852586eb7f6fb50b402f2fe9ed112cbc`.
+- Record the validated parent code head at
+  `shiuhou/pnx_newtemplate_F4:feat/chassis@c4d8ebcde95d18f7873fbca66b7635ee54b1f1df`.
+  Its five atomic commits cover Direct BSP selection/gitlink, explicit config
+  requirements, the six-preset CI matrix, reference-demo quarantine and
+  ownership documentation. The published handoff is a docs-only successor
+  that changes no code or submodule gitlink; use the branch HEAD for its final
+  documentation SHA.
+- Record that `pnx_template/F4_version` was verified unchanged at
+  `9f8707280d56ae1c8f8061cb9ec12e75f527d1f8` immediately before parent push.
+- Preserve the unchanged shared pins:
+  `pnx_devices@2349cc108c9ed477ccdcd700e802ea888975cdfd`,
+  `pnx_libs@e7c3e7a2b9d825586ab3e0c413877180c4295df8`, and
+  `pnx_modules@8ba925b60b11fec511a57622c199b57bb23f8f4e`.
+- Record fresh recursive-clone evidence: Host **44/44 PASS**; all six F407
+  presets configure/build/link PASS with zero warning lines; source graph,
+  CAN/USART init authority, single `app_start`, public BSP symbol uniqueness,
+  HAL-free public headers, no backend forwarding and retired-selector
+  fail-fast gates PASS; parent and all submodules remain clean.
+- Record that a repository-wide scan contains five historical absolute
+  Windows paths in pre-existing documentation, but this commit range adds
+  zero such references and no absolute-path-only artifact.
+- Keep all hardware revalidation, tag creation and Vault ingestion as
+  `NOT_RUN`.
+- Keep the live mixed feature worktree separate: it remains at
+  `feat/chassis@ff1897e3bc890bf6078aca08bc2d85064f0d40ca` with independent
+  chassis, MaixCam, ARM/PWM and dirty remoter work. It was not reset, cleaned,
+  merged or rebased during publication.
+
+The Vault was not modified.
+
+## 2026-08-03 MyCar Direct BSP pre-publication proposal (superseded)
+
+Status: **READY FOR REPOSITORY REVIEW as a proposal only; do not ingest
+automatically.** The Vault was not modified.
+
+- Record that the live `pnx_f4_mycar` worktree remains on
+  `feat/chassis@ff1897e3bc890bf6078aca08bc2d85064f0d40ca` and intentionally
+  combines existing chassis, MaixCam, ARM/PWM and DR16 feature work.
+- Record the accepted source-ownership migration: F407 implementations now
+  compile from `pnx_bsp/<peripheral>/src`; the parent Board BSP copies are
+  removed; public callers continue to use the same HAL-free `bsp::*` API; no
+  backend-forwarding framework was restored.
+- Record the BSP state precisely: detached
+  `da09febe8f5bfe66993010247d4d6731d0ca492b` plus local four-channel PWM
+  changes. The parent gitlink still records `c097c5b...`, so publication and
+  remote reproducibility remain `NOT_RUN` until BSP and parent commits are
+  reviewed and pushed in dependency order.
+- Preserve shared pins `pnx_devices@2349cc1`, `pnx_libs@e7c3e7a` and
+  `pnx_modules@8ba925b`; the existing three-file DR16/remoter module diff is
+  separate feature work and was not altered by the integration.
+- Record software evidence: native Host **45/45 PASS**, MaixCam Host
+  **29/29 PASS**, all six F407 presets configure/build/link with zero warning
+  lines, and source graph, generated-init authority, public-symbol uniqueness,
+  HAL-free-header and no-backend-forwarding checks pass.
+- Record the review-driven PWM fail-closed correction: shortening the shared
+  TIM1 period is rejected if any existing channel pulse/CCR exceeds the new
+  period; both the Host behavior contract and F407 source contract were
+  observed RED before the fix and GREEN after it.
+- Keep commit, push, tag, fresh recursive clone, all physical hardware
+  revalidation and Vault ingestion as `NOT_RUN`.
+
+The Vault was not modified.
+
 ## 2026-07-31 MyCar chassis Tasks 1-6 software implementation proposal
 
 Status: **READY FOR REVIEW as a proposal only; do not ingest automatically.**
