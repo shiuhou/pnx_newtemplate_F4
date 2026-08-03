@@ -42,7 +42,8 @@
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
 /*
- * The strong implementations live in bsp/fault_handlers.S.
+ * The strong implementations live in
+ * pnx_bsp/diagnostics/src/fault_handlers.S.
  * Keeping the CubeMX-owned definitions weak makes regeneration safe while
  * preserving the generated fallback bodies for standalone use.
  */
