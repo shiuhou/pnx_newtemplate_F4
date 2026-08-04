@@ -24,14 +24,15 @@ three cold-start/re-arm cycles, DR16 loss with zero-output recovery, five
 minutes of ground driving without creep or unexpected dropout, and correct
 forward/backward, strafe and yaw directions. The later ownership cleanup keeps
 the shared remoter axis contract standard and applies this vehicle's left-stick
-axis swap in `vehicle/chassis`; its newly built `92691430...` ELF has not yet
-been reflashed. Exact-artifact hardware revalidation is therefore still a
-release gate, not a software-development blocker.
+axis swap in `vehicle/chassis`. Its `92691430...` ELF was then programmed,
+verified and reset with OpenOCD; the operator confirmed re-arm, forward/backward,
+strafe, yaw and centered stopping. This is a short exact-artifact hardware pass;
+the extended five-minute and DR16-loss evidence still belongs to `DA37D784...`.
 
 ```text
 Software gate: PASS
 Hardware-accepted baseline ELF: PASS_OPERATOR_OBSERVED
-Current ownership-cleanup ELF: BUILD_PASS, HARDWARE_NOT_RUN
+Current ownership-cleanup ELF: FLASH_VERIFY_PASS, SHORT_HARDWARE_PASS
 ```
 
 ## Start here

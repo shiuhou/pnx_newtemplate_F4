@@ -3,7 +3,7 @@
 ## MyCar DR16 + four-M2006 chassis acceptance — 2026-08-04
 
 **Status: DRIVEABLE BASELINE PASS; OWNERSHIP CLEANUP SOFTWARE PASS; EXACT
-CLEANUP ELF HARDWARE NOT RUN.**
+CLEANUP ELF SHORT HARDWARE REVALIDATION PASS.**
 
 ### Repository state
 
@@ -54,6 +54,9 @@ vehicle boundary, and record the attended acceptance evidence.
   FLASH 72,644 bytes and RAM 57,992 bytes.
 - Current cleanup ELF SHA-256:
   `92691430FEE54814CD57BEA36CEB3BC309C1C496C83776630BA4AEB2E3A1F11F`.
+- OpenOCD reported `Programming Finished`, `Verified OK` and `Resetting Target`
+  for that exact cleanup ELF. The operator then confirmed right-switch re-arm,
+  forward/backward, left/right strafe, left/right yaw and centered stopping.
 - OpenOCD previously reported `Programming Finished`, `Verified OK` and
   `Resetting Target` for hardware-accepted ELF SHA-256
   `DA37D784E7D3FC581C908DE31DBBC51E94FE4B720CE1D43BC970A4532D53A633`.
@@ -90,14 +93,16 @@ vehicle boundary, and record the attended acceptance evidence.
 
 - Current source passes the focused Host suite and MyCar F407 link.
 - The pinned shared commit is available from the configured fork.
+- The exact cleanup ELF passed programming verification and the operator's
+  short direction, arming and centered-stop hardware check.
 - The hardware-accepted baseline was driveable and passed the operator's
   arming, remote-loss and five-minute ground checks.
 
 ### Assumptions and open questions
 
-- The ownership cleanup is intended to be behavior-equivalent for chassis
-  axes, but its exact `92691430...` ELF has not been flashed. Do not relabel
-  the earlier hardware observations as exact-artifact evidence.
+- The exact `92691430...` ELF has a short hardware pass. Its five-minute drive
+  and DR16-loss checks were not repeated after the ownership cleanup; those
+  extended observations remain evidence for `DA37D784...` only.
 - Final competition gains, limits and loaded-floor performance remain a
   separate tuning task.
 - The Obsidian Vault was not read or modified.
@@ -112,8 +117,8 @@ vehicle boundary, and record the attended acceptance evidence.
 
 ### Next actions
 
-- Before release, flash and repeat the short direction, arming and remote-loss
-  checks on the exact cleanup ELF.
+- Before release, repeat the DR16-loss and extended ground-drive checks on the
+  exact cleanup ELF if exact-artifact evidence is required for those gates.
 - Push the containing parent branch only when separately authorized.
 
 ### Rollback point
