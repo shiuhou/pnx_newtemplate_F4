@@ -56,7 +56,7 @@ int main()
     require(equal(inverse_kinematics({0.0F, 1.0F, 0.0F}, g)->rad_s,
                   {-10.0F, 10.0F, 10.0F, -10.0F}));
     require(equal(inverse_kinematics({0.0F, 0.0F, 1.0F}, g)->rad_s,
-                  {-3.5F, 3.5F, -3.5F, 3.5F}));
+                  {-3.5F, -3.5F, 3.5F, 3.5F}));
     require(!inverse_kinematics({}, geometry{}).has_value());
 
     const auto saturated = inverse_kinematics({15.0F, 5.0F, 0.0F}, g);

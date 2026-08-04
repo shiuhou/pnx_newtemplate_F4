@@ -18,6 +18,7 @@ constexpr velocity_pi_config pi_config{10.0F, 20.0F, 100.0F, 500.0F};
 constexpr controller_configuration base_config{
     {0.10F, 0.20F, 0.15F, 10.0F},
     {0.0F, 1.0F, 1.0F, 1.0F, 1.0F, 1.0F, 1.0F},
+    {10000.0F, 10000.0F, 10000.0F, 10000.0F},
     {1.0F, 1.0F, 1.0F, 1.0F},
     pi_config,
 };
@@ -155,6 +156,13 @@ void test_controller_configuration_validation() noexcept
     require(!valid(config));
 
     config = base_config;
+    config.command_slew.translation_accel_mps2 = 0.0F;
+    require(!valid(config));
+    config = base_config;
+    config.command_slew.yaw_decel_rad_s2 = nan;
+    require(!valid(config));
+
+    config = base_config;
     config.motor_direction[2] = 0.0F;
     require(!valid(config));
     config = base_config;
@@ -227,7 +235,7 @@ void test_controller_targets_and_directions() noexcept
         {true, true, 0.0F, 0.0F, 1.0F}, stopped_wheels,
         healthy_raised, 0.005F);
     require_wheels(rotation_output.wheel_target_rad_s,
-                   {-3.5F, 3.5F, -3.5F, 3.5F});
+                   {-3.5F, -3.5F, 3.5F, 3.5F});
 
     controller mixed{base_config};
     arm(mixed);
@@ -253,6 +261,66 @@ void test_controller_targets_and_directions() noexcept
                      {-81, 81, -131, 131});
 }
 
+void test_controller_applies_and_resets_command_slew() noexcept
+{
+    auto ramped_config = base_config;
+    ramped_config.command_slew = {4.5F, 6.0F, 6.0F, 9.0F};
+
+    controller control{ramped_config};
+    arm(control);
+
+    const auto first = control.update(
+        manual_forward, stopped_wheels, healthy_raised, 0.005F);
+    require_wheels(first.wheel_target_rad_s,
+                   {0.225F, 0.225F, 0.225F, 0.225F});
+
+    controller normal_stop{ramped_config};
+    arm(normal_stop);
+    controller_output accelerated{};
+    for (int step = 0; step < 10; ++step)
+    {
+        accelerated = normal_stop.update(
+            manual_forward, stopped_wheels, healthy_raised, 0.005F);
+    }
+    require_wheels(accelerated.wheel_target_rad_s,
+                   {2.25F, 2.25F, 2.25F, 2.25F});
+    const auto decelerating = normal_stop.update(
+        manual_raised_zero, stopped_wheels, healthy_raised, 0.005F);
+    require_wheels(decelerating.wheel_target_rad_s,
+                   {1.95F, 1.95F, 1.95F, 1.95F});
+
+    const auto released = normal_stop.update(
+        manual_released, stopped_wheels, healthy_released, 0.005F);
+    require(released.state == safety_state::disabled);
+    require_wheels(released.wheel_target_rad_s,
+                   {0.0F, 0.0F, 0.0F, 0.0F});
+
+    const auto rearmed = normal_stop.update(
+        manual_raised_zero, stopped_wheels, healthy_raised, 0.005F);
+    require(rearmed.state == safety_state::armed);
+    const auto after_rearm = normal_stop.update(
+        manual_forward, stopped_wheels, healthy_raised, 0.005F);
+    require_wheels(after_rearm.wheel_target_rad_s,
+                   {0.225F, 0.225F, 0.225F, 0.225F});
+
+    const auto invalid_dt = normal_stop.update(
+        manual_forward, stopped_wheels, healthy_raised, 0.0F);
+    require(invalid_dt.state == safety_state::armed);
+    require_wheels(invalid_dt.wheel_target_rad_s,
+                   {0.0F, 0.0F, 0.0F, 0.0F});
+    const auto after_invalid_dt = normal_stop.update(
+        manual_forward, stopped_wheels, healthy_raised, 0.005F);
+    require_wheels(after_invalid_dt.wheel_target_rad_s,
+                   {0.225F, 0.225F, 0.225F, 0.225F});
+
+    const auto fault = normal_stop.update(
+        manual_forward, stopped_wheels,
+        {true, true, true, false, true}, 0.005F);
+    require(fault.state == safety_state::fault_latched);
+    require_wheels(fault.wheel_target_rad_s,
+                   {0.0F, 0.0F, 0.0F, 0.0F});
+}
+
 void test_controller_atomic_derived_error_preflight() noexcept
 {
     constexpr float maximum = std::numeric_limits<float>::max();
@@ -260,6 +328,8 @@ void test_controller_atomic_derived_error_preflight() noexcept
     extreme_config.geometry = {1.0F, 0.20F, 0.15F, maximum};
     extreme_config.manual =
         {0.0F, maximum, 1.0F, 1.0F, 1.0F, 1.0F, 1.0F};
+    extreme_config.command_slew =
+        {maximum, maximum, maximum, maximum};
     extreme_config.pi = {0.0F, 20.0F, 100.0F, 500.0F};
 
     controller control{extreme_config};
@@ -271,7 +341,7 @@ void test_controller_atomic_derived_error_preflight() noexcept
 
     const wheel_vector overflow_feedback{{-maximum, maximum, maximum, maximum}};
     const auto rejected = control.update(
-        manual_forward, overflow_feedback, healthy_raised, 0.005F);
+        manual_forward, overflow_feedback, healthy_raised, 1.0F);
     require(rejected.state == safety_state::armed);
     require_wheels(rejected.wheel_target_rad_s,
                    {maximum, maximum, maximum, maximum});
@@ -428,6 +498,7 @@ int main()
     test_velocity_pi_invalid_input_resets();
     test_controller_configuration_validation();
     test_controller_targets_and_directions();
+    test_controller_applies_and_resets_command_slew();
     test_controller_atomic_derived_error_preflight();
     test_controller_invalid_step_resets_all_pi();
     test_controller_malformed_manual_input_inhibits_output();

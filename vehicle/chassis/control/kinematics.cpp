@@ -41,14 +41,16 @@ std::optional<wheel_vector> inverse_kinematics(
     // X 型麥輪逆解，輪序為 FL/FR/RL/RR：
     //   前進 +vx： + + + +
     //   左移 +vy： - + + -
-    //   逆時針：   - + - +
+    //   逆時針：   - - + +
+    // 實車純 yaw 驗證顯示 FR(ID2)/RL(ID4) 的旋轉分量需反向；
+    // vx/vy 分量維持原解算。
     // 這裡產生的是「車體輪正方向」，尚未套用各馬達的 encoder 正負方向。
     wheel_vector out{{
         (command.vx_mps - command.vy_mps - k * command.yaw_rad_s) /
             g.wheel_radius_m,
-        (command.vx_mps + command.vy_mps + k * command.yaw_rad_s) /
-            g.wheel_radius_m,
         (command.vx_mps + command.vy_mps - k * command.yaw_rad_s) /
+            g.wheel_radius_m,
+        (command.vx_mps + command.vy_mps + k * command.yaw_rad_s) /
             g.wheel_radius_m,
         (command.vx_mps - command.vy_mps + k * command.yaw_rad_s) /
             g.wheel_radius_m,

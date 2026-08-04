@@ -1,14 +1,14 @@
 # Pure-F407 Repository Rules
 
-This repository contains the DJI C-board STM32F407 architecture release
-candidate. Its only product graphs are Core and optional USB CDC. PWM A2 is
-an isolated validation closure, not a product profile. BMI088, DBUS RX,
-and CAN/M2006 evidence is historical and is not a build surface after the
-Device/Lib/Module gitlinks return to the `pnx_template` baseline.
+This repository contains the DJI C-board STM32F407 baseline plus the
+vehicle-specific MyCar chassis composition. Its product graphs are Core,
+optional USB CDC, and the fail-closed MyCar DR16/four-M2006 image. PWM A2 is
+an isolated validation closure, not a product profile. BMI088 and standalone
+DBUS validation evidence are historical and are not current build surfaces.
 
 ## Vehicle-specific branch ownership
 
-This mycar/f4 branch is the vehicle-specific composition.
+The `mycar/f4` lineage and its `feat/*` branches own vehicle composition.
 F407 Board/HAL ownership remains unchanged.
 Vehicle code belongs under vehicle/.
 Shared pnx_* gitlinks and public APIs remain upstream-owned.
@@ -21,9 +21,13 @@ Non-zero motor output remains separately authorized.
   and resource mapping below the Board/platform boundary.
 - Keep shared public APIs free of STM32 HAL types, MCU-family symbols,
   other-MCU memory-bank labels, and board handle names.
+- Keep F407 direct BSP implementations in the F407-specific
+  `pnx_bsp/*/src` directories. Those sources define public `bsp::*` symbols
+  directly; do not move them back into a parent-only BSP tree or reintroduce
+  a `detail::backend_*` forwarding layer.
 - IOC/CubeMX owns generated resources. The documented manual board resources
-  are SPI1/BMI088 and TIM1_CH2/PE11 PWM; do not transfer ownership without a
-  reviewed CubeMX task and hardware revalidation.
+  are SPI1/BMI088 and TIM1_CH1/2/3/4 on PE9/PE11/PE13/PE14 for PWM; do not
+  transfer ownership without a reviewed CubeMX task and hardware revalidation.
 - Core must not acquire an optional public BSP implementation or consumer
   closure. Generated `can.c`/`usart.c` may remain compiled as dormant Board
   capability, but root CMake must derive their `main.c` init guards from the

@@ -15,20 +15,24 @@ remain upstream-owned.
 
 ## Current status
 
-The Tasks 1-6 software gate has passed. The implementation has Host tests,
-an explicit MyCar F407 preset, generated four-motor configuration, safety
-interlocks, and static/runtime-policy validation.
+The software gate and attended chassis baseline acceptance have passed. The
+current profile uses the measured chassis geometry, DR16 manual control, four
+M2006 feedback loops, startup arming, health interlocks and bounded current.
 
-Hardware acceptance has **not** been run. The default MyCar parameters are
-deliberately invalid and zero-only until the real vehicle is measured and
-explicitly authorized. A successful build does not authorize flashing,
-physical motor output, PI tuning, or driving.
+On 2026-08-04 the operator verified the hardware-accepted `DA37D784...` ELF:
+three cold-start/re-arm cycles, DR16 loss with zero-output recovery, five
+minutes of ground driving without creep or unexpected dropout, and correct
+forward/backward, strafe and yaw directions. The later ownership cleanup keeps
+the shared remoter axis contract standard and applies this vehicle's left-stick
+axis swap in `vehicle/chassis`. Its `92691430...` ELF was then programmed,
+verified and reset with OpenOCD; the operator confirmed re-arm, forward/backward,
+strafe, yaw and centered stopping. This is a short exact-artifact hardware pass;
+the extended five-minute and DR16-loss evidence still belongs to `DA37D784...`.
 
 ```text
 Software gate: PASS
-Task 7 physical parameters: NOT_RUN
-Task 8 flash and hardware acceptance: NOT_RUN
-Same-cycle CAN send acceptance: UNKNOWN
+Hardware-accepted baseline ELF: PASS_OPERATOR_OBSERVED
+Current ownership-cleanup ELF: FLASH_VERIFY_PASS, SHORT_HARDWARE_PASS
 ```
 
 ## Start here
@@ -49,7 +53,8 @@ Same-cycle CAN send acceptance: UNKNOWN
 5. `vehicle/chassis/common/` → `control/` → `runtime/`：依資料型別、純控制、ThreadX/
    CAN/DR16 整合的方向閱讀。這是車輛功能的權威實作。
 6. [`boards/dji_c_board_f407/README.md`](boards/dji_c_board_f407/README.md) 再配合
-   `bsp_can.cpp`、`bsp_usart.cpp`：只在需要追到 F407 HAL 或腳位時才進入。
+   `pnx_bsp/can/src/bsp_can.cpp`、`pnx_bsp/usart/src/bsp_usart.cpp`：只在需要
+   追到 F407 HAL、generated handle 或腳位時才進入。
 7. `tests/host/chassis_*`：將前述安全、運動學與控制規則當作可執行規格閱讀。
 
 `demo/cboard/*`、USB、PWM、SPI、BMI088 與其他 demo 是獨立 closure 或歷史驗證；它們
@@ -88,17 +93,19 @@ without separate authorization.
 
 ## Safety and authorization boundary
 
-- The shipped MyCar configuration has zero sentinel values for unmeasured
-  geometry, direction, limits, PI gains and current limits. It therefore
-  fail-closes to zero output.
-- The controller requires a fresh online DR16 release before arming. Offline
-  switch defaults cannot satisfy the startup interlock.
+- The MyCar configuration records measured geometry and the attended-test
+  limits, directions and P/current values. Invalid or non-finite values still
+  fail-close to zero output.
+- The controller requires a fresh online DR16 right-switch release before an
+  UP rising edge can arm. Offline switch defaults cannot satisfy the startup
+  interlock.
 - Remote loss, motor/CAN health loss, invalid configuration, malformed manual
   input and timing overrun select relax/zero and reset PI state as applicable.
 - Hardware operation, flashing, non-zero current, commit, push and
   cross-workspace writes require explicit user authorization.
 
-Do not replace unmeasured values with guesses merely to make the chassis move.
+Treat the present gains and limits as a validated driveable baseline, not final
+competition tuning. Re-measure and revalidate any higher-output configuration.
 
 ## Source and configuration map
 
@@ -110,7 +117,8 @@ Do not replace unmeasured values with guesses merely to make the chassis move.
 | DR16/UART build settings and four M2006 identities | `configs/vehicles/mycar/params.json`, `robot.json` |
 | MyCar build selection | `CMakeLists.txt`, `CMakePresets.json` |
 | Host behavior and regression tests | `tests/host/chassis_*` |
-| F407 Board/HAL implementation | `boards/dji_c_board_f407/` |
+| F407 Direct BSP implementation | `pnx_bsp/*/src/` |
+| CubeMX/generated handles, startup, linker and RTOS integration | `boards/dji_c_board_f407/` |
 
 The intended data flow is:
 
@@ -121,9 +129,8 @@ M2006 feedback 0x201..0x204 ------------------------------^
 ```
 
 Wheel order is FL/FR/RL/RR. Coordinates are `+x` forward, `+y` left and
-positive yaw counter-clockwise. Motor feedback is treated as signed
-gearbox-output angular velocity; equivalence to physical wheel speed still
-requires mechanical verification.
+positive yaw counter-clockwise. The CAN IDs, motor directions and physical
+forward/strafe/yaw response were verified on the vehicle on 2026-08-04.
 
 ## Human and AI-agent routing
 

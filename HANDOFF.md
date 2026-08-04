@@ -1,34 +1,454 @@
 # F407 Engineering Handoff
 
-## Parallel branch topology — 2026-08-03
+## MyCar DR16 + four-M2006 chassis acceptance — 2026-08-04
 
-**Supersedes the "uncommitted worktree" framing in the section below.** The
-MyCar chassis work — restructure into `vehicle/chassis/{control,runtime,common}`
-plus the M2006 P36 controller and its contract tests — is now committed as
-`ff1897e` on `mycar/f4`. Host tests: 42/42 pass (includes `m2006_p36_contract`
-and the full chassis suite). `mycar/f4` is the stable, zero-motor mainline
-baseline; the baseline is no longer an unstaged working-tree change.
+**Status: DRIVEABLE BASELINE PASS; OWNERSHIP CLEANUP SOFTWARE PASS; EXACT
+CLEANUP ELF SHORT HARDWARE REVALIDATION PASS.**
 
-Three independent feature branches, all forked from `ff1897e`:
+### Repository state
 
-- `feat/chassis` — chassis hardware bring-up / on-vehicle tuning. C-board #1.
-  This is the only branch that may enable non-zero motor output, and that
-  change stays test-branch-local — never merged to mainline.
-- `feat/arm` — robotic arm. New code under `vehicle/arm/`, from scratch.
-  C-board #2. Currently zero coupling to chassis, so no cross-branch sync is
-  needed.
-- `feat/maixcam` — MaixCam vision-follow (spec: `../vision-follow-spec.md`).
-  Proceeds independently of chassis. The MaixCam side (AprilTag + Kalman
-  filter + UART fixed-length frames) and the STM32 receive/state-machine logic
-  (DMA+IDLE framing, checksum, TRACKING/COASTING/SEARCHING, timeout safety,
-  feedforward+PID) are both developable and host-testable without a vehicle.
-  Only the final step — feeding vx/vy into `Chassis_SetVelocity` and
-  on-vehicle tuning — depends on `feat/chassis` being validated on hardware.
+- Project: MyCar F407 DR16/four-M2006 mecanum chassis.
+- Repository: `shiuhou/pnx_newtemplate_F4`.
+- Branch: `rebuild/chassis-clean`.
+- Baseline commit before this task: `ddb422ffd9c375d03b50533c89d8f86f3dd3b8d8`.
+- Working tree at evidence capture: only the listed chassis, tests,
+  documentation, `.gitmodules` and `pnx_modules` gitlink changes were present;
+  no untracked file or dirty non-target submodule was reported.
+- The containing parent commit records the final source state; use
+  `git rev-parse HEAD` after checkout.
+- Shared remoter commit:
+  `shiuhou/pnx_modules:codex/f407-dr16-runtime-fixes@7d6d3aa998ded246bc0f9e8de3999c716d2b5887`.
+  It is based on `516614e` (`remoter: expose wheel axis in shared state`) and
+  is published on the fork before the parent gitlink is committed.
 
-Mainline `mycar/f4` stays zero-motor / fail-closed per AGENTS.md. Any "enable
-motor output" debug change lives only in its own test branch and is never
-merged to mainline. No push / remote / hardware / CubeMX changes without
-separate explicit authorization.
+### Task objective
+
+Deliver a reproducible DR16-controlled four-M2006 chassis baseline, preserve
+the shared wheel-axis state, place vehicle-specific stick mapping at the
+vehicle boundary, and record the attended acceptance evidence.
+
+### Actual changes
+
+- MyCar parameters now record the measured `0.038/0.070/0.1275 m` geometry,
+  `40 rad/s` wheel limit, `1.5 m/s` translation, `2.0 rad/s` yaw,
+  `[+1,+1,-1,-1]` motor directions, `Kp=400` and `2000 raw` current limit.
+- The vehicle uses FL/FR/RL/RR = CAN IDs `1/2/4/3`; the hardware-specific yaw
+  pattern and DR16 signs are covered by Host regressions.
+- The shared remoter retains its standard `left_x/left_y` contract and the
+  `wheel` field from `516614e`. MyCar alone swaps the observed `ch_2/ch_3`
+  left-stick axes at the runtime-policy boundary.
+- DR16 and remoter-service ThreadX stacks are each 1536 bytes. The increase
+  preserves the earlier F407 measurements showing only about 52 bytes free at
+  768 bytes and control-block corruption in the merged remoter path.
+- `.gitmodules` resolves `pnx_modules` from the user's fork so a recursive
+  checkout can fetch the pinned shared commit.
+
+### Verification commands and observed results
+
+- `cmake --build build/host` followed by
+  `ctest --test-dir build/host --output-on-failure -R "chassis_|shared_module_api"`:
+  **8/8 PASS** after the shared/vehicle ownership cleanup.
+- `ctest --test-dir build/host --output-on-failure`: **45/45 PASS** immediately
+  before the parent commit.
+- `cmake --build --preset f407-mycar-chassis-debug`: **PASS**, linked ELF,
+  FLASH 72,644 bytes and RAM 57,992 bytes.
+- Current cleanup ELF SHA-256:
+  `92691430FEE54814CD57BEA36CEB3BC309C1C496C83776630BA4AEB2E3A1F11F`.
+- OpenOCD reported `Programming Finished`, `Verified OK` and `Resetting Target`
+  for that exact cleanup ELF. The operator then confirmed right-switch re-arm,
+  forward/backward, left/right strafe, left/right yaw and centered stopping.
+- OpenOCD previously reported `Programming Finished`, `Verified OK` and
+  `Resetting Target` for hardware-accepted ELF SHA-256
+  `DA37D784E7D3FC581C908DE31DBBC51E94FE4B720CE1D43BC970A4532D53A633`.
+- Operator-observed acceptance on that flashed ELF: forward/backward, left/right
+  strafe and left/right yaw correct; three power-on/re-arm repetitions passed;
+  DR16 loss forced zero and recovery/re-arm passed; five minutes of ground
+  driving passed without creep or unexpected zero/dropout.
+- `git ls-remote fork refs/heads/codex/f407-dr16-runtime-fixes` returned the
+  exact published shared SHA `7d6d3aa998ded246bc0f9e8de3999c716d2b5887`.
+
+### Failed attempts
+
+- The first focused run ended `chassis_runtime_policy` with Windows status
+  `0xc0000409`. Investigation showed the test helper still expected shared
+  axes to pass through unchanged; its failed `require()` intentionally called
+  `abort()`. Updating the vehicle-boundary expectation produced 1/1 and then
+  8/8 PASS.
+- The first submodule rebase was blocked by two files whose working-tree blob
+  hashes exactly matched the index but whose stat entries remained modified.
+  Re-adding those identical blobs refreshed the index without content change;
+  the rebase onto `516614e` then completed cleanly.
+
+### Decisions and rationale
+
+- A particular DR16 receiver's observed channel orientation is vehicle
+  composition, not a global remoter contract. Keeping the swap in MyCar avoids
+  changing every consumer and preserves the shared `wheel` work.
+- The stack correction remains shared because the storage belongs to the
+  shared remoter objects and the failure was measured inside those threads.
+- The parent uses a pinned fork commit rather than an unpublished detached
+  submodule SHA, so a future recursive clone can reproduce it.
+
+### Verified facts
+
+- Current source passes the focused Host suite and MyCar F407 link.
+- The pinned shared commit is available from the configured fork.
+- The exact cleanup ELF passed programming verification and the operator's
+  short direction, arming and centered-stop hardware check.
+- The hardware-accepted baseline was driveable and passed the operator's
+  arming, remote-loss and five-minute ground checks.
+
+### Assumptions and open questions
+
+- The exact `92691430...` ELF has a short hardware pass. Its five-minute drive
+  and DR16-loss checks were not repeated after the ownership cleanup; those
+  extended observations remain evidence for `DA37D784...` only.
+- Final competition gains, limits and loaded-floor performance remain a
+  separate tuning task.
+- The Obsidian Vault was not read or modified.
+
+### Risks
+
+- A future shared-remoter update can conflict with the forked stack change;
+  preserve the 1536-byte requirement until fresh stack-usage evidence supports
+  reducing it.
+- Increasing speed/current or changing wheel order, motor direction, DR16
+  axes or arming policy invalidates the recorded hardware baseline.
+
+### Next actions
+
+- Before release, repeat the DR16-loss and extended ground-drive checks on the
+  exact cleanup ELF if exact-artifact evidence is required for those gates.
+- Push the containing parent branch only when separately authorized.
+
+### Rollback point
+
+- Parent baseline: `ddb422ffd9c375d03b50533c89d8f86f3dd3b8d8`.
+- Shared baseline before wheel/stack integration:
+  `pnx_modules@8ba925b60b11fec511a57622c199b57bb23f8f4e`.
+
+## Direct BSP publication and feature integration authority — 2026-08-04
+
+**Status: REPOSITORY PUBLICATION PASS; FRESH SOFTWARE PASS; HARDWARE NOT RUN.**
+
+This section is the current integration authority for agents working on
+`pnx_f4_mycar`. It supersedes the 2026-08-03 pre-publication snapshot below.
+
+### Published authorities
+
+- BSP branch: `HKUSTGZ-ROBOMASTER-PNX/pnx_bsp:F4_version_bsp` at
+  `ee59c97a852586eb7f6fb50b402f2fe9ed112cbc`
+  (`feat(pwm): support four F407 servo channels`). The branch was pushed and
+  re-read from GitHub before the parent was published.
+- Validated parent code head:
+  `shiuhou/pnx_newtemplate_F4:feat/chassis@c4d8ebcde95d18f7873fbca66b7635ee54b1f1df`.
+  This handoff is published as a docs-only successor; use `git rev-parse HEAD`
+  for the containing branch's final documentation commit. It changes no code
+  or submodule gitlink.
+- Code/architecture commits, oldest first:
+  1. `54ea8c22b3d8ff79ea72af51db98d56f27a10fa9` — select the direct F407 BSP
+     implementations and update the BSP gitlink;
+  2. `14649d26a693fdf2d2a5c2ed7121e81957f1b421` — require explicit board
+     configuration capabilities;
+  3. `82ae3c5b8fa1682650a054aa6f0c9ea05c0696f7` — build all six supported F407
+     presets in CI;
+  4. `1c5a739b2b819b157ba0534e30167b5512b29e6c` — move 16 unused demo files to
+     `demo/_reference` with `R100` identity;
+  5. `c4d8ebcde95d18f7873fbca66b7635ee54b1f1df` — document Direct BSP ownership
+     and navigation boundaries.
+- The official reference branch was checked immediately before publication
+  and remained `pnx_template/F4_version@9f8707280d56ae1c8f8061cb9ec12e75f527d1f8`.
+- Shared gitlinks remain unchanged and clean in the published tree:
+  - `pnx_devices@2349cc108c9ed477ccdcd700e802ea888975cdfd`;
+  - `pnx_libs@e7c3e7a2b9d825586ab3e0c413877180c4295df8`;
+  - `pnx_modules@8ba925b60b11fec511a57622c199b57bb23f8f4e`.
+- No tag was created. No Vault write or hardware operation was performed.
+
+### Architecture boundary
+
+The published flow is:
+
+```text
+vehicle / device / module
+        -> public HAL-free bsp::* API
+        -> selected pnx_bsp/<peripheral>/src F407 implementation
+        -> STM32 HAL / generated Board resources
+```
+
+The 15 former `boards/dji_c_board_f407/bsp/*` implementation/helper files are
+removed from the parent. No `detail::backend_*`, runtime backend registry,
+factory or application framework was introduced. The public BSP API semantics
+remain unchanged. The accepted four-channel TIM1 PWM mapping is PE9/CH1,
+PE11/CH2, PE13/CH3 and PE14/CH4; shortening the shared period rejects any
+value below an existing channel pulse/CCR.
+
+### Fresh recursive-clone evidence
+
+A new recursive clone of the remote `feat/chassis` branch resolved the exact
+parent and four submodule SHAs above. The tracked parent and every submodule
+were clean after validation.
+
+- Native Host configure/build/CTest: **44/44 PASS**.
+- All six remote-reproducible images configured, clean-built and linked with
+  zero compiler/linker warning lines and exactly one ELF:
+
+| Preset | Configure | Build/link | Warnings |
+| --- | --- | --- | ---: |
+| `f407-debug` | PASS | PASS | 0 |
+| `f407-release` | PASS | PASS | 0 |
+| `f407-usb-cdc-debug` | PASS | PASS | 0 |
+| `f407-usb-cdc-release` | PASS | PASS | 0 |
+| `f407-pwm-a2-debug` | PASS | PASS | 0 |
+| `f407-mycar-chassis-debug` | PASS | PASS | 0 |
+
+- Core/USB/PWM/MyCar source-graph isolation: PASS.
+- CAN/USART generated-init authority: false in the five non-MyCar images and
+  true only in the MyCar image.
+- Every ELF has exactly one `app_start` and no duplicate strong public
+  `bsp::*` symbol.
+- Public BSP header HAL/handle leakage: none in the checked token set.
+- Production `detail::backend_*`/`pnx_backends` forwarding: none.
+- Retired CAN/M2006, BMI088 and standalone DBUS selectors: explicit
+  fail-fast PASS.
+- A repository-wide scan found five historical absolute Windows paths in
+  already tracked documentation. The set is identical to the `ff1897e`
+  baseline; this publication added zero absolute-path references and no
+  absolute-path-only artifact.
+- MaixCam files and their Python tests are not in the published commit series;
+  the earlier live-worktree 29/29 result is not fresh-clone evidence for this
+  branch.
+- Servo, motor, CAN, IMU, DBUS, USB and all other physical hardware
+  revalidation: **NOT RUN**.
+
+### Live worktree preservation and agent rule
+
+The existing local MyCar worktree intentionally remains on
+`feat/chassis@ff1897e3bc890bf6078aca08bc2d85064f0d40ca`
+with its pre-existing staged, unstaged and untracked chassis, MaixCam,
+ARM/PWM, DR16 and documentation work. It was not reset, cleaned, rebased,
+merged or fast-forwarded during publication. Its `pnx_bsp` checkout is clean
+at `ee59c97`, while the local parent HEAD still records the older BSP gitlink;
+the clean remote branch above is the reproducible publication authority.
+The live `pnx_modules` edits remain separate feature work and were not changed.
+
+Feature agents must not repeat the migration by copying old Board BSP files.
+They should inspect their own dirty state, fetch `origin/feat/chassis`, then
+integrate the five parent commits in order (or merge the published branch when
+safe). Update only the `pnx_bsp` submodule to the recorded gitlink; do not move
+`pnx_devices`, `pnx_libs` or `pnx_modules`. Resolve CMake/test overlaps without
+discarding feature changes, rerun the branch-specific Host tests and affected
+preset, and record hardware as `NOT RUN` unless it was actually observed.
+
+```text
+PNX_BSP_COMMIT_PUSH=PASS
+PARENT_COMMIT_PUSH=PASS
+FRESH_RECURSIVE_CLONE=PASS
+HOST_CTEST=44/44_PASS
+F407_SIX_PRESETS=PASS
+SOURCE_GRAPH_AND_SYMBOL_GATES=PASS
+HARDWARE_REVALIDATION=NOT_RUN
+VAULT_WRITE=NOT_RUN
+```
+
+## Superseded pre-publication snapshot — 2026-08-03
+
+**Status at that date: LOCAL SOFTWARE PASS; publication and hardware
+validation were NOT RUN. This section is superseded by the 2026-08-04
+authority above.**
+
+This section is retained as dated pre-publication evidence. It is no longer
+the current authority for branch, remote SHA, BSP publication state or
+fresh-clone results.
+
+### Repository state
+
+- Repository: the existing local MyCar worktree.
+- Parent branch/HEAD: `feat/chassis` at
+  `ff1897e3bc890bf6078aca08bc2d85064f0d40ca`.
+- The parent is an intentionally mixed working tree containing pre-existing
+  chassis, MaixCam, ARM/PWM and DR16 work. This integration was applied in
+  place so those changes remain available together; it is not a clean release
+  checkout.
+- Direct-BSP parent reference:
+  `pnx_template/F4_version@9f8707280d56ae1c8f8061cb9ec12e75f527d1f8`.
+  Its accepted source-layout changes were ported selectively; the branch was
+  not merged or rebased over the mixed worktree.
+- `pnx_bsp` checkout: detached
+  `da09febe8f5bfe66993010247d4d6731d0ca492b`
+  (`origin/F4_version_bsp`) plus two local four-channel PWM modifications:
+  `pwm/src/bsp_pwm.cpp` and `pwm/src/pwm_channels.hpp`.
+- The parent index still records the older `pnx_bsp` gitlink
+  `c097c5b581baf9b8cb7cff90bc8a22d2136a2437`. This is deliberate while no
+  BSP or parent commit/push is authorized; the integrated state is therefore
+  **not yet reproducible from the parent commit alone**.
+- Shared pins remain:
+  - clean `pnx_devices@2349cc108c9ed477ccdcd700e802ea888975cdfd`;
+  - clean `pnx_libs@e7c3e7a2b9d825586ab3e0c413877180c4295df8`;
+  - `pnx_modules@8ba925b60b11fec511a57622c199b57bb23f8f4e`
+    with the three pre-existing DR16/remoter edits under
+    `remoter/include/{remoter.hpp,types.hpp}` and `remoter/src/dr16.cpp`.
+- Three pre-existing MaixCam files (`detector.py`, `main.py`, `vf_config.py`)
+  changed again after the integration preservation snapshot. They were not
+  modified, restored or interpreted by this task and remain owned by that
+  parallel feature effort.
+- No commit, push, tag, merge, rebase, CubeMX/IOC regeneration, hardware
+  operation or Vault write was performed.
+
+### Task objective
+
+Bring the current MyCar feature work onto the accepted F407 Direct BSP source
+layout once, without asking every feature agent to repeat the migration and
+without losing or normalizing their in-progress changes. Future agents should
+read this section first and continue from the live checkout only after
+rechecking `git status` and submodule state.
+
+### Actual changes
+
+- Board-selected implementations now compile from
+  `pnx_bsp/<peripheral>/src`; the 15 former
+  `boards/dji_c_board_f407/bsp/*` implementation/helper files are removed from
+  the parent source tree. Public callers still use the same HAL-free `bsp::*`
+  API; no `detail::backend_*`, runtime registry or factory was introduced.
+- The four-channel TIM1 PWM implementation from the existing ARM work was
+  transplanted without loss into `pnx_bsp/pwm/src` before the parent copies
+  were removed, then received the review-driven period-shrink fail-closed
+  guard described below. Its mapping remains PE11/CH2, PE9/CH1, PE13/CH3 and
+  PE14/CH4 with one shared timer period and independent channel pulse/start
+  state.
+- Root and Host CMake now select the direct BSP sources and private BSP helper
+  include directories. The source-layout contract checks that direct sources
+  live only in `pnx_bsp` and that no forwarding symbol returns.
+- Image capability remains build-time selected: Core contains no optional
+  BSP; USB adds only USB; PWM adds only PWM; MyCar adds CAN, USART and its
+  vehicle closure. The existing compile-time CAN/USART lifecycle authority is
+  retained, so only MyCar executes those generated peripheral init calls.
+- Disabled-by-default shared configuration compatibility was aligned with the
+  F407 template while preserving MyCar motor/remoter generation.
+- CI now lists all six supported F407 presets, including the MyCar image.
+- Historical demo references moved under `demo/_reference`; `demo/README.md`
+  distinguishes the product `demo/app.cpp` entry point from references.
+- Documentation and source-contract paths were updated to the new BSP source
+  ownership. `pnx_devices` and `pnx_libs` were not changed; the dirty
+  `pnx_modules` remoter work was not edited by this integration.
+
+### Fresh software verification
+
+The final verification commands and complete observations are also recorded
+in `.codex/tasks/2026-08-03-mycar-direct-bsp-sync/validation-report.md`.
+
+- Native Host configure/build and CTest: **45/45 PASS**.
+- MaixCam Python Host suite: **29/29 PASS**.
+- All six F407 presets configured and clean-built with zero compiler/linker
+  warning lines and a linked ELF:
+
+| Preset | Configure/build/link | Warnings | RAM | Flash |
+| --- | --- | ---: | ---: | ---: |
+| `f407-debug` | PASS | 0 | 49,792 B | 23,736 B |
+| `f407-release` | PASS | 0 | 49,792 B | 15,188 B |
+| `f407-usb-cdc-debug` | PASS | 0 | 66,040 B | 67,952 B |
+| `f407-usb-cdc-release` | PASS | 0 | 66,000 B | 40,056 B |
+| `f407-pwm-a2-debug` | PASS | 0 | 49,840 B | 28,240 B |
+| `f407-mycar-chassis-debug` | PASS | 0 | 57,992 B | 72,972 B |
+
+- Compile-database graph checks found: Core has no CAN/USART/USB/PWM direct
+  BSP or consumer closure (generated dormant `can.c`/`usart.c` remain); USB
+  and PWM add only their own direct BSP source; MyCar adds one CAN source, one
+  USART source and its nine vehicle translation units.
+- Generated init authority is false for CAN/USART in the five non-MyCar
+  images and true only in the MyCar image.
+- Every ELF contains exactly one `app_start`; no ELF has duplicate strong
+  public `bsp::*` definitions.
+- Public `pnx_bsp` headers contain none of the checked STM32 HAL headers,
+  handle types or global handle names. A production-source scan found no
+  `detail::backend_*` forwarding symbol.
+- `git diff --check`, cached-diff check and the `pnx_bsp` diff check pass.
+- All 16 relocated demo reference files have the same Git blob identity as
+  their pre-move `HEAD` paths.
+- Of 40 pre-existing dirty-file preservation hashes, 36 remain identical.
+  The four expected/observed differences are the intentionally updated
+  `vehicle/arm/HANDOFF.md` plus three separately evolving MaixCam files named
+  in the repository-state section; none was reverted.
+
+### Failed attempt and correction
+
+An initial ELF-symbol audit searched every demangled line containing
+`bsp::`. It falsely reported the two ABI constructor aliases of
+`vehicle::chassis::runtime_policy(..., bsp::can::telemetry)` at the same
+address as duplicate BSP definitions. The checker was corrected to inspect
+only symbol names beginning with `bsp::` and to count distinct strong-symbol
+addresses. The complete six-image audit then passed. Firmware source and link
+output were not changed to satisfy this checker.
+
+Two other audit-script assumptions were corrected without changing firmware:
+the MyCar compile database authoritatively contains nine, not ten,
+`vehicle/chassis` translation units; and a raw backend-string scan matched the
+Host contract's deliberate forbidden-token sentinel. The final graph uses the
+nine CMake-declared files and the backend scan is limited to production
+sources, while the Host contract continues to test the forbidden token.
+
+The final independent review then found that shortening the shared PWM period
+could leave an existing channel compare above the new ARR. A test-first fix
+now rejects that change with `invalid_arg` and preserves both the old period
+and pulse state. The Host behavior test and F407 source contract were each
+observed failing before the implementation change, then passing afterward.
+The guard adds 116 bytes of Flash to the PWM validation image and does not
+change its RAM occupancy.
+The follow-up independent read-only review marked that finding resolved and
+reported no new Critical or Important issue. The remaining publication
+blocker is the intentionally uncommitted BSP/gitlink state, not a local build
+or Direct BSP architecture failure.
+
+### Decisions and evidence boundary
+
+- The Direct BSP migration is a source-ownership change, not a public API or
+  application architecture redesign.
+- The BSP checkout intentionally remains dirty because the accepted upstream
+  commit has one-channel PWM while the MyCar ARM work needs the already tested
+  four-channel implementation. Publishing it requires an explicit BSP commit
+  before the parent gitlink can be updated.
+- Existing staged and unstaged feature work was preserved in place. A
+  pre-change hash inventory was used as a guard; later parallel MaixCam edits
+  are explicitly attributed as outside this integration rather than reverted.
+- Build, link, Host tests and static source/symbol checks are software
+  evidence only. No servo, motor, CAN bus, DR16 receiver, USB device or other
+  physical hardware was exercised in this task.
+
+```text
+DIRECT_BSP_LOCAL_INTEGRATION=PASS
+HOST_CTEST=45/45_PASS
+MAIXCAM_HOST=29/29_PASS
+F407_SIX_PRESETS=PASS
+SOURCE_GRAPH_AND_SYMBOL_GATES=PASS
+PNX_BSP_COMMIT_PUSH=NOT_RUN
+PARENT_COMMIT_PUSH=NOT_RUN
+FRESH_RECURSIVE_CLONE=NOT_RUN
+HARDWARE_REVALIDATION=NOT_RUN
+VAULT_WRITE=NOT_RUN
+```
+
+### Risks, next actions and rollback
+
+1. Every feature agent should read this section, then inspect the live status;
+   it should not independently re-copy the old Board BSP files or reset the
+   submodule.
+2. Review the two PWM diffs in `pnx_bsp`, commit and push them on the intended
+   `F4_version_bsp` publication branch, then deliberately stage the parent
+   deletions/CMake/tests/docs and updated `pnx_bsp` gitlink. Do not use broad
+   `git add -A` in this mixed worktree.
+3. Preserve the current `pnx_devices`/`pnx_libs` pins and resolve the existing
+   `pnx_modules` DR16 work on its own feature provenance; do not manufacture a
+   shared-module branch merely for this layout migration.
+4. After publication, prove reproducibility with a fresh recursive clone and
+   rerun the six presets, 45 Host tests, MaixCam suite and source/symbol gates.
+5. Hardware validation remains a separately authorized, attended activity.
+
+Rollback anchors are parent
+`ff1897e3bc890bf6078aca08bc2d85064f0d40ca`, pre-task BSP checkout
+`c097c5b581baf9b8cb7cff90bc8a22d2136a2437`, and target BSP base
+`da09febe8f5bfe66993010247d4d6731d0ca492b`. Because unrelated changes are
+mixed into the worktree, rollback must reverse only the paths/hunks listed in
+the task record. Never use `git reset --hard`, `git clean`, or a broad checkout
+restore.
 
 ## MyCar DR16 + four-M2006 chassis software gate — 2026-07-31
 

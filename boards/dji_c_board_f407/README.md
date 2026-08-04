@@ -2,25 +2,27 @@
 
 > 中文定位：這裡是「車輛程式需要下探到 F407 時」才閱讀的 board 層。先由根 README
 > 進入 MyCar，只有追查 CAN1、USART3、ThreadX 啟動或 HAL callback 時才依下表開啟對應
-> `bsp/bsp_*.cpp`。不要從應用程式直接包含本資料夾的 HAL handle、腳位或 IRQ 名稱。
+> `pnx_bsp/*/src/bsp_*.cpp`。不要從應用程式直接包含 HAL handle、腳位或 IRQ 名稱。
 
-This directory is the only F407/board-specific layer. Public contracts remain
-in `pnx_bsp`; STM32 HAL handles, pins, registers, DMA channels and IRQ details
-must not leave this directory.
+This directory owns the generated DJI C-board hardware description, startup,
+linker, ThreadX/USBX integration and CubeMX lifecycle. The selected
+`pnx_bsp/F4_version_bsp` lineage owns the F407 direct implementations; public
+contracts remain in `pnx_bsp/*/include`.
 
-Each `bsp/bsp_*.cpp` directly defines the corresponding public `bsp::*`
-symbols. There is no separate `detail::backend_*` forwarding layer.
+Each `pnx_bsp/*/src/bsp_*.cpp` directly defines the corresponding public
+`bsp::*` symbols and consumes this Board's generated handles/resources. There
+is no separate `detail::backend_*` forwarding layer.
 
 | Resource | Authoritative owner | Lifecycle |
 | --- | --- | --- |
 | Clock, startup, linker, ThreadX Cortex-M4 | CubeMX/CMSIS files in this directory | Always present |
-| Indicator PH10/PH11 and diagnostics/fault record | `bsp/bsp_indicator.cpp`, `bsp/bsp_diagnostics.cpp`, `bsp/fault_handlers.S` | Core |
-| USB OTG FS / USBX | IOC/generated sources + `bsp/bsp_usb.cpp` | Only the USB closure |
-| Servo C2, TIM1_CH2/PE11 | `bsp/bsp_pwm.cpp` | Only the attended PWM closure; compare is cleared on stop |
-| CAN1/CAN2 bxCAN | IOC/generated handles + `bsp/bsp_can.cpp` | Direct implementation retained; no active application closure |
-| USART1/3/6 | IOC/generated handles + `bsp/bsp_usart.cpp` | Direct implementation retained; no active DBUS closure |
-| SPI1, PA7/PB3/PB4, Mode 3 | `bsp/bsp_spi.cpp` | Direct implementation retained; no active BMI088 closure |
-| Flash geometry and erase/program | `bsp/bsp_flash.cpp` | `UNSUPPORTED_UNTIL_RESERVED_PARTITION`; not linked into a supported RC2 image and no destructive hardware test |
+| Indicator PH10/PH11 and diagnostics/fault record | `pnx_bsp/indicator/src`, `pnx_bsp/diagnostics/src` | Core |
+| USB OTG FS / USBX | IOC/generated sources + `pnx_bsp/usb/src` | Only the USB closure |
+| Servo channels TIM1_CH1/CH2/CH3/CH4 → PE9/PE11/PE13/PE14 | `pnx_bsp/pwm/src` | Only the attended PWM closure; TIM1 stays a manual single-owner resource (not in the IOC). All four share one ARR, so the period is timer-wide (20ms/50Hz default) while pulse width and start/stop are per channel. Compare is cleared on stop; TIM1 and the pins are released only when the last channel stops. C2 is the documented connector label for PE11; the other three are named by pin because their connector labels are not recorded |
+| CAN1/CAN2 bxCAN | IOC/generated handles + `pnx_bsp/can/src` | Selected by the MyCar chassis image; dormant in the five non-MyCar images |
+| USART1/3/6 | IOC/generated handles + `pnx_bsp/usart/src` | USART3 is selected by the MyCar DR16 image; dormant in the five non-MyCar images |
+| SPI1, PA7/PB3/PB4, Mode 3 | `pnx_bsp/spi/src` | Direct implementation retained; no active BMI088 closure |
+| Flash geometry and erase/program | `pnx_bsp/flash/src` | `UNSUPPORTED_UNTIL_RESERVED_PARTITION`; not linked into a supported image and no destructive hardware test |
 
 Generated `can.c` or `usart.c` establishes hardware capability and HAL handles;
 it does not start the public BSP service. Root CMake decides whether a direct
@@ -32,22 +34,23 @@ missing, `main.c` fails compilation instead of silently skipping ownership.
 
 Application, Device and Module code may include the board-neutral headers and
 call APIs such as `bsp::can::transmit()` or
-`bsp::usart::start_rx_to_idle()`. They must not include this directory or name:
+`bsp::usart::start_rx_to_idle()`. They must not include Board files or private
+`pnx_bsp/*/src` headers, or name:
 
 - `hcan1`, `hcan2`, `huart1`, `huart3`, `huart6`;
 - `HAL_CAN_*`, `HAL_UART_*`, GPIO ports or pin numbers;
 - DMA stream/channel or IRQ names;
 - F407 register/peripheral instances.
 
-That boundary lets other boards expose the same public contract without
-placing their implementation in this F407 repository.
+That boundary lets another MCU-family branch expose the same public contract
+with its own direct implementation.
 
 ## Manual resource ownership
 
 SPI1 and TIM1 are deliberately manual resources and are not IOC peripherals.
-The IOC owns the BMI088 chip-select safe-high boot state; `bsp_spi.cpp` may
-reassert the same safe polarity before enabling SPI1. This is a lifecycle
-handoff, not two competing configurations.
+The IOC owns the BMI088 chip-select safe-high boot state;
+`pnx_bsp/spi/src/bsp_spi.cpp` may reassert the same safe polarity before
+enabling SPI1. This is a lifecycle handoff, not two competing configurations.
 
 There must always be one owner per peripheral. Application code must not
 initialize SPI1, TIM1 or the same GPIO pins again.
@@ -111,7 +114,7 @@ CubeMX ownership, remove the corresponding manual initialization first, then
 rerun all retained builds, host tests and the relevant attended hardware
 validation.
 
-Do not treat the removal of BMI088/DBUS/CAN-M2006 validation closures as proof
-that these direct implementations work on current hardware. Their current
-software evidence is limited to public host contracts and ARM syntax checks;
-historical hardware observations remain in the root `HANDOFF.md`.
+Do not treat the removal of BMI088/standalone-DBUS validation closures, or the
+presence of the MyCar CAN/DR16 graph, as proof that the current combined image
+works on hardware. Current integration evidence is software-only; historical
+hardware observations remain separately scoped in the root `HANDOFF.md`.

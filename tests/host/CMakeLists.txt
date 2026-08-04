@@ -5,7 +5,7 @@ add_executable(pnx_usb_contract_host_tests
 )
 target_include_directories(pnx_usb_contract_host_tests PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/fakes"
-    "${CMAKE_SOURCE_DIR}/boards/dji_c_board_f407/bsp"
+    "${CMAKE_SOURCE_DIR}/pnx_bsp/usb/src"
     "${CMAKE_SOURCE_DIR}/pnx_bsp/usb/include"
     "${CMAKE_SOURCE_DIR}/pnx_libs/common/include"
 )
@@ -46,10 +46,20 @@ add_executable(pnx_pwm_contract_host_tests
     fake_pwm.cpp
 )
 target_include_directories(pnx_pwm_contract_host_tests PRIVATE
+    "${CMAKE_SOURCE_DIR}/pnx_bsp/pwm/src"
     "${CMAKE_SOURCE_DIR}/pnx_bsp/pwm/include"
     "${CMAKE_SOURCE_DIR}/pnx_libs/common/include"
 )
 add_test(NAME pwm_contract COMMAND pnx_pwm_contract_host_tests)
+
+# host 沒有 HAL stub，故 fake 只能鏡像 BSP 契約；靜態檢查防止兩邊悄悄分岔。
+add_test(
+    NAME pwm_multichannel_source_contract
+    COMMAND ${CMAKE_COMMAND}
+        "-DPNX_PWM_SOURCE=${CMAKE_SOURCE_DIR}/pnx_bsp/pwm/src/bsp_pwm.cpp"
+        "-DPNX_PWM_CHANNELS=${CMAKE_SOURCE_DIR}/pnx_bsp/pwm/src/pwm_channels.hpp"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/pwm_multichannel_source_contract.cmake"
+)
 
 add_executable(pnx_pwm_a2_sequence_tests
     pwm_a2_sequence_tests.cpp
@@ -78,8 +88,18 @@ target_include_directories(pnx_chassis_manual_safety_tests PRIVATE
 )
 add_test(NAME chassis_manual_safety COMMAND pnx_chassis_manual_safety_tests)
 
+add_executable(pnx_chassis_command_slew_tests
+    chassis_command_slew_tests.cpp
+    "${CMAKE_SOURCE_DIR}/vehicle/chassis/control/command_slew.cpp"
+)
+target_include_directories(pnx_chassis_command_slew_tests PRIVATE
+    "${CMAKE_SOURCE_DIR}"
+)
+add_test(NAME chassis_command_slew COMMAND pnx_chassis_command_slew_tests)
+
 add_executable(pnx_chassis_controller_tests
     chassis_controller_tests.cpp
+    "${CMAKE_SOURCE_DIR}/vehicle/chassis/control/command_slew.cpp"
     "${CMAKE_SOURCE_DIR}/vehicle/chassis/control/controller.cpp"
     "${CMAKE_SOURCE_DIR}/vehicle/chassis/control/kinematics.cpp"
     "${CMAKE_SOURCE_DIR}/vehicle/chassis/control/manual_control.cpp"
@@ -94,6 +114,7 @@ add_test(NAME chassis_controller COMMAND pnx_chassis_controller_tests)
 add_executable(pnx_chassis_config_tests
     chassis_config_tests.cpp
     "${CMAKE_SOURCE_DIR}/vehicle/chassis/runtime/config.cpp"
+    "${CMAKE_SOURCE_DIR}/vehicle/chassis/control/command_slew.cpp"
     "${CMAKE_SOURCE_DIR}/vehicle/chassis/control/controller.cpp"
     "${CMAKE_SOURCE_DIR}/vehicle/chassis/control/kinematics.cpp"
     "${CMAKE_SOURCE_DIR}/vehicle/chassis/control/manual_control.cpp"
@@ -167,6 +188,13 @@ add_test(
         -P "${CMAKE_CURRENT_SOURCE_DIR}/config_generation_contract.cmake"
 )
 
+add_test(
+    NAME direct_bsp_source_layout
+    COMMAND ${CMAKE_COMMAND}
+        "-DPNX_SOURCE_DIR=${CMAKE_SOURCE_DIR}"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/direct_bsp_source_layout_contract.cmake"
+)
+
 add_executable(pnx_shared_module_api_host_tests
     shared_module_api_host_tests.cpp
 )
@@ -218,7 +246,7 @@ add_executable(pnx_usart_contract_host_tests
 )
 target_include_directories(pnx_usart_contract_host_tests PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/fakes"
-    "${CMAKE_SOURCE_DIR}/boards/dji_c_board_f407/bsp"
+    "${CMAKE_SOURCE_DIR}/pnx_bsp/usart/src"
     "${CMAKE_SOURCE_DIR}/pnx_bsp/usart/include"
     "${CMAKE_SOURCE_DIR}/pnx_libs/common/include"
 )

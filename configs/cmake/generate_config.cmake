@@ -13,19 +13,24 @@ pnx_ioc_parse("${IOC}")
 
 file(READ "${PARAMS}" params_json)
 
+# Required keys have no default. A missing key is a configuration error, not an
+# invitation to guess: silently falling back would let one board's params.json
+# inherit another board's semantics.
+function(_pnx_require_json out_var)
+    string(JSON value ERROR_VARIABLE err GET "${params_json}" ${ARGN})
+    if(err)
+        string(REPLACE ";" "." key_path "${ARGN}")
+        message(FATAL_ERROR
+            "params.json is missing required key '${key_path}' (${PARAMS}). "
+            "Add it explicitly; there is no default.")
+    endif()
+    set(${out_var} "${value}" PARENT_SCOPE)
+endfunction()
+
 # --- params.json: build ---
-string(JSON motor_dji ERROR_VARIABLE json_err GET "${params_json}" build motors dji)
-if(json_err)
-    set(motor_dji "true")
-endif()
-string(JSON motor_dm ERROR_VARIABLE json_err GET "${params_json}" build motors dm)
-if(json_err)
-    set(motor_dm "true")
-endif()
-string(JSON motor_lk ERROR_VARIABLE json_err GET "${params_json}" build motors lk)
-if(json_err)
-    set(motor_lk "false")
-endif()
+_pnx_require_json(motor_dji build motors dji)
+_pnx_require_json(motor_dm build motors dm)
+_pnx_require_json(motor_lk build motors lk)
 
 function(_pnx_json_bool_to_cmake val out_var)
     if(val STREQUAL "true" OR val STREQUAL "1" OR val STREQUAL "ON")
@@ -67,18 +72,11 @@ _pnx_json_bool_to_cmake("${motor_dm}" MOTOR_DM)
 _pnx_json_bool_to_cmake("${motor_lk}" MOTOR_LK)
 
 # --- params.json: bindings ---
-string(JSON remoter_uart ERROR_VARIABLE json_err GET "${params_json}" bindings remoter_uart)
-if(json_err)
-    set(remoter_uart "uart5")
-endif()
-string(JSON referee_uart ERROR_VARIABLE json_err GET "${params_json}" bindings referee_uart)
-if(json_err)
-    set(referee_uart "usart1")
-endif()
-string(JSON remoter_source ERROR_VARIABLE json_err GET "${params_json}" remoter source)
-if(json_err)
-    set(remoter_source "")
-endif()
+# Use "none" to state that a board has no such binding. Omitting the key is an
+# error: an absent remoter_uart previously defaulted to the H7 wiring (uart5).
+_pnx_require_json(remoter_uart bindings remoter_uart)
+_pnx_require_json(referee_uart bindings referee_uart)
+_pnx_require_json(remoter_source remoter source)
 string(TOLOWER "${remoter_uart}" remoter_uart)
 string(TOLOWER "${referee_uart}" referee_uart)
 string(TOLOWER "${remoter_source}" remoter_source)
@@ -92,8 +90,12 @@ else()
     set(HAS_REMOTER 0)
 endif()
 
-pnx_ioc_hw_in_list("${PNX_IOC_UART_HW}" "uart7" vt03_uart_present)
-pnx_ioc_uart_has_dma("${PNX_IOC_LINES}" "uart7" "RX" vt03_has_rx_dma)
+# VT03 is wired to UART7 on the H7 reference board. This is a hardware fact of
+# that board, not a portable one: any board without UART7 simply reports
+# HAS_VT03=0. Do not treat "uart7" here as a configurable binding.
+set(PNX_VT03_FIXED_UART "uart7")
+pnx_ioc_hw_in_list("${PNX_IOC_UART_HW}" "${PNX_VT03_FIXED_UART}" vt03_uart_present)
+pnx_ioc_uart_has_dma("${PNX_IOC_LINES}" "${PNX_VT03_FIXED_UART}" "RX" vt03_has_rx_dma)
 if(vt03_uart_present AND vt03_has_rx_dma)
     set(HAS_VT03 1)
 else()
@@ -107,11 +109,12 @@ else()
     set(HAS_REFEREE 0)
 endif()
 
-if(HAS_REFEREE)
-    set(HAS_UI 1)
-else()
-    set(HAS_UI 0)
-endif()
+# UI is drawn by sending referee-system packets, so its hardware capability is
+# exactly the referee UART's. HAS_UI is therefore derived from HAS_REFEREE
+# rather than being an independent hardware fact. The two are still separate
+# feature switches: build.features.ui can turn UI off on a board that has
+# referee support (see the override below).
+set(HAS_UI ${HAS_REFEREE})
 
 _pnx_feature_override("remoter" "${HAS_REMOTER}" HAS_REMOTER)
 _pnx_feature_override("vt03" "${HAS_VT03}" HAS_VT03)
@@ -119,7 +122,9 @@ _pnx_feature_override("referee" "${HAS_REFEREE}" HAS_REFEREE)
 _pnx_feature_override("ui" "${HAS_UI}" HAS_UI)
 set(HAS_PS2 ${HAS_REMOTER})
 
-if(remoter_source STREQUAL "")
+# "auto" infers the source from what the IOC and bindings actually support.
+# It must be requested explicitly -- it is no longer what an absent key means.
+if(remoter_source STREQUAL "auto")
     if(HAS_REMOTER)
         set(ENABLE_DR16 1)
         set(ENABLE_VT03 0)
@@ -163,7 +168,8 @@ elseif(remoter_source STREQUAL "none"
     set(ENABLE_PS2 0)
 else()
     message(FATAL_ERROR
-        "params.remoter.source must be one of: dr16, vt03, ps2, none")
+        "params.remoter.source='${remoter_source}' is invalid; "
+        "must be one of: dr16, vt03, ps2, none, auto")
 endif()
 
 list(LENGTH PNX_IOC_CAN_HW can_hw_count)
@@ -342,19 +348,29 @@ elseif(ENABLE_PS2)
     set(active_remoter_uart "${remoter_uart}")
 endif()
 
-string(JSON test_report_uart ERROR_VARIABLE json_err GET "${params_json}" test report_uart)
-if(json_err)
-    set(test_report_uart "uart7")
+# The test-report UART belongs to the validation closures, not to a product
+# image. Only require and validate it when a validation closure is actually
+# selected, so a product build is not forced to nominate a test port.
+if(PNX_ENABLE_PWM_A2)
+    set(PNX_VALIDATION_CLOSURE_SELECTED 1)
+else()
+    set(PNX_VALIDATION_CLOSURE_SELECTED 0)
 endif()
-string(TOLOWER "${test_report_uart}" test_report_uart)
-pnx_ioc_uart_index("${PNX_IOC_UART_HW}" "${test_report_uart}" test_report_port_idx)
-if(test_report_port_idx LESS 0)
-    message(FATAL_ERROR "params.test.report_uart=${test_report_uart} is not present in board/board.ioc")
+
+if(PNX_VALIDATION_CLOSURE_SELECTED)
+    _pnx_require_json(test_report_uart test report_uart)
+    string(TOLOWER "${test_report_uart}" test_report_uart)
+    pnx_ioc_uart_index("${PNX_IOC_UART_HW}" "${test_report_uart}" test_report_port_idx)
+    if(test_report_port_idx LESS 0)
+        message(FATAL_ERROR "params.test.report_uart=${test_report_uart} is not present in board/board.ioc")
+    endif()
+    if(NOT active_remoter_uart STREQUAL "" AND test_report_uart STREQUAL active_remoter_uart)
+        message(FATAL_ERROR "params.test.report_uart=${test_report_uart} conflicts with the active remoter UART")
+    endif()
+    set(test_report_binding "${test_report_uart}")
+else()
+    set(test_report_binding "bsp::usart::none")
 endif()
-if(NOT active_remoter_uart STREQUAL "" AND test_report_uart STREQUAL active_remoter_uart)
-    message(FATAL_ERROR "params.test.report_uart=${test_report_uart} conflicts with the active remoter UART")
-endif()
-set(test_report_binding "${test_report_uart}")
 
 # --- params namespace (explicit keys per section) ---
 set(generated_semicolon_token "__PNX_GENERATED_SEMICOLON__")
@@ -441,15 +457,19 @@ if(params_referee_body STREQUAL "")
     set(params_referee_body "  inline constexpr std::uint32_t thread_priority = 8${generated_semicolon_token}\n")
 endif()
 
+# params::test only exists for validation closures; a product image gets an
+# empty namespace rather than a test thread priority it will never honour.
 set(params_test_body "")
-_pnx_param_uint("test" "thread_priority" _line)
-string(APPEND params_test_body "${_line}")
-_pnx_param_bool("test" "auto_run_on_boot" _line)
-string(APPEND params_test_body "${_line}")
-if(params_test_body STREQUAL "")
-    string(CONCAT params_test_body
-        "  inline constexpr std::uint32_t thread_priority = 10${generated_semicolon_token}\n"
-        "  inline constexpr bool auto_run_on_boot = true${generated_semicolon_token}\n")
+if(PNX_VALIDATION_CLOSURE_SELECTED)
+    _pnx_param_uint("test" "thread_priority" _line)
+    string(APPEND params_test_body "${_line}")
+    _pnx_param_bool("test" "auto_run_on_boot" _line)
+    string(APPEND params_test_body "${_line}")
+    if(params_test_body STREQUAL "")
+        string(CONCAT params_test_body
+            "  inline constexpr std::uint32_t thread_priority = 10${generated_semicolon_token}\n"
+            "  inline constexpr bool auto_run_on_boot = true${generated_semicolon_token}\n")
+    endif()
 endif()
 
 set(params_usb_body "")

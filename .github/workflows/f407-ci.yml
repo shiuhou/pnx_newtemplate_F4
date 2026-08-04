@@ -25,6 +25,20 @@ jobs:
 
   f407-builds:
     runs-on: ubuntu-24.04
+    strategy:
+      # One job per configure preset. Keep this list equal to CMakePresets.json;
+      # MyCar remains a vehicle product closure in addition to the five F407
+      # baseline/validation images inherited from the template.
+      fail-fast: false
+      matrix:
+        preset:
+          - f407-debug
+          - f407-release
+          - f407-usb-cdc-debug
+          - f407-usb-cdc-release
+          - f407-pwm-a2-debug
+          - f407-mycar-chassis-debug
+    name: build ${{ matrix.preset }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -32,7 +46,7 @@ jobs:
           token: ${{ secrets.SUBMODULES_READ_TOKEN }}
       - name: Install GNU Arm toolchain
         run: sudo apt-get update && sudo apt-get install --yes gcc-arm-none-eabi ninja-build
-      - name: Build Core
-        run: cmake --preset f407-debug && cmake --build --preset f407-debug --parallel
-      - name: Build USB CDC image
-        run: cmake --preset f407-usb-cdc-debug && cmake --build --preset f407-usb-cdc-debug --parallel
+      - name: Configure ${{ matrix.preset }}
+        run: cmake --preset ${{ matrix.preset }}
+      - name: Build ${{ matrix.preset }}
+        run: cmake --build --preset ${{ matrix.preset }} --parallel
