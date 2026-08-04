@@ -235,7 +235,7 @@ void test_controller_targets_and_directions() noexcept
         {true, true, 0.0F, 0.0F, 1.0F}, stopped_wheels,
         healthy_raised, 0.005F);
     require_wheels(rotation_output.wheel_target_rad_s,
-                   {-3.5F, 3.5F, -3.5F, 3.5F});
+                   {-3.5F, -3.5F, 3.5F, 3.5F});
 
     controller mixed{base_config};
     arm(mixed);

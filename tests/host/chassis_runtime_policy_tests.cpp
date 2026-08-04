@@ -72,8 +72,8 @@ void require_healthy_output(const runtime_policy_output& output) noexcept
 {
     require(output.manual.online);
     require(output.manual.arm_switches_up);
-    require(output.manual.left_x == -0.25F);
-    require(output.manual.left_y == 0.50F);
+    require(output.manual.left_x == 0.50F);
+    require(output.manual.left_y == -0.25F);
     require(output.manual.right_x == 0.75F);
     require(output.safety.remote_online);
     require(output.safety.arm_switches_up);
@@ -126,10 +126,9 @@ void test_remote_source_switches_and_axes() noexcept
             input.remote.left_sw = left;
             input.remote.right_sw = right;
             output = switch_policy.update(input);
-            const bool both_up = left == remoter::sw_state::up &&
-                                 right == remoter::sw_state::up;
-            require(output.manual.arm_switches_up == both_up);
-            require(output.safety.arm_switches_up == both_up);
+            const bool right_up = right == remoter::sw_state::up;
+            require(output.manual.arm_switches_up == right_up);
+            require(output.safety.arm_switches_up == right_up);
         }
     }
 

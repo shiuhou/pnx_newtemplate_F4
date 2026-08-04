@@ -1,5 +1,127 @@
 # F407 Engineering Handoff
 
+## MyCar DR16 + four-M2006 chassis acceptance — 2026-08-04
+
+**Status: DRIVEABLE BASELINE PASS; OWNERSHIP CLEANUP SOFTWARE PASS; EXACT
+CLEANUP ELF HARDWARE NOT RUN.**
+
+### Repository state
+
+- Project: MyCar F407 DR16/four-M2006 mecanum chassis.
+- Repository: `shiuhou/pnx_newtemplate_F4`.
+- Branch: `rebuild/chassis-clean`.
+- Baseline commit before this task: `ddb422ffd9c375d03b50533c89d8f86f3dd3b8d8`.
+- Working tree at evidence capture: only the listed chassis, tests,
+  documentation, `.gitmodules` and `pnx_modules` gitlink changes were present;
+  no untracked file or dirty non-target submodule was reported.
+- The containing parent commit records the final source state; use
+  `git rev-parse HEAD` after checkout.
+- Shared remoter commit:
+  `shiuhou/pnx_modules:codex/f407-dr16-runtime-fixes@7d6d3aa998ded246bc0f9e8de3999c716d2b5887`.
+  It is based on `516614e` (`remoter: expose wheel axis in shared state`) and
+  is published on the fork before the parent gitlink is committed.
+
+### Task objective
+
+Deliver a reproducible DR16-controlled four-M2006 chassis baseline, preserve
+the shared wheel-axis state, place vehicle-specific stick mapping at the
+vehicle boundary, and record the attended acceptance evidence.
+
+### Actual changes
+
+- MyCar parameters now record the measured `0.038/0.070/0.1275 m` geometry,
+  `40 rad/s` wheel limit, `1.5 m/s` translation, `2.0 rad/s` yaw,
+  `[+1,+1,-1,-1]` motor directions, `Kp=400` and `2000 raw` current limit.
+- The vehicle uses FL/FR/RL/RR = CAN IDs `1/2/4/3`; the hardware-specific yaw
+  pattern and DR16 signs are covered by Host regressions.
+- The shared remoter retains its standard `left_x/left_y` contract and the
+  `wheel` field from `516614e`. MyCar alone swaps the observed `ch_2/ch_3`
+  left-stick axes at the runtime-policy boundary.
+- DR16 and remoter-service ThreadX stacks are each 1536 bytes. The increase
+  preserves the earlier F407 measurements showing only about 52 bytes free at
+  768 bytes and control-block corruption in the merged remoter path.
+- `.gitmodules` resolves `pnx_modules` from the user's fork so a recursive
+  checkout can fetch the pinned shared commit.
+
+### Verification commands and observed results
+
+- `cmake --build build/host` followed by
+  `ctest --test-dir build/host --output-on-failure -R "chassis_|shared_module_api"`:
+  **8/8 PASS** after the shared/vehicle ownership cleanup.
+- `ctest --test-dir build/host --output-on-failure`: **45/45 PASS** immediately
+  before the parent commit.
+- `cmake --build --preset f407-mycar-chassis-debug`: **PASS**, linked ELF,
+  FLASH 72,644 bytes and RAM 57,992 bytes.
+- Current cleanup ELF SHA-256:
+  `92691430FEE54814CD57BEA36CEB3BC309C1C496C83776630BA4AEB2E3A1F11F`.
+- OpenOCD previously reported `Programming Finished`, `Verified OK` and
+  `Resetting Target` for hardware-accepted ELF SHA-256
+  `DA37D784E7D3FC581C908DE31DBBC51E94FE4B720CE1D43BC970A4532D53A633`.
+- Operator-observed acceptance on that flashed ELF: forward/backward, left/right
+  strafe and left/right yaw correct; three power-on/re-arm repetitions passed;
+  DR16 loss forced zero and recovery/re-arm passed; five minutes of ground
+  driving passed without creep or unexpected zero/dropout.
+- `git ls-remote fork refs/heads/codex/f407-dr16-runtime-fixes` returned the
+  exact published shared SHA `7d6d3aa998ded246bc0f9e8de3999c716d2b5887`.
+
+### Failed attempts
+
+- The first focused run ended `chassis_runtime_policy` with Windows status
+  `0xc0000409`. Investigation showed the test helper still expected shared
+  axes to pass through unchanged; its failed `require()` intentionally called
+  `abort()`. Updating the vehicle-boundary expectation produced 1/1 and then
+  8/8 PASS.
+- The first submodule rebase was blocked by two files whose working-tree blob
+  hashes exactly matched the index but whose stat entries remained modified.
+  Re-adding those identical blobs refreshed the index without content change;
+  the rebase onto `516614e` then completed cleanly.
+
+### Decisions and rationale
+
+- A particular DR16 receiver's observed channel orientation is vehicle
+  composition, not a global remoter contract. Keeping the swap in MyCar avoids
+  changing every consumer and preserves the shared `wheel` work.
+- The stack correction remains shared because the storage belongs to the
+  shared remoter objects and the failure was measured inside those threads.
+- The parent uses a pinned fork commit rather than an unpublished detached
+  submodule SHA, so a future recursive clone can reproduce it.
+
+### Verified facts
+
+- Current source passes the focused Host suite and MyCar F407 link.
+- The pinned shared commit is available from the configured fork.
+- The hardware-accepted baseline was driveable and passed the operator's
+  arming, remote-loss and five-minute ground checks.
+
+### Assumptions and open questions
+
+- The ownership cleanup is intended to be behavior-equivalent for chassis
+  axes, but its exact `92691430...` ELF has not been flashed. Do not relabel
+  the earlier hardware observations as exact-artifact evidence.
+- Final competition gains, limits and loaded-floor performance remain a
+  separate tuning task.
+- The Obsidian Vault was not read or modified.
+
+### Risks
+
+- A future shared-remoter update can conflict with the forked stack change;
+  preserve the 1536-byte requirement until fresh stack-usage evidence supports
+  reducing it.
+- Increasing speed/current or changing wheel order, motor direction, DR16
+  axes or arming policy invalidates the recorded hardware baseline.
+
+### Next actions
+
+- Before release, flash and repeat the short direction, arming and remote-loss
+  checks on the exact cleanup ELF.
+- Push the containing parent branch only when separately authorized.
+
+### Rollback point
+
+- Parent baseline: `ddb422ffd9c375d03b50533c89d8f86f3dd3b8d8`.
+- Shared baseline before wheel/stack integration:
+  `pnx_modules@8ba925b60b11fec511a57622c199b57bb23f8f4e`.
+
 ## Direct BSP publication and feature integration authority — 2026-08-04
 
 **Status: REPOSITORY PUBLICATION PASS; FRESH SOFTWARE PASS; HARDWARE NOT RUN.**

@@ -30,9 +30,9 @@ runtime_policy_output runtime_policy::update(
     const bool remote_online =
         !input.remote.offline &&
         input.remote.active_source == remoter::source::dr16;
-    // 目前首版手動閉環以左右撥桿同時 UP 作為解鎖請求。
+    // 目前 MyCar 左撥桿已損壞；只把右撥桿 UP 視為解鎖請求。
+    // safety gate 仍要求上電後先觀察非 UP、再觀察 UP 上升沿，避免誤啟動。
     const bool arm_switches_up =
-        input.remote.left_sw == remoter::sw_state::up &&
         input.remote.right_sw == remoter::sw_state::up;
     // CAN 保持 active 還不夠；啟動後新增的 error/drop/fault 也視為安全事件。
     const bool retained_can_unchanged =
@@ -58,8 +58,10 @@ runtime_policy_output runtime_policy::update(
     output.manual = {
         remote_online,
         arm_switches_up,
-        input.remote.left_x,
+        // Shared remoter 保留標準 DR16 命名；這台遙控器實測 ch_2 是前後、
+        // ch_3 是左右，因此只在 MyCar 邊界交換左桿兩軸。
         input.remote.left_y,
+        input.remote.left_x,
         input.remote.right_x,
     };
     output.safety = {
