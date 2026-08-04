@@ -88,8 +88,18 @@ target_include_directories(pnx_chassis_manual_safety_tests PRIVATE
 )
 add_test(NAME chassis_manual_safety COMMAND pnx_chassis_manual_safety_tests)
 
+add_executable(pnx_chassis_command_slew_tests
+    chassis_command_slew_tests.cpp
+    "${CMAKE_SOURCE_DIR}/vehicle/chassis/control/command_slew.cpp"
+)
+target_include_directories(pnx_chassis_command_slew_tests PRIVATE
+    "${CMAKE_SOURCE_DIR}"
+)
+add_test(NAME chassis_command_slew COMMAND pnx_chassis_command_slew_tests)
+
 add_executable(pnx_chassis_controller_tests
     chassis_controller_tests.cpp
+    "${CMAKE_SOURCE_DIR}/vehicle/chassis/control/command_slew.cpp"
     "${CMAKE_SOURCE_DIR}/vehicle/chassis/control/controller.cpp"
     "${CMAKE_SOURCE_DIR}/vehicle/chassis/control/kinematics.cpp"
     "${CMAKE_SOURCE_DIR}/vehicle/chassis/control/manual_control.cpp"
@@ -104,6 +114,7 @@ add_test(NAME chassis_controller COMMAND pnx_chassis_controller_tests)
 add_executable(pnx_chassis_config_tests
     chassis_config_tests.cpp
     "${CMAKE_SOURCE_DIR}/vehicle/chassis/runtime/config.cpp"
+    "${CMAKE_SOURCE_DIR}/vehicle/chassis/control/command_slew.cpp"
     "${CMAKE_SOURCE_DIR}/vehicle/chassis/control/controller.cpp"
     "${CMAKE_SOURCE_DIR}/vehicle/chassis/control/kinematics.cpp"
     "${CMAKE_SOURCE_DIR}/vehicle/chassis/control/manual_control.cpp"

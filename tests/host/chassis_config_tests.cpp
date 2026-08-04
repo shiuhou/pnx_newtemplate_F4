@@ -24,6 +24,7 @@ configuration valid_configuration() noexcept
     return {
         {0.076F, 0.18F, 0.16F, 100.0F},
         {0.05F, 1.0F, 1.0F, 2.0F, 1.0F, -1.0F, -1.0F},
+        {4.5F, 6.0F, 6.0F, 9.0F},
         {1.0F, -1.0F, 1.0F, -1.0F},
         {1.0F, 0.0F, 0.0F, 1000.0F},
         0.005F,
@@ -46,6 +47,10 @@ void mycar_configuration_uses_authorized_lifted_test_limits()
     require(config.manual.vx_sign == 1.0F);
     require(config.manual.vy_sign == -1.0F);
     require(config.manual.yaw_sign == -1.0F);
+    require(config.command_slew.translation_accel_mps2 == 4.5F);
+    require(config.command_slew.translation_decel_mps2 == 6.0F);
+    require(config.command_slew.yaw_accel_rad_s2 == 6.0F);
+    require(config.command_slew.yaw_decel_rad_s2 == 9.0F);
     require((config.motor_direction ==
              std::array<float, 4U>{1.0F, 1.0F, 1.0F, 1.0F}));
     require(config.pi.kp == 50.0F);

@@ -183,6 +183,7 @@ if(PNX_ENABLE_MYCAR_CHASSIS)
         "${CMAKE_CURRENT_SOURCE_DIR}/pnx_devices/motors/dji/src/djimotorhandler.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/mycar.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/chassis/runtime/config.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/chassis/control/command_slew.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/chassis/control/kinematics.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/chassis/control/manual_control.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/chassis/control/safety_gate.cpp"

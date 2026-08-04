@@ -14,6 +14,8 @@ struct configuration {
     ::vehicle::chassis::geometry geometry;
     // DR16 死區、三軸車體速度上限與搖桿方向。
     manual_limits manual;
+    // 正常行駛的平移／yaw 加減速率；安全停車仍立即歸零。
+    command_slew_config command_slew;
     // 車體輪正方向到馬達編碼器正方向的映射，順序 FL/FR/RL/RR。
     std::array<float, 4U> motor_direction;
     // 四顆 M2006 共用的速度 PI 與 C610 raw-current 上限。

@@ -24,18 +24,24 @@ configuration mycar_configuration() noexcept
         // 三個方向只能填 +1 或 -1；速度刻意限制於首次架空測試範圍。
         {0.05F, 0.10F, 0.10F, 0.30F, 1.0F, -1.0F, -1.0F},
 
-        // 3. 馬達方向，固定按 FL/FR/RL/RR（左前／右前／左後／右後）排列：
+        // 3. 正常行駛速度斜坡：
+        // {平移加速度 m/s^2, 平移減速度 m/s^2,
+        //  yaw 加速度 rad/s^2, yaw 減速度 rad/s^2}
+        // safety 事件不經此斜坡，仍在當週期立即歸零。
+        {4.5F, 6.0F, 6.0F, 9.0F},
+
+        // 4. 馬達方向，固定按 FL/FR/RL/RR（左前／右前／左後／右後）排列：
         // +1 表示「車輪正方向」與該馬達回報的正速度相同，-1 表示相反。
         // 首次測試暫用全 +1；觀察後逐輪修正。不能按實體 ID 1/2/3/4 順序重排。
         {1.0F, 1.0F, 1.0F, 1.0F},
 
-        // 4. 四輪共用 PI：
+        // 5. 四輪共用 PI：
         // {Kp raw/(rad/s), Ki raw/(rad/s*s), 積分輸出上限 raw,
         //  C610 torque-current 指令上限 raw}
         // 首次架空測試只啟用 P；Ki=0，500 raw 將轉矩電流命令限制為 0.5 A。
         {50.0F, 0.0F, 0.0F, 500.0F},
 
-        // 5. 控制週期，單位秒：0.005 s = 5 ms = 200 Hz。
+        // 6. 控制週期，單位秒：0.005 s = 5 ms = 200 Hz。
         0.005F,
     };
 }
@@ -48,6 +54,7 @@ bool valid(const configuration& config) noexcept
     const controller_configuration controller_config{
         config.geometry,
         config.manual,
+        config.command_slew,
         config.motor_direction,
         config.pi,
     };

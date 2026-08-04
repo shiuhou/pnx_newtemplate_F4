@@ -1,5 +1,6 @@
 #pragma once
 
+#include "vehicle/chassis/control/command_slew.hpp"
 #include "vehicle/chassis/control/kinematics.hpp"
 #include "vehicle/chassis/control/manual_control.hpp"
 #include "vehicle/chassis/control/safety_gate.hpp"
@@ -17,6 +18,8 @@ struct controller_configuration {
     ::vehicle::chassis::geometry geometry;
     // DR16 到 vx/vy/yaw 的速度限制與軸方向。
     manual_limits manual;
+    // 正常手動行駛的車體速度加減速率；安全停車不經此斜坡。
+    command_slew_config command_slew;
     // 將車體輪正方向映射到各馬達 encoder 正方向；順序 FL/FR/RL/RR。
     std::array<float, 4U> motor_direction;
     // 四顆輪速 PI 共用的增益與 raw-current 上限。
@@ -57,6 +60,7 @@ private:
     controller_configuration config_; // 建構時保存的車輛控制參數。
     bool config_valid_{};              // 建構時鎖定；非法設定永遠不出力。
     safety_gate safety_{};             // 控制層解鎖狀態機。
+    command_slew_limiter command_slew_; // vx/vy/yaw 的正常行駛斜坡狀態。
     std::array<velocity_pi, 4U> pi_;   // FL/FR/RL/RR 各自獨立的積分狀態。
 };
 

@@ -48,7 +48,8 @@ bool valid(const controller_configuration& config) noexcept
 {
     // 幾何、搖桿映射、PI 或任一馬達方向非法，都讓整個 controller 無效。
     if (!valid_geometry(config.geometry) ||
-        !valid_manual_limits(config.manual) || !valid(config.pi))
+        !valid_manual_limits(config.manual) ||
+        !valid(config.command_slew) || !valid(config.pi))
     {
         return false;
     }
@@ -66,6 +67,7 @@ bool valid(const controller_configuration& config) noexcept
 controller::controller(controller_configuration config) noexcept
     : config_(config),
       config_valid_(valid(config)),
+      command_slew_(config.command_slew),
       pi_{velocity_pi{config.pi}, velocity_pi{config.pi},
           velocity_pi{config.pi}, velocity_pi{config.pi}}
 {
@@ -91,32 +93,34 @@ controller_output controller::update(
                                 valid_manual_sample(manual);
     output.state = safety_.update(gated_safety);
 
-    // 先把 DR16 映射成 vx/vy/yaw，再做 X 型麥輪逆解；任何一步無效都不出力。
-    bool target_valid = false;
-    if (config_valid_)
+    // 安全事件與非法時間不能等待斜坡；當週期直接零輸出並清除全部控制狀態。
+    if (!safety_.output_enabled() || !config_valid_ ||
+        !valid_manual_sample(manual) || !std::isfinite(dt_s) || dt_s <= 0.0F)
     {
-        const auto target = inverse_kinematics(
-            map_manual(manual, config_.manual), config_.geometry);
-        if (target.has_value())
-        {
-            output.wheel_target_rad_s = *target;
-            target_valid = true;
-        }
-    }
-
-    if (!safety_.output_enabled() || !target_valid ||
-        !std::isfinite(dt_s) || dt_s <= 0.0F)
-    {
-        // 未 armed、目標失敗或 dt 無效時，本週期輸出保持全零並清積分。
+        command_slew_.reset();
         reset_pi();
         return output;
     }
+
+    // 只有 armed 且資料可信時才推進斜坡；正常搖桿回中會在這裡平滑減速。
+    const body_velocity limited_command = command_slew_.update(
+        map_manual(manual, config_.manual), dt_s);
+    const auto target = inverse_kinematics(
+        limited_command, config_.geometry);
+    if (!target.has_value())
+    {
+        command_slew_.reset();
+        reset_pi();
+        return output;
+    }
+    output.wheel_target_rad_s = *target;
 
     // 一顆回饋出現 NaN/Inf 就拒絕整組四輪輸出，不讓其他三輪繼續推車。
     for (const float measured : measured_motor_rad_s.rad_s)
     {
         if (!std::isfinite(measured))
         {
+            command_slew_.reset();
             reset_pi();
             return output;
         }
@@ -135,6 +139,7 @@ controller_output controller::update(
         if (!std::isfinite(motor_target_rad_s[index]) ||
             !std::isfinite(error))
         {
+            command_slew_.reset();
             reset_pi();
             return output;
         }
@@ -153,6 +158,7 @@ void controller::reset() noexcept
 {
     // safety_ 只有在已觀察人工釋放時才可能解除自身 fault；PI 一律清零。
     safety_.reset();
+    command_slew_.reset();
     reset_pi();
 }
 
