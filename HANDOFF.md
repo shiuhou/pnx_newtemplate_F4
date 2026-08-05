@@ -1,5 +1,251 @@
 # F407 Engineering Handoff
 
+## ARM J1-J4 committed integration checkpoint - 2026-08-06
+
+**Status: SOURCE COMMITTED; FULL HOST AND ARM BUILD PASS; MERGE PENDING.**
+
+- `rebuild/arm-clean@eaa13c01cfcc93682e973a71cabae2d316b83880`
+  contains the complete DR16-controlled J1-J4 closure, its focused tests,
+  product preset, and the public shared-module pin.
+- `pnx_modules` now points to public upstream
+  `HKUSTGZ-ROBOMASTER-PNX/pnx_modules@44ff9ab7da4335fb35f9bbed1a1c2a3e4f70d9c5`.
+  That commit was pushed directly to upstream `main` and increases only the
+  measured F407 DR16 and remoter service stacks from 768 B to 1536 B.
+- Fresh Host configuration/build completed and CTest reported **52/52 PASS**.
+  The ARM-focused subset reported **8/8 PASS**, including the shared remoter
+  stack contract.
+- Fresh `f407-arm-debug` configure/build/link passed. The resulting ELF uses
+  RAM `57,848 B / 128 KiB` and Flash `85,796 B / 1 MiB`; SHA-256 is
+  `3C62FE1DFE5EE72C582599BA4537C2B9D3A98A32194FE16B041C3B49ECCBF8D6`.
+- The previously attended J1-J4 observations below apply to ELF
+  `5679E15C28E13B6281EB13A230AF28F5614AE1A92490C4C8CA13B7D85B850A57`.
+  The committed source preserves that control behavior, but the new exact ELF
+  has not yet been programmed; exact-artifact hardware acceptance remains an
+  integration step.
+- The stale extraction-only `vehicle/arm/HANDOFF.md` and old process artifacts
+  were removed. The Obsidian Vault was not modified.
+
+## ARM DR16 J1-J4 hardware-validation record - 2026-08-06
+
+**Status: ATTENDED INDIVIDUAL-AXIS HARDWARE PASS ON THE RECORDED ELF.**
+
+This section preserves the hardware observations made before the committed
+checkpoint above. Its repository-state statements describe that historical
+working tree and are superseded by the committed integration checkpoint. It
+does not replace the historical F407 architecture and BSP evidence retained
+below.
+
+### Repository state
+
+- Project/repository:
+  `C:\Users\USER\Desktop\RM\rm_inschool\2026\firmware\pnx_f4_arm_clean`.
+- Branch/HEAD:
+  `rebuild/arm-clean@671264fc967219369581ae25a5813f4e2235304b`.
+- The ARM implementation is an intentionally dirty mixture of staged,
+  unstaged, and untracked files. It is not reproducible from HEAD alone.
+- Submodule state observed on 2026-08-06:
+  - `pnx_bsp@ee59c97a852586eb7f6fb50b402f2fe9ed112cbc`, clean;
+  - `pnx_devices@2349cc108c9ed477ccdcd700e802ea888975cdfd`, clean;
+  - `pnx_libs@e7c3e7a2b9d825586ab3e0c413877180c4295df8`, clean;
+  - `pnx_modules@9781c059151f349f56e33ac6c17ff4d4defc8e57`, with a local
+    modification in `remoter/include/remoter.hpp`.
+- No commit, push, remote update, tag, IOC regeneration, generated-source
+  edit, or Obsidian Vault write was performed for this closure.
+
+### Task objective
+
+Provide one DR16-controlled ARM image for attended manual control of J1-J4,
+with explicit mode selection, release-before-arm behavior, bounded outputs,
+cross-mode position/servo hold, fail-closed health handling, and enough
+telemetry to diagnose the complete input-to-actuator path.
+
+### Actual changes
+
+- Added the `f407-arm-debug` vehicle composition and ARM runtime under
+  `vehicle/arm`.
+- The DR16 mode and axis mapping is:
+
+  | Input | Behavior |
+  | --- | --- |
+  | left switch `up` | chassis mode |
+  | left switch `mid` | neutral mode |
+  | left switch `low` | ARM mode |
+  | right switch `mid` | release/disarm |
+  | right switch `up` | arm after all four manual axes are centered |
+  | `right_y` | J1 M2006 incremental position command |
+  | `left_y` | J2 PWM servo incremental command |
+  | `right_x` | J3 PWM servo incremental command |
+  | `left_x` | J4 MG90S gripper incremental command |
+
+- J1 uses CAN1 M2006 feedback ID `0x205`, position PID, velocity PI, a
+  `0..pi` logical range captured from the fixed startup pose, gravity-current
+  feedforward, a 4000-raw current limit, and two-second directional stall
+  blocking. Centered `right_y` holds the current target.
+- J2/J3/J4 use independent TIM1 PWM outputs. Centered axes retain the last
+  commanded pulse. A healthy switch from ARM to chassis/neutral preserves an
+  already active position while the right switch remains `up`; disarm,
+  remote/CAN/J1 health loss, invalid configuration, PWM failure, or runtime
+  fault stops the PWM outputs.
+- Current PWM configuration in `vehicle/arm/runtime/arm_config.cpp` is:
+
+  | Joint | Pin/channel | Seed | Minimum | Maximum | Rate |
+  | --- | --- | ---: | ---: | ---: | ---: |
+  | J2 | PE11 / TIM1_CH2 | 300 us | 300 us | 2800 us | 1000 us/s |
+  | J3 | PE13 / TIM1_CH3 | 1500 us | 900 us | 2100 us | 900 us/s |
+  | J4 MG90S | PE14 / TIM1_CH4 | 1500 us | 1000 us | 2000 us | 500 us/s |
+
+- ARM telemetry now exposes mode, faults, J1 target/feedback/current/stall
+  state, J2/J3/J4 axes, commanded pulses, PWM-enabled state, remote update
+  count, and CAN telemetry.
+- The unavailable DBUS wheel is not used. A previous live check observed its
+  raw value remain zero at center and at the physical end position.
+
+### Verification commands and observed results
+
+Focused ARM Host verification:
+
+```powershell
+ctest --test-dir build/host-arm-full `
+  -R "^(arm_servo_map|arm_runtime_policy|arm_config|arm_runtime_source_contract)$" `
+  --output-on-failure
+```
+
+Observed result: **4/4 PASS**, zero failed tests.
+
+Embedded verification:
+
+```powershell
+cmake --build --preset f407-arm-debug
+```
+
+Observed result: build/link PASS, RAM `57,848 B / 128 KiB` (44.13%), Flash
+`85,796 B / 1 MiB` (8.18%). Final ELF SHA-256:
+`5679E15C28E13B6281EB13A230AF28F5614AE1A92490C4C8CA13B7D85B850A57`.
+
+Programming command:
+
+```powershell
+& "D:\OpenOCD\bin\openocd.exe" `
+  -s "D:\OpenOCD\share\openocd\scripts" `
+  -f "interface/cmsis-dap.cfg" `
+  -f "target/stm32f4x.cfg" `
+  -c "adapter speed 2000" `
+  -c "program build/f407-arm-debug/pnx_embedded.elf verify reset exit"
+```
+
+Observed result: `Programming Finished`, `Verified OK`, and target reset.
+The probe was Horco CMSIS-DAP v2 serial `482752132243` and the detected target
+was STM32F407/Cortex-M4.
+
+An immediate post-flash SWD telemetry read observed `state=disabled`,
+`faults=0`, watchdog sampled, `overrun_count=0`, advancing control-loop and
+DR16 update counters, and `j1_online=true`. The core was resumed after the
+read.
+
+Attended operator observations:
+
+- The operator reported J1, J2, and J3 individual testing complete on the
+  immediately preceding ARM image after the PWM/configuration fault was
+  cleared.
+- The operator reported J4 MG90S testing complete and all expected behavior
+  working on the final ELF above.
+- A same-artifact, simultaneous four-axis or loaded end-to-end run was not
+  explicitly reported and is not claimed here.
+
+`git diff --check` exited successfully; output contained only the repository's
+existing LF-to-CRLF checkout warnings.
+
+### Failed attempts
+
+- The physical DR16 wheel produced no usable changing value, so J3 was moved
+  to `right_x` and J2 to `left_y`; J4 uses the remaining `left_x` axis.
+- One earlier flashed image latched `runtime_fault::invalid_config`, which
+  correctly disabled J1-J4 even though DR16, CAN, and J1 feedback were live.
+  A fresh build using the current PWM channel sentinel/configuration cleared
+  the fault; the final telemetry read above remained at `faults=0`.
+- An initial GDB/OpenOCD live-read helper timed out. A bounded OpenOCD
+  halt/read/resume sequence then produced the decisive telemetry without
+  changing Flash.
+- The focused `arm_config` test initially contained stale J2 values. Its
+  expected values were synchronized to the operator-selected
+  `300/300..2800/1000` configuration before the J4 red/green test cycle.
+
+### Decisions and rationale
+
+- Mode selection and actuator authorization remain separate: the left switch
+  chooses chassis/neutral/ARM, while the right switch performs ARM
+  release/enable. This prevents an off-center axis from moving an actuator at
+  mode entry.
+- J4 uses proportional incremental control rather than absolute stick
+  position. Small `left_x` deflection gives fine gripper motion, full
+  deflection moves faster, and returning to center holds the last pulse.
+- PWM servos have no position feedback. Unlock alone sends no pulse; the
+  first deliberate command must establish an absolute pulse, after which the
+  runtime can retain the commanded value.
+- Healthy cross-mode hold is intentional so J1 does not fall and J2/J3/J4 do
+  not release their positions when the operator temporarily selects chassis
+  mode. Explicit disarm or a health fault still fails closed.
+
+### Verified facts
+
+- The final J4 image built, programmed, verified, reset, entered the ARM
+  runtime, received DR16 updates, saw J1 feedback, and reported zero faults.
+- The operator confirmed individual physical operation of all four joints
+  across the two consecutive ARM images described above.
+- The current source and focused tests contain no dependency on the unusable
+  wheel field.
+- No full Host CTest suite, full F407 preset matrix, commit, push, or release
+  gate was run for the final J4 increment.
+
+### Assumptions and open questions
+
+- The exact mechanical angles, payload, supply voltage under load, holding
+  temperatures, and end-stop margins were not instrumented in this record.
+- J1 gravity amplitude/phase/bias are bring-up values, not a measured
+  multi-pose or multi-payload fit.
+- J2's unusually wide `300..2800 us` range is an operator-selected,
+  hardware-specific setting; it must not be copied to another servo model.
+- J1-J4 concurrent behavior on the final ELF and chassis/ARM mode switching
+  under load remain open integration checks.
+
+### Risks
+
+- Because this is a large uncommitted working tree, rebuilding the exact image
+  depends on preserving the current index, working files, untracked files,
+  and the local `pnx_modules` state.
+- PWM actuators are open-loop. A pulse command cannot prove actual shaft
+  position, grip force, obstruction, or thermal state.
+- The first deliberate PWM command can move a servo toward its configured
+  seed-relative absolute pulse; startup mechanical position is unknown.
+- No soak, brownout, reset-during-load, simultaneous-axis, or ground/chassis
+  integration test has been recorded for this ARM closure.
+
+### Next actions
+
+1. On the final ELF, repeat J1-J4 individually, then test controlled
+   chassis/ARM mode transitions while carrying the intended payload.
+2. Validate mechanical end margins and current/temperature behavior, then
+   tune J1 gravity compensation and servo pulse ranges only from observed
+   hardware evidence.
+3. Run the full Host CTest suite once before any commit, and run the full F407
+   preset matrix only for a release-grade gate.
+4. Review and stage only the ARM-owned files and the intended
+   `pnx_modules` state. Commit or push only with explicit authorization.
+
+### Rollback point
+
+- Git anchor: `671264fc967219369581ae25a5813f4e2235304b`. This commit predates the
+  complete ARM closure and is a repository recovery anchor, not a functional
+  J1-J4 image.
+- Current tested firmware artifact:
+  `build/f407-arm-debug/pnx_embedded.elf`, SHA-256
+  `5679E15C28E13B6281EB13A230AF28F5614AE1A92490C4C8CA13B7D85B850A57`.
+- There is no committed source rollback point for the working ARM product.
+  Any rollback must reverse only reviewed ARM/J4 hunks; do not use
+  `git reset --hard`, `git clean`, or a broad checkout in this mixed tree.
+
+The Obsidian Vault was not modified.
+
 ## Direct BSP publication and feature integration authority — 2026-08-04
 
 **Status: REPOSITORY PUBLICATION PASS; FRESH SOFTWARE PASS; HARDWARE NOT RUN.**
