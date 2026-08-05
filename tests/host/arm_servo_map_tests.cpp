@@ -42,11 +42,11 @@ servo_map_config baseline_config() noexcept
     };
 }
 
-void require_centered(const vehicle::arm::servo_map_output& output) noexcept
+void require_disabled(const vehicle::arm::servo_map_output& output) noexcept
 {
-    require(output.pulse_us[servo_index(servo_axis::j2_pitch)] == 1500U);
-    require(output.pulse_us[servo_index(servo_axis::j3_yaw)] == 1500U);
-    require(output.pulse_us[servo_index(servo_axis::gripper)] == 1500U);
+    require(output.pulse_us[servo_index(servo_axis::j2_pitch)] == 0U);
+    require(output.pulse_us[servo_index(servo_axis::j3_yaw)] == 0U);
+    require(output.pulse_us[servo_index(servo_axis::gripper)] == 0U);
 }
 
 void test_validates_config() noexcept
@@ -70,46 +70,59 @@ void test_validates_config() noexcept
 void test_deadband_and_increment() noexcept
 {
     servo_map map{baseline_config()};
-    require_centered(map.update({true, 0.0F}, 0.01F));
-    require_centered(map.update({true, 0.02F}, 0.01F));
+    require_disabled(map.update({true, 0.0F, 0.0F, 0.0F}, 0.01F));
+    require_disabled(map.update({true, 0.02F, 0.0F, 0.0F}, 0.01F));
 
-    const auto moved = map.update({true, 0.55F}, 0.10F);
-    require(moved.pulse_us[servo_index(servo_axis::j2_pitch)] == 1500U);
-    require(moved.pulse_us[servo_index(servo_axis::gripper)] == 1500U);
-    require(moved.pulse_us[servo_index(servo_axis::j3_yaw)] > 1500U);
-    require(moved.pulse_us[servo_index(servo_axis::j3_yaw)] == 1526U);
+    const auto moved = map.update({true, 0.55F, 0.0F, 0.0F}, 0.10F);
+    require(moved.pulse_us[servo_index(servo_axis::j2_pitch)] == 1711U);
+    require(moved.pulse_us[servo_index(servo_axis::gripper)] == 0U);
+    require(moved.pulse_us[servo_index(servo_axis::j3_yaw)] == 0U);
 
-    const auto reversed = map.update({true, -0.55F}, 0.10F);
-    require(reversed.pulse_us[servo_index(servo_axis::j3_yaw)] == 1500U);
+    const auto held = map.update({true, 0.0F, 0.0F, 0.0F}, 0.10F);
+    require(held.pulse_us[servo_index(servo_axis::j2_pitch)] == 1711U);
+
+    const auto reversed = map.update({true, -0.55F, 0.0F, 0.0F}, 0.10F);
+    require(reversed.pulse_us[servo_index(servo_axis::j2_pitch)] == 1689U);
+
+    const auto j3_moved = map.update({true, 0.0F, 0.55F, 0.0F}, 0.10F);
+    require(j3_moved.pulse_us[servo_index(servo_axis::j2_pitch)] == 1689U);
+    require(j3_moved.pulse_us[servo_index(servo_axis::j3_yaw)] == 1763U);
+
+    const auto gripper_moved =
+        map.update({true, 0.0F, 0.0F, -0.55F}, 0.10F);
+    require(gripper_moved.pulse_us[servo_index(servo_axis::gripper)] ==
+            1342U);
 }
 
 void test_rate_limit_and_clamp() noexcept
 {
     servo_map map{baseline_config()};
 
-    auto output = map.update({true, 1.0F}, 1.50F);
+    auto output = map.update({true, 0.0F, 1.0F, 0.0F}, 1.50F);
     require(output.pulse_us[servo_index(servo_axis::j3_yaw)] == 2000U);
 
-    output = map.update({true, -1.0F}, 3.00F);
+    output = map.update({true, 0.0F, -1.0F, 0.0F}, 3.00F);
     require(output.pulse_us[servo_index(servo_axis::j3_yaw)] == 1000U);
 }
 
 void test_fail_closed_reset() noexcept
 {
     servo_map map{baseline_config()};
-    (void)map.update({true, 0.80F}, 0.20F);
+    (void)map.update({true, 0.80F, 0.0F, 0.0F}, 0.20F);
 
-    require_centered(map.update({false, 0.80F}, 0.20F));
-    require_centered(map.update({true,
-                                 std::numeric_limits<float>::quiet_NaN()},
+    require_disabled(map.update({false, 0.80F, 0.0F, 0.0F}, 0.20F));
+    require_disabled(map.update({true,
+                                 std::numeric_limits<float>::quiet_NaN(),
+                                 0.0F,
+                                 0.0F},
                                 0.20F));
-    require_centered(map.update({true, 0.80F}, 0.0F));
+    require_disabled(map.update({true, 0.80F, 0.0F, 0.0F}, 0.0F));
 
     auto bad = baseline_config();
     bad.axes[servo_index(servo_axis::j3_yaw)].max_rate_us_per_s =
         std::numeric_limits<float>::infinity();
     servo_map invalid{bad};
-    require_centered(invalid.update({true, 1.0F}, 0.10F));
+    require_disabled(invalid.update({true, 1.0F, 0.0F, 0.0F}, 0.10F));
 }
 
 } // namespace

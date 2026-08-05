@@ -1,0 +1,16 @@
+{
+  "devices": {
+    "motors": {
+      "list": [
+        {
+          "name": "j1",
+          "model": "dji_m2006",
+          "can_bus": "can1",
+          "can_type": "classic",
+          "can_id": "0x205",
+          "control_mode": "relax"
+        }
+      ]
+    }
+  }
+}

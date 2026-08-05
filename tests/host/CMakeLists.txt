@@ -157,6 +157,20 @@ target_include_directories(pnx_arm_servo_map_tests PRIVATE
 )
 add_test(NAME arm_servo_map COMMAND pnx_arm_servo_map_tests)
 
+add_executable(pnx_arm_servo_pwm_output_tests
+    arm_servo_pwm_output_tests.cpp
+    fake_pwm.cpp
+    "${CMAKE_SOURCE_DIR}/vehicle/arm/runtime/servo_pwm_output.cpp"
+)
+target_include_directories(pnx_arm_servo_pwm_output_tests PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/fakes"
+    "${CMAKE_SOURCE_DIR}"
+    "${CMAKE_SOURCE_DIR}/pnx_bsp/pwm/include"
+    "${CMAKE_SOURCE_DIR}/pnx_bsp/pwm/src"
+    "${CMAKE_SOURCE_DIR}/pnx_libs/common/include"
+)
+add_test(NAME arm_servo_pwm_output COMMAND pnx_arm_servo_pwm_output_tests)
+
 add_test(
     NAME chassis_runtime_source_contract
     COMMAND ${CMAKE_COMMAND}
@@ -173,15 +187,64 @@ target_include_directories(pnx_arm_position_pid_tests PRIVATE
 )
 add_test(NAME arm_position_pid COMMAND pnx_arm_position_pid_tests)
 
+add_executable(pnx_arm_j1_control_tests
+    arm_j1_control_tests.cpp
+    "${CMAKE_SOURCE_DIR}/vehicle/arm/control/gravity_feedforward.cpp"
+    "${CMAKE_SOURCE_DIR}/vehicle/arm/control/j1_manual_command.cpp"
+    "${CMAKE_SOURCE_DIR}/vehicle/arm/control/j1_stall_guard.cpp"
+    "${CMAKE_SOURCE_DIR}/vehicle/arm/control/j1_zero_reference.cpp"
+    "${CMAKE_SOURCE_DIR}/vehicle/arm/control/position_pid.cpp"
+)
+target_include_directories(pnx_arm_j1_control_tests PRIVATE
+    "${CMAKE_SOURCE_DIR}"
+)
+add_test(NAME arm_j1_control COMMAND pnx_arm_j1_control_tests)
+
 add_executable(pnx_arm_config_tests
     arm_config_tests.cpp
+    "${CMAKE_SOURCE_DIR}/vehicle/arm/control/j1_stall_guard.cpp"
+    "${CMAKE_SOURCE_DIR}/vehicle/arm/control/servo_map.cpp"
     "${CMAKE_SOURCE_DIR}/vehicle/arm/runtime/arm_config.cpp"
     "${CMAKE_SOURCE_DIR}/vehicle/arm/control/position_pid.cpp"
+    "${CMAKE_SOURCE_DIR}/vehicle/chassis/control/velocity_pi.cpp"
 )
 target_include_directories(pnx_arm_config_tests PRIVATE
     "${CMAKE_SOURCE_DIR}"
+    "${CMAKE_SOURCE_DIR}/pnx_bsp/pwm/include"
+    "${CMAKE_SOURCE_DIR}/pnx_bsp/pwm/src"
+    "${CMAKE_SOURCE_DIR}/pnx_libs/common/include"
 )
 add_test(NAME arm_config COMMAND pnx_arm_config_tests)
+
+add_executable(pnx_arm_runtime_policy_tests
+    arm_runtime_policy_tests.cpp
+    "${CMAKE_SOURCE_DIR}/vehicle/arm/control/arm_safety_gate.cpp"
+    "${CMAKE_SOURCE_DIR}/vehicle/arm/runtime/arm_runtime_policy.cpp"
+)
+target_include_directories(pnx_arm_runtime_policy_tests PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/fakes"
+    "${CMAKE_SOURCE_DIR}"
+    "${CMAKE_SOURCE_DIR}/pnx_bsp/can/include"
+    "${CMAKE_SOURCE_DIR}/pnx_bsp/pwm/include"
+    "${CMAKE_SOURCE_DIR}/pnx_bsp/pwm/src"
+    "${CMAKE_SOURCE_DIR}/pnx_libs/common/include"
+    "${CMAKE_SOURCE_DIR}/pnx_modules/remoter/include"
+)
+add_test(NAME arm_runtime_policy COMMAND pnx_arm_runtime_policy_tests)
+
+add_test(
+    NAME arm_runtime_source_contract
+    COMMAND ${CMAKE_COMMAND}
+        "-DPNX_RUNTIME_SOURCE=${CMAKE_SOURCE_DIR}/vehicle/arm/runtime/arm_runtime.cpp"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/arm_runtime_source_contract.cmake"
+)
+
+add_test(
+    NAME arm_remoter_stack_contract
+    COMMAND ${CMAKE_COMMAND}
+        "-DPNX_REMOTER_HEADER=${CMAKE_SOURCE_DIR}/pnx_modules/remoter/include/remoter.hpp"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/arm_remoter_stack_contract.cmake"
+)
 
 add_executable(pnx_template_consumer_api_host_tests
     template_consumer_api_host_tests.cpp

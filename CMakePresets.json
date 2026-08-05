@@ -18,7 +18,8 @@
         "CMAKE_BUILD_TYPE": "Debug",
         "PNX_ENABLE_USB_CDC": false,
         "PNX_ENABLE_PWM_A2": false,
-        "PNX_ENABLE_MYCAR_CHASSIS": false
+        "PNX_ENABLE_MYCAR_CHASSIS": false,
+        "PNX_ENABLE_ARM": false
       }
     },
     {
@@ -28,7 +29,8 @@
         "CMAKE_BUILD_TYPE": "Release",
         "PNX_ENABLE_USB_CDC": false,
         "PNX_ENABLE_PWM_A2": false,
-        "PNX_ENABLE_MYCAR_CHASSIS": false
+        "PNX_ENABLE_MYCAR_CHASSIS": false,
+        "PNX_ENABLE_ARM": false
       }
     },
     {
@@ -38,7 +40,8 @@
         "CMAKE_BUILD_TYPE": "Debug",
         "PNX_ENABLE_USB_CDC": true,
         "PNX_ENABLE_PWM_A2": false,
-        "PNX_ENABLE_MYCAR_CHASSIS": false
+        "PNX_ENABLE_MYCAR_CHASSIS": false,
+        "PNX_ENABLE_ARM": false
       }
     },
     {
@@ -48,7 +51,8 @@
         "CMAKE_BUILD_TYPE": "Release",
         "PNX_ENABLE_USB_CDC": true,
         "PNX_ENABLE_PWM_A2": false,
-        "PNX_ENABLE_MYCAR_CHASSIS": false
+        "PNX_ENABLE_MYCAR_CHASSIS": false,
+        "PNX_ENABLE_ARM": false
       }
     },
     {
@@ -58,7 +62,8 @@
         "CMAKE_BUILD_TYPE": "Debug",
         "PNX_ENABLE_USB_CDC": false,
         "PNX_ENABLE_PWM_A2": true,
-        "PNX_ENABLE_MYCAR_CHASSIS": false
+        "PNX_ENABLE_MYCAR_CHASSIS": false,
+        "PNX_ENABLE_ARM": false
       }
     },
     {
@@ -67,6 +72,18 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "PNX_ENABLE_MYCAR_CHASSIS": true,
+        "PNX_ENABLE_USB_CDC": false,
+        "PNX_ENABLE_PWM_A2": false,
+        "PNX_ENABLE_ARM": false
+      }
+    },
+    {
+      "name": "f407-arm-debug",
+      "inherits": "f407-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "PNX_ENABLE_ARM": true,
+        "PNX_ENABLE_MYCAR_CHASSIS": false,
         "PNX_ENABLE_USB_CDC": false,
         "PNX_ENABLE_PWM_A2": false
       }
@@ -96,6 +113,10 @@
     {
       "name": "f407-mycar-chassis-debug",
       "configurePreset": "f407-mycar-chassis-debug"
+    },
+    {
+      "name": "f407-arm-debug",
+      "configurePreset": "f407-arm-debug"
     }
   ]
 }

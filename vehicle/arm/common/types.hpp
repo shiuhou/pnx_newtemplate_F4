@@ -34,7 +34,9 @@ struct servo_map_config {
 
 struct servo_map_input {
     bool online{};
+    float j2_pitch_axis{};
     float j3_yaw_axis{};
+    float gripper_axis{};
 };
 
 struct servo_map_output {

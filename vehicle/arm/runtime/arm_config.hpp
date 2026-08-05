@@ -1,17 +1,31 @@
 #pragma once
 
+#include "vehicle/arm/common/types.hpp"
+#include "vehicle/arm/control/j1_stall_guard.hpp"
 #include "vehicle/arm/control/position_pid.hpp"
+#include "vehicle/chassis/control/velocity_pi.hpp"
 
 namespace vehicle::arm
 {
 
-// 機械臂 runtime 目前先收斂到 J1 位置外環與固定 5 ms 控制週期。
+// Parameters for the attended DR16-controlled J1-J4 arm closure.
 struct configuration {
     position_pid_config j1_position;
-    float j1_manual_position_rate_rad_per_s{}; // right_y 滿量時的目標位置斜率。
-    float control_period_s{};                  // 目前契約要求 0.005 s。
+    ::vehicle::chassis::velocity_pi_config j1_velocity;
+    float j1_manual_position_rate_rad_per_s{};
+    float j1_position_min_rad{};
+    float j1_position_max_rad{};
+    float j1_manual_deadband{};
+    j1_stall_guard_config j1_stall{};
+    float j1_gravity_amplitude_raw{};
+    float j1_gravity_phase_rad{};
+    float j1_gravity_bias_raw{};
+    float j1_motor_direction{};
+    servo_map_config servos{};
+    float control_period_s{};
 };
 
+configuration arm_configuration() noexcept;
 bool valid(const configuration& config) noexcept;
 
 } // namespace vehicle::arm
