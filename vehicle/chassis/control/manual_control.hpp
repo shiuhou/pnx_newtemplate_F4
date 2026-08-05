@@ -9,7 +9,7 @@ namespace vehicle::chassis
 // 搖桿值已正規化到 -1..+1；此結構不接觸 UART 或 DBUS 原始封包。
 struct manual_input {
     bool online{};          // true：資料來源確為 DR16，且未超過新鮮度期限。
-    bool arm_switches_up{}; // true：左右撥桿都位於 UP；仍須通過 safety gate。
+    bool arm_switches_up{}; // true：本車的右解鎖撥桿位於 UP；仍須通過 safety gate。
     float left_x{};         // 左搖桿水平軸，-1..+1，用於 vy。
     float left_y{};         // 左搖桿垂直軸，-1..+1，用於 vx。
     float right_x{};        // 右搖桿水平軸，-1..+1，用於 yaw。

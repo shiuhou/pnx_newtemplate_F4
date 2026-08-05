@@ -15,20 +15,24 @@ remain upstream-owned.
 
 ## Current status
 
-The Tasks 1-6 software gate has passed. The implementation has Host tests,
-an explicit MyCar F407 preset, generated four-motor configuration, safety
-interlocks, and static/runtime-policy validation.
+The software gate and attended chassis baseline acceptance have passed. The
+current profile uses the measured chassis geometry, DR16 manual control, four
+M2006 feedback loops, startup arming, health interlocks and bounded current.
 
-Hardware acceptance has **not** been run. The default MyCar parameters are
-deliberately invalid and zero-only until the real vehicle is measured and
-explicitly authorized. A successful build does not authorize flashing,
-physical motor output, PI tuning, or driving.
+On 2026-08-04 the operator verified the hardware-accepted `DA37D784...` ELF:
+three cold-start/re-arm cycles, DR16 loss with zero-output recovery, five
+minutes of ground driving without creep or unexpected dropout, and correct
+forward/backward, strafe and yaw directions. The later ownership cleanup keeps
+the shared remoter axis contract standard and applies this vehicle's left-stick
+axis swap in `vehicle/chassis`. Its `92691430...` ELF was then programmed,
+verified and reset with OpenOCD; the operator confirmed re-arm, forward/backward,
+strafe, yaw and centered stopping. This is a short exact-artifact hardware pass;
+the extended five-minute and DR16-loss evidence still belongs to `DA37D784...`.
 
 ```text
 Software gate: PASS
-Task 7 physical parameters: NOT_RUN
-Task 8 flash and hardware acceptance: NOT_RUN
-Same-cycle CAN send acceptance: UNKNOWN
+Hardware-accepted baseline ELF: PASS_OPERATOR_OBSERVED
+Current ownership-cleanup ELF: FLASH_VERIFY_PASS, SHORT_HARDWARE_PASS
 ```
 
 ## Start here
@@ -89,17 +93,19 @@ without separate authorization.
 
 ## Safety and authorization boundary
 
-- The shipped MyCar configuration has zero sentinel values for unmeasured
-  geometry, direction, limits, PI gains and current limits. It therefore
-  fail-closes to zero output.
-- The controller requires a fresh online DR16 release before arming. Offline
-  switch defaults cannot satisfy the startup interlock.
+- The MyCar configuration records measured geometry and the attended-test
+  limits, directions and P/current values. Invalid or non-finite values still
+  fail-close to zero output.
+- The controller requires a fresh online DR16 right-switch release before an
+  UP rising edge can arm. Offline switch defaults cannot satisfy the startup
+  interlock.
 - Remote loss, motor/CAN health loss, invalid configuration, malformed manual
   input and timing overrun select relax/zero and reset PI state as applicable.
 - Hardware operation, flashing, non-zero current, commit, push and
   cross-workspace writes require explicit user authorization.
 
-Do not replace unmeasured values with guesses merely to make the chassis move.
+Treat the present gains and limits as a validated driveable baseline, not final
+competition tuning. Re-measure and revalidate any higher-output configuration.
 
 ## Source and configuration map
 
@@ -123,9 +129,8 @@ M2006 feedback 0x201..0x204 ------------------------------^
 ```
 
 Wheel order is FL/FR/RL/RR. Coordinates are `+x` forward, `+y` left and
-positive yaw counter-clockwise. Motor feedback is treated as signed
-gearbox-output angular velocity; equivalence to physical wheel speed still
-requires mechanical verification.
+positive yaw counter-clockwise. The CAN IDs, motor directions and physical
+forward/strafe/yaw response were verified on the vehicle on 2026-08-04.
 
 ## Human and AI-agent routing
 

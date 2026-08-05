@@ -42,6 +42,7 @@ controller_configuration controller_config_of(
     return {
         config.geometry,
         config.manual,
+        config.command_slew,
         config.motor_direction,
         config.pi,
     };

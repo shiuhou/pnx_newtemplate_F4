@@ -48,6 +48,24 @@ Non-zero motor output remains separately authorized.
 - Do not push, modify remotes, tag, publish, regenerate CubeMX, or operate
   hardware without explicit authorization.
 
+## Vehicle feature integration
+
+- Treat `mycar/f4` as the vehicle integration mainline. Develop chassis, arm,
+  MaixCam and later vehicle features on isolated feature branches or
+  worktrees; do not use a feature branch as the permanent vehicle mainline.
+- Before a completed feature is accepted, synchronize it with the latest
+  `mycar/f4` and retain only that feature's changes. Do not re-import stale
+  chassis, shared-module or BSP snapshots from the feature branch.
+- Acceptance requires the full Host test suite, the affected F407 preset or
+  camera test suite, and the hardware checks required by that feature. Record
+  the exact validated commit and evidence before integration.
+- After acceptance and separate explicit authorization, tag the exact
+  validated feature commit (for example `arm-baseline-v1`), merge it into
+  `mycar/f4`, and retain or rename the completed branch under `archive/*`.
+- A shared Git branch does not imply a single firmware image. Chassis and arm
+  remain separate C-board presets/images; MaixCam remains camera software plus
+  its explicitly selected STM32 communication closure.
+
 ## Default engineering mode
 
 除非使用者明確要求升級或降級，工程任務一律採用 STANDARD 模式：

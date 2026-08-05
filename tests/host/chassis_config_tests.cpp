@@ -24,6 +24,7 @@ configuration valid_configuration() noexcept
     return {
         {0.076F, 0.18F, 0.16F, 100.0F},
         {0.05F, 1.0F, 1.0F, 2.0F, 1.0F, -1.0F, -1.0F},
+        {4.5F, 6.0F, 6.0F, 9.0F},
         {1.0F, -1.0F, 1.0F, -1.0F},
         {1.0F, 0.0F, 0.0F, 1000.0F},
         0.005F,
@@ -38,20 +39,24 @@ void mycar_configuration_uses_authorized_lifted_test_limits()
     require(config.geometry.wheel_radius_m == 0.038F);
     require(config.geometry.half_wheelbase_m == 0.070F);
     require(config.geometry.half_track_m == 0.1275F);
-    require(config.geometry.max_wheel_rad_s == 7.0F);
+    require(config.geometry.max_wheel_rad_s == 40.0F);
     require(config.manual.deadband == 0.05F);
-    require(config.manual.max_vx_mps == 0.10F);
-    require(config.manual.max_vy_mps == 0.10F);
-    require(config.manual.max_yaw_rad_s == 0.30F);
+    require(config.manual.max_vx_mps == 1.50F);
+    require(config.manual.max_vy_mps == 1.50F);
+    require(config.manual.max_yaw_rad_s == 2.00F);
     require(config.manual.vx_sign == 1.0F);
     require(config.manual.vy_sign == -1.0F);
     require(config.manual.yaw_sign == -1.0F);
+    require(config.command_slew.translation_accel_mps2 == 4.5F);
+    require(config.command_slew.translation_decel_mps2 == 6.0F);
+    require(config.command_slew.yaw_accel_rad_s2 == 6.0F);
+    require(config.command_slew.yaw_decel_rad_s2 == 9.0F);
     require((config.motor_direction ==
-             std::array<float, 4U>{1.0F, 1.0F, 1.0F, 1.0F}));
-    require(config.pi.kp == 50.0F);
+             std::array<float, 4U>{1.0F, 1.0F, -1.0F, -1.0F}));
+    require(config.pi.kp == 400.0F);
     require(config.pi.ki_per_s == 0.0F);
     require(config.pi.integral_limit_raw == 0.0F);
-    require(config.pi.current_limit_raw == 500.0F);
+    require(config.pi.current_limit_raw == 2000.0F);
     require(config.control_period_s == 0.005F);
     require(vehicle::chassis::valid(config));
 }

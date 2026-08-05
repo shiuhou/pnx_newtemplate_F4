@@ -18,7 +18,7 @@ enum class safety_state : std::uint8_t {
 // 每一個控制週期提供給 safety gate 的可信條件。
 struct safety_input {
     bool remote_online{};     // true：新鮮資料來自 DR16，不是其他 source 或舊快照。
-    bool arm_switches_up{};   // true：左右撥桿當前都為 UP。
+    bool arm_switches_up{};   // true：車輛策略指定的解鎖撥桿目前為 UP。
     bool all_motors_online{}; // true：四顆 M2006 在 watchdog 視窗內都有新回饋。
     bool can_healthy{};       // true：CAN active，且 error/drop/fault epoch 未變。
     bool config_valid{};      // true：幾何、DR16、方向、PI 與週期全部合法。
