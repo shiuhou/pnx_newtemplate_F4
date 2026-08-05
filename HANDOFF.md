@@ -1,5 +1,52 @@
 # F407 Engineering Handoff
 
+## MyCar integration mainline and chassis baseline — 2026-08-04
+
+**Status: CHASSIS BASELINE MERGED LOCALLY; TAGGED; NOT PUSHED.**
+
+### Current integration state
+
+- `mycar/f4@24c34a30efe675f7596319b47f1d8dafa8d62009` is the vehicle
+  integration mainline. Merge commit `24c34a3` combines the previous
+  `mycar/f4@9ea06a0` line with the accepted chassis commit
+  `6986efedf94af37b5cef9f848a9b89d250598745`.
+- Annotated local tag `chassis-baseline-v1` identifies exact accepted commit
+  `6986efe`; the completed feature branch is retained as
+  `archive/chassis-clean` at the same commit.
+- The merged parent pins
+  `pnx_bsp@ee59c97a852586eb7f6fb50b402f2fe9ed112cbc`,
+  `pnx_devices@2349cc108c9ed477ccdcd700e802ea888975cdfd`,
+  `pnx_libs@e7c3e7a2b9d825586ab3e0c413877180c4295df8`, and
+  `pnx_modules@7d6d3aa998ded246bc0f9e8de3999c716d2b5887`.
+- The merged result passed Host CTest **45/45** and the
+  `f407-mycar-chassis-debug` build. Its ELF SHA-256 is
+  `92691430FEE54814CD57BEA36CEB3BC309C1C496C83776630BA4AEB2E3A1F11F`.
+  That exact ELF was programmed and verified; attended short hardware
+  revalidation confirmed re-arm, forward/backward, strafe, yaw and centered
+  stopping. The longer five-minute drive and DR16-loss recovery evidence
+  belongs to the earlier accepted ELF documented below.
+- `mycar/f4` and `chassis-baseline-v1` are local only at this checkpoint. No
+  push is implied by this handoff.
+
+### Arm and MaixCam integration rule
+
+When arm or MaixCam work reaches acceptance:
+
+1. Synchronize the feature branch with the latest `mycar/f4` and preserve
+   only feature-specific changes; do not import stale chassis, BSP or shared
+   module snapshots.
+2. Run the full Host suite, the feature's embedded preset or camera suite,
+   and its required hardware acceptance checks.
+3. Record and tag the exact validated feature commit, for example
+   `arm-baseline-v1` or `maixcam-baseline-v1`.
+4. Merge the validated feature into `mycar/f4`, then retain or rename the
+   completed branch under `archive/*`.
+
+These integrations share one vehicle source mainline, not one binary:
+chassis and arm remain separate C-board presets/images, while MaixCam remains
+camera software plus the relevant STM32 communication closure. Merge, tag,
+push and hardware operations still require separate explicit authorization.
+
 ## MyCar DR16 + four-M2006 chassis acceptance — 2026-08-04
 
 **Status: DRIVEABLE BASELINE PASS; OWNERSHIP CLEANUP SOFTWARE PASS; EXACT
