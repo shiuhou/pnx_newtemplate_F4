@@ -1,22 +1,30 @@
 # F407 Engineering Handoff
 
-## ARM J1-J4 committed integration checkpoint - 2026-08-06
+## ARM J1-J4 integration candidate checkpoint - 2026-08-06
 
-**Status: SOURCE COMMITTED; FULL HOST AND ARM BUILD PASS; MERGE PENDING.**
+**Status: INTEGRATION CANDIDATE COMMITTED; SOFTWARE PASS; HARDWARE PENDING.**
 
-- `rebuild/arm-clean@eaa13c01cfcc93682e973a71cabae2d316b83880`
-  contains the complete DR16-controlled J1-J4 closure, its focused tests,
-  product preset, and the public shared-module pin.
+- `integrate/arm-on-mycar-f4@a9a5292d57927ba64350c243f6acdc7f36878d63`
+  merges the ARM checkpoint `668934f463d6a079c31f8fbce6fc89419b3780f0`
+  with vehicle mainline `mycar/f4@f5703c08b918399e060ef8eeb163f72d1e33a8e7`.
+  The ARM product implementation itself is commit
+  `eaa13c01cfcc93682e973a71cabae2d316b83880`.
 - `pnx_modules` now points to public upstream
   `HKUSTGZ-ROBOMASTER-PNX/pnx_modules@44ff9ab7da4335fb35f9bbed1a1c2a3e4f70d9c5`.
   That commit was pushed directly to upstream `main` and increases only the
   measured F407 DR16 and remoter service stacks from 768 B to 1536 B.
-- Fresh Host configuration/build completed and CTest reported **52/52 PASS**.
-  The ARM-focused subset reported **8/8 PASS**, including the shared remoter
-  stack contract.
-- Fresh `f407-arm-debug` configure/build/link passed. The resulting ELF uses
-  RAM `57,848 B / 128 KiB` and Flash `85,796 B / 1 MiB`; SHA-256 is
-  `3C62FE1DFE5EE72C582599BA4537C2B9D3A98A32194FE16B041C3B49ECCBF8D6`.
+- A fresh integration Host configure/build completed and CTest reported
+  **53/53 PASS**, including every chassis test, every ARM test, and the shared
+  remoter stack contract.
+- Fresh `f407-arm-debug` configure/build/link passed at RAM
+  `57,848 B / 128 KiB` and Flash `85,796 B / 1 MiB`; SHA-256 is
+  `37CF506D002CE0246B53B7345A1BC315577454899B6FC3BBBF880CCB2E740D40`.
+- Fresh `f407-mycar-chassis-debug` configure/build/link passed at RAM
+  `58,072 B / 128 KiB` and Flash `72,864 B / 1 MiB`; SHA-256 is
+  `56DCFC973D81DF7F95E12A49FFD0674DC61685593ABE9AA9D5DDAA35F3F89FC1`.
+- Symbol inspection confirmed image isolation: the ARM ELF contains
+  `vehicle::arm::runtime::start` and no `vehicle::mycar::run`; the chassis ELF
+  contains `vehicle::mycar::run` and no ARM runtime entry.
 - The previously attended J1-J4 observations below apply to ELF
   `5679E15C28E13B6281EB13A230AF28F5614AE1A92490C4C8CA13B7D85B850A57`.
   The committed source preserves that control behavior, but the new exact ELF
