@@ -26,6 +26,8 @@ option(PNX_ENABLE_MYCAR_CHASSIS
     "Build the fail-closed MyCar chassis product closure" OFF)
 option(PNX_ENABLE_ARM
     "Build the fail-closed J1-J4 arm product closure" OFF)
+option(PNX_ENABLE_MYCAR_COMBINED
+    "Build the fail-closed combined MyCar chassis and arm product" OFF)
 
 foreach(PNX_RETIRED_VALIDATION_OPTION
         PNX_ENABLE_CAN_M2006_VALIDATION
@@ -43,7 +45,7 @@ endforeach()
 set(PNX_SELECTED_OPTIONAL_APPLICATIONS 0)
 foreach(PNX_APPLICATION_OPTION
         PNX_ENABLE_USB_CDC PNX_ENABLE_PWM_A2 PNX_ENABLE_MYCAR_CHASSIS
-        PNX_ENABLE_ARM)
+        PNX_ENABLE_ARM PNX_ENABLE_MYCAR_COMBINED)
     if(${PNX_APPLICATION_OPTION})
         math(EXPR PNX_SELECTED_OPTIONAL_APPLICATIONS
             "${PNX_SELECTED_OPTIONAL_APPLICATIONS}+1")
@@ -51,7 +53,7 @@ foreach(PNX_APPLICATION_OPTION
 endforeach()
 if(PNX_SELECTED_OPTIONAL_APPLICATIONS GREATER 1)
     message(FATAL_ERROR
-        "USB CDC, PWM/A2, MyCar, and Arm select different applications")
+        "USB CDC, PWM/A2, MyCar, Arm, and Combined select different applications")
 endif()
 
 option(PNX_USB_DEVICE_IDENTITY_CONFIRMED
@@ -102,7 +104,12 @@ set(PNX_BOARD_ROOT
 set(PNX_BSP_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp")
 set(PNX_BOARD_IOC
     "${PNX_BOARD_ROOT}/dji_c_board_f407.ioc")
-if(PNX_ENABLE_MYCAR_CHASSIS)
+if(PNX_ENABLE_MYCAR_COMBINED)
+    set(PNX_BOARD_PARAMS
+        "${CMAKE_CURRENT_SOURCE_DIR}/configs/vehicles/mycar_combined/params.json")
+    set(PNX_BOARD_ROBOT_CONFIG
+        "${CMAKE_CURRENT_SOURCE_DIR}/configs/vehicles/mycar_combined/robot.json")
+elseif(PNX_ENABLE_MYCAR_CHASSIS)
     # MyCar 使用車輛組態，其他 closure 使用純 F407 board 組態。
     set(PNX_BOARD_PARAMS
         "${CMAKE_CURRENT_SOURCE_DIR}/configs/vehicles/mycar/params.json")
@@ -178,7 +185,53 @@ set(PNX_EMBEDDED_INCLUDE_DIRS
     "${PNX_EMBEDDED_GENERATED_DIR}"
 )
 
-if(PNX_ENABLE_MYCAR_CHASSIS)
+if(PNX_ENABLE_MYCAR_COMBINED)
+    list(APPEND PNX_EMBEDDED_SOURCES
+        "${PNX_BSP_ROOT}/can/src/bsp_can.cpp"
+        "${PNX_BSP_ROOT}/pwm/src/bsp_pwm.cpp"
+        "${PNX_BSP_ROOT}/usart/src/bsp_usart.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_libs/msg/src/msg.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_modules/remoter/src/dr16.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_modules/remoter/src/remoter.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_devices/motors/motor/src/motorhandler.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_devices/motors/dji/src/djimotors.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_devices/motors/dji/src/djimotorhandler.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/combined.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/combined/control/mode_router.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/combined/control/output_arbiter.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/combined/runtime/runtime.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/chassis/runtime/config.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/chassis/control/command_slew.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/chassis/control/kinematics.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/chassis/control/manual_control.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/chassis/control/safety_gate.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/chassis/control/velocity_pi.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/chassis/control/controller.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/chassis/runtime/runtime_policy.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/arm/control/gravity_feedforward.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/arm/control/j1_manual_command.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/arm/control/j1_stall_guard.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/arm/control/j1_zero_reference.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/arm/control/position_pid.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/arm/control/servo_map.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/arm/control/arm_safety_gate.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/arm/runtime/arm_config.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/arm/runtime/arm_runtime_policy.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/arm/runtime/servo_pwm_output.cpp"
+    )
+    list(APPEND PNX_EMBEDDED_INCLUDE_DIRS
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/can/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/pwm/include"
+        "${PNX_BSP_ROOT}/pwm/src"
+        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/usart/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_libs/msg/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_libs/math/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_modules/remoter/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_devices/motors/motor/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_devices/motors/dji/include"
+    )
+elseif(PNX_ENABLE_MYCAR_CHASSIS)
     # DR16 + 四 M2006 的唯一產品組合點；共享 pnx_* 原始碼仍由 gitlink 提供。
     list(APPEND PNX_EMBEDDED_SOURCES
         "${PNX_BSP_ROOT}/can/src/bsp_can.cpp"
@@ -299,7 +352,10 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${PNX_EMBEDDED_INCLUDE_DIRS}
 )
 target_link_libraries(${PROJECT_NAME} stm32cubemx)
-if(PNX_ENABLE_MYCAR_CHASSIS)
+if(PNX_ENABLE_MYCAR_COMBINED)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE
+        PNX_APP_MYCAR_COMBINED=1)
+elseif(PNX_ENABLE_MYCAR_CHASSIS)
     target_compile_definitions(${PROJECT_NAME} PRIVATE
         PNX_APP_MYCAR_CHASSIS=1)
 elseif(PNX_ENABLE_ARM)
@@ -330,4 +386,5 @@ message(STATUS "PnX USB CDC closure: ${PNX_ENABLE_USB_CDC}")
 message(STATUS "PnX PWM/A2 closure: ${PNX_ENABLE_PWM_A2}")
 message(STATUS "PnX MyCar chassis closure: ${PNX_ENABLE_MYCAR_CHASSIS}")
 message(STATUS "PnX Arm closure: ${PNX_ENABLE_ARM}")
+message(STATUS "PnX MyCar combined closure: ${PNX_ENABLE_MYCAR_COMBINED}")
 list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_LIBRARIES ob)

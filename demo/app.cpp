@@ -14,9 +14,13 @@
 #include "vehicle/arm.hpp"
 #endif
 
+#if defined(PNX_APP_MYCAR_COMBINED)
+#include "vehicle/combined.hpp"
+#endif
+
 #if (defined(PNX_APP_BOARD_SMOKE) + defined(PNX_APP_USB_CDC) + \
      defined(PNX_APP_PWM_A2) + defined(PNX_APP_MYCAR_CHASSIS) + \
-     defined(PNX_APP_ARM)) != 1
+     defined(PNX_APP_ARM) + defined(PNX_APP_MYCAR_COMBINED)) != 1
 #error "Exactly one F407 application must be selected"
 #endif
 
@@ -34,5 +38,7 @@ extern "C" void app_start()
     vehicle::mycar::run();
 #elif defined(PNX_APP_ARM)
     vehicle::arm::run();
+#elif defined(PNX_APP_MYCAR_COMBINED)
+    vehicle::combined::run();
 #endif
 }

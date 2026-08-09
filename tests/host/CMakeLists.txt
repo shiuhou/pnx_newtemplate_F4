@@ -243,6 +243,42 @@ target_include_directories(pnx_arm_runtime_policy_tests PRIVATE
 )
 add_test(NAME arm_runtime_policy COMMAND pnx_arm_runtime_policy_tests)
 
+add_executable(pnx_combined_mode_router_tests
+    combined_mode_router_tests.cpp
+    "${CMAKE_SOURCE_DIR}/vehicle/combined/control/mode_router.cpp"
+)
+target_include_directories(pnx_combined_mode_router_tests PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/fakes"
+    "${CMAKE_SOURCE_DIR}"
+    "${CMAKE_SOURCE_DIR}/pnx_libs/common/include"
+    "${CMAKE_SOURCE_DIR}/pnx_modules/remoter/include"
+)
+add_test(NAME combined_mode_router COMMAND pnx_combined_mode_router_tests)
+
+add_executable(pnx_combined_output_arbiter_tests
+    combined_output_arbiter_tests.cpp
+    "${CMAKE_SOURCE_DIR}/vehicle/combined/control/output_arbiter.cpp"
+)
+target_include_directories(pnx_combined_output_arbiter_tests PRIVATE
+    "${CMAKE_SOURCE_DIR}"
+)
+add_test(NAME combined_output_arbiter
+    COMMAND pnx_combined_output_arbiter_tests)
+
+add_test(
+    NAME combined_product_contract
+    COMMAND ${CMAKE_COMMAND}
+        "-DPNX_SOURCE_DIR=${CMAKE_SOURCE_DIR}"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/combined_product_contract.cmake"
+)
+
+add_test(
+    NAME combined_runtime_source_contract
+    COMMAND ${CMAKE_COMMAND}
+        "-DPNX_RUNTIME_SOURCE=${CMAKE_SOURCE_DIR}/vehicle/combined/runtime/runtime.cpp"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/combined_runtime_source_contract.cmake"
+)
+
 add_test(
     NAME arm_runtime_source_contract
     COMMAND ${CMAKE_COMMAND}
