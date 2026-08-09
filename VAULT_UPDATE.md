@@ -2,6 +2,31 @@
 
 This file is a proposal only. The Vault was not modified.
 
+## 2026-08-06 combined chassis + ARM proposal
+
+Status: **EXACT ELF PROGRAMMED; ATTENDED PRODUCT BEHAVIOR PENDING.** This is a
+proposal only; the Vault was not modified.
+
+- Record the `f407-mycar-combined-debug` closure on `chassis_x_arm`, with
+  implementation commit `a446f41123c4d5745d7125921e4287868409862c`.
+  It composes one DR16 service, the four-M2006 mecanum chassis, the J1 M2006,
+  J2-J4 PWM servos, and one global fail-closed output arbiter.
+- Record software evidence: Host **57/57 PASS**; combined, standalone chassis,
+  and standalone ARM F407 Debug builds PASS. Combined RAM/Flash use is
+  60,920/98,640 B.
+- Record exact programmed ELF SHA-256
+  `A3BCFED755A390CDB790B9BDDEDCC012CF8533DBB80ECD15F29B261170A54561`.
+  The successful 1000 kHz OpenOCD run reported `Programming Finished`,
+  `Verified OK`, and reset after an earlier 2000 kHz CMSIS-DAP pipe failure.
+- On 2026-08-10, fresh Host **57/57 PASS** and a clean combined build
+  reproduced the same artifact hash and memory use. No board or CMSIS-DAP was
+  present, so no new programming or hardware behavior was observed.
+- Keep all combined-image motion, mode-transition, hold, disarm, and
+  remote-loss behavior as `NOT YET OBSERVED`. Do not infer combined hardware
+  acceptance from the earlier standalone chassis and ARM observations.
+- No Vault file was modified; repository publication is tracked by the
+  `chassis_x_arm` Git history.
+
 ## 2026-08-04 MyCar Direct BSP publication proposal
 
 Status: **READY FOR REPOSITORY REVIEW as a proposal only; do not ingest

@@ -1,5 +1,43 @@
 # F407 Engineering Handoff
 
+## Combined chassis + ARM image checkpoint - 2026-08-06
+
+**Status: SOFTWARE PASS; EXACT ELF PROGRAMMED AND VERIFIED; ATTENDED MOTION
+CHECK PENDING.**
+
+- Worktree/branch:
+  `C:\Users\USER\Desktop\RM\rm_inschool\2026\firmware\pnx_f4_arm_integration`,
+  `chassis_x_arm`; combined-image implementation commit
+  `a446f41123c4d5745d7125921e4287868409862c`.
+- Added the `f407-mycar-combined-debug` product closure. One C-board image owns
+  the DR16 receiver, four chassis M2006s, J1 M2006, J2-J4 PWM outputs, health
+  checks, CAN transmission, mode routing, and fail-closed output arbitration.
+- Final input mapping is `left_sw up -> chassis`, `left_sw mid -> neutral`,
+  `left_sw low -> ARM`; `right_sw` retains the existing enable/disarm
+  semantics. ARM axes remain `right_y/left_y/right_x/left_x -> J1/J2/J3/J4`.
+- Host CTest reported **57/57 PASS**. Fresh builds passed for
+  `f407-mycar-combined-debug`, `f407-mycar-chassis-debug`, and
+  `f407-arm-debug`. Combined memory use was 60,920 B RAM and 98,640 B Flash.
+- Programmed ELF:
+  `build/f407-mycar-combined-debug/pnx_embedded.elf`; SHA-256
+  `A3BCFED755A390CDB790B9BDDEDCC012CF8533DBB80ECD15F29B261170A54561`.
+- The first 2000 kHz attempt failed during erase after the CMSIS-DAP USB pipe
+  disconnected, so that attempt is not counted as a flash pass. After the
+  probe re-enumerated, the same ELF was programmed at 1000 kHz; OpenOCD
+  reported `Programming Finished`, `Verified OK`, and target reset. No
+  OpenOCD process remained afterward.
+- On 2026-08-10, Host CTest again reported **57/57 PASS** and a fresh combined
+  build reproduced the same RAM/Flash use and exact ELF SHA-256 above. A
+  requested reflash stopped before target initialization because no CMSIS-DAP
+  device was present; the operator then confirmed the board was not on hand.
+  No erase, program, reset, or new hardware observation occurred in that run.
+- Hardware behavior is not yet claimed. Acceptance still requires attended
+  confirmation that neutral is motionless, chassis mode drives all expected
+  directions, ARM mode controls J1-J4, mode transitions preserve ARM hold,
+  and disarm/remote-loss paths return to the safe state.
+- No submodule change, IOC/generated-source edit, or Vault write was performed
+  for this checkpoint.
+
 ## ARM J1-J4 integration candidate checkpoint - 2026-08-06
 
 **Status: INTEGRATION CANDIDATE COMMITTED; SOFTWARE PASS; HARDWARE PENDING.**
