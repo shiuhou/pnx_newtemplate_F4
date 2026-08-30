@@ -1,5 +1,35 @@
 # F407 Engineering Handoff
 
+## Approved F407 baseline synchronized into vehicle - 2026-08-30
+
+**Status: LOCAL COMMIT; SOFTWARE PASS; CURRENT ELFS NOT FLASHED; NOT PUSHED.**
+
+- Vehicle branch `chassis_x_arm` synchronized the user-approved pure-F407
+  baseline `feat/f407-ps2-validation@d92c9be` in local commit `3d3189d`.
+- Dependency pins are now `pnx_bsp@ee59c97`, `pnx_devices@5c418a4`,
+  `pnx_libs@e7c3e7a`, and `pnx_modules@dffaca9`. The modules gitlink follows
+  `fix/f407-ps2-stack`; that local merge retains the F407 PS2 stack while
+  absorbing shared modules `main`.
+- The operator-provided final `servo_pe14` seed is preserved as `900 us`, with
+  a matching `900 us` lower bound. In the current source naming PE14 is the
+  `gripper`/J4 PWM channel; PE13 remains J3. Unlock still sends no PWM pulse,
+  and the seed is used only after deliberate input on that axis.
+- Focused dependency/config/combined tests reported **6/6 PASS**. The complete
+  Host suite reported **57/57 PASS**.
+- Fresh configure/build/link passed for all affected Debug products:
+  - combined: RAM `60,920 B`, Flash `98,640 B`, SHA-256
+    `B4420016AF0D953F155512D67E1BAFB5CEB8269318B381412062B9E49429F60E`;
+  - chassis: RAM `58,072 B`, Flash `72,864 B`, SHA-256
+    `A6A096A5FC0337E1D80A0C61F81AC296F55AE7596BE5663D4237BE865467547E`;
+  - ARM: RAM `57,848 B`, Flash `85,796 B`, SHA-256
+    `2B59BC54E6B50E1F140C0FC882CE00B40E0C6CE4B05C423C1B9503CB43E163AF`.
+- The three Ninja command graphs contain no selected DM IMU, referee, TIM6,
+  heating-lease, H7, D2-RAM, or generated H7 binding source.
+- The earlier attended combined/chassis behavior remains historical evidence
+  for its recorded ELF. These newly hashed ELFs were not programmed because
+  the board was not present; no new hardware result is claimed.
+- No remote branch was modified and the Obsidian Vault was not modified.
+
 ## Combined chassis + ARM image checkpoint - 2026-08-06
 
 **Status: SOFTWARE PASS; EXACT ELF PROGRAMMED AND VERIFIED; ATTENDED MOTION

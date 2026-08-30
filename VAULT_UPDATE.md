@@ -2,6 +2,28 @@
 
 This file is a proposal only. The Vault was not modified.
 
+## 2026-08-30 vehicle synchronization proposal
+
+Status: **LOCAL SOFTWARE PASS; CURRENT ELFS NOT FLASHED; NOT PUSHED.** This is
+a proposal only; the Vault was not modified.
+
+- Record local `chassis_x_arm@3d3189d`, synchronized from the approved
+  pure-F407 baseline `feat/f407-ps2-validation@d92c9be`.
+- Record dependency pins `pnx_bsp@ee59c97`, `pnx_devices@5c418a4`,
+  `pnx_libs@e7c3e7a`, and `pnx_modules@dffaca9`; modules follows
+  `fix/f407-ps2-stack` and excludes H7-only product closure.
+- Record the final operator-provided `servo_pe14` seed/lower bound of
+  `900/900 us`. Current source naming maps PE14 to the gripper/J4 and PE13 to
+  J3; unlock does not itself enable PWM output.
+- Record focused Host **6/6 PASS**, full Host **57/57 PASS**, and fresh
+  combined/chassis/ARM Debug builds PASS. The resulting SHA-256 values are
+  `B4420016AF0D953F155512D67E1BAFB5CEB8269318B381412062B9E49429F60E`,
+  `A6A096A5FC0337E1D80A0C61F81AC296F55AE7596BE5663D4237BE865467547E`, and
+  `2B59BC54E6B50E1F140C0FC882CE00B40E0C6CE4B05C423C1B9503CB43E163AF`.
+- Keep these exact ELFs as `NOT_FLASHED`; prior attended combined/chassis
+  observations apply only to the previously recorded artifact.
+- No remote branch or Vault file was modified.
+
 ## 2026-08-06 combined chassis + ARM proposal
 
 Status: **EXACT ELF PROGRAMMED; ATTENDED PRODUCT BEHAVIOR PENDING.** This is a
