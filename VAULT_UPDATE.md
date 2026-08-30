@@ -2,6 +2,14 @@
 
 This file is a proposal only. The Vault was not modified.
 
+## 2026-08-31 vehicle publication proposal
+
+- Record fast-forward publication of
+  `shiuhou/pnx_newtemplate_F4:chassis_x_arm@9dac12a`, after the referenced
+  F407 modules and parent commits were confirmed public.
+- No force push, flash, or new hardware observation occurred. The Vault was
+  not modified.
+
 ## 2026-08-30 vehicle synchronization proposal
 
 Status: **LOCAL SOFTWARE PASS; CURRENT ELFS NOT FLASHED; NOT PUSHED.** This is

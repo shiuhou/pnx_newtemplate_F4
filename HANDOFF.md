@@ -1,5 +1,19 @@
 # F407 Engineering Handoff
 
+## Vehicle synchronization publication - 2026-08-31
+
+**Status: PUBLISHED; CURRENT ELFS NOT FLASHED; NO NEW HARDWARE RUN.**
+
+- After `pnx_modules:fix/f407-ps2-stack@dffaca9` and official
+  `pnx_template:F4_version@d92c9be` were verified public, personal
+  `shiuhou/pnx_newtemplate_F4:chassis_x_arm` was fast-forwarded from
+  `c0fa564` to `9dac12a`.
+- The published vehicle branch therefore resolves all four recorded gitlinks,
+  including `pnx_modules@dffaca9`; no force push occurred.
+- This publication did not program any ELF or observe hardware. The preceding
+  software evidence and historical hardware boundaries remain unchanged.
+- The Obsidian Vault was not modified.
+
 ## Approved F407 baseline synchronized into vehicle - 2026-08-30
 
 **Status: LOCAL COMMIT; SOFTWARE PASS; CURRENT ELFS NOT FLASHED; NOT PUSHED.**
