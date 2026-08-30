@@ -1,6 +1,7 @@
 [submodule "pnx_modules"]
 	path = pnx_modules
 	url = https://github.com/HKUSTGZ-ROBOMASTER-PNX/pnx_modules.git
+	branch = fix/f407-ps2-stack
 [submodule "pnx_bsp"]
 	path = pnx_bsp
 	url = https://github.com/HKUSTGZ-ROBOMASTER-PNX/pnx_bsp.git

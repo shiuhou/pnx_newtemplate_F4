@@ -77,8 +77,8 @@ void test_accepts_healthy_config() noexcept
     const auto& gripper = bringup.servos.axes[
         vehicle::arm::servo_index(vehicle::arm::servo_axis::gripper)];
     require(gripper.channel == board::pwm::servo_pe14);
-    require(gripper.center_pulse_us == 1500.0F);
-    require(gripper.min_pulse_us == 1000.0F);
+    require(gripper.center_pulse_us == 900.0F);
+    require(gripper.min_pulse_us == 900.0F);
     require(gripper.max_pulse_us == 2000.0F);
     require(gripper.max_rate_us_per_s == 500.0F);
 }

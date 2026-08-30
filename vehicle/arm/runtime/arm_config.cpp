@@ -37,7 +37,7 @@ configuration arm_configuration() noexcept
                 // The seed is used only after deliberate input; unlock sends no pulse.
                 {board::pwm::servo_c2,300.0F, 300.0F, 2800.0F, 1000.0F},
                 {board::pwm::servo_pe13, 1500.0F, 900.0F, 2100.0F, 900.0F},
-                {board::pwm::servo_pe14, 1500.0F, 1000.0F, 2000.0F, 500.0F},
+                {board::pwm::servo_pe14, 900.0F, 900.0F, 2000.0F, 500.0F},
             }},
         },
         0.005F,

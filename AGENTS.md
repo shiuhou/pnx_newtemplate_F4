@@ -15,8 +15,12 @@ Shared pnx_* gitlinks and public APIs remain upstream-owned.
 Normal Core/USB/PWM images remain zero-motor images.
 Non-zero motor output remains separately authorized.
 
-- Use `pnx_template@cf6577765358822a1bc57c1ea17fe65a795ceb62` as the
-  shared-architecture baseline.
+- Treat `pnx_template/F4_version` as the F407 parent authority. Track
+  `pnx_bsp/F4_version_bsp` and `pnx_modules/fix/f407-ps2-stack`; the latter
+  absorbs shared `pnx_modules/main` changes without rewriting its published
+  F407 PS2 stack history. `pnx_devices` and `pnx_libs` remain shared `main`.
+- Do not treat H7 generated bindings, IOC resources, HAL handles, timer/DMA
+  leases, startup code, or linker code as F407 dependencies.
 - Keep F407 compiler, generated code, Board, startup, linker, ThreadX, HAL,
   and resource mapping below the Board/platform boundary.
 - Keep shared public APIs free of STM32 HAL types, MCU-family symbols,
