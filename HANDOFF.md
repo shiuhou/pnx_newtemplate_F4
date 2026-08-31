@@ -1,5 +1,65 @@
 # F407 Engineering Handoff
 
+## PS2 combined image implementation - 2026-08-31
+
+**Status: LOCAL UNCOMMITTED SOFTWARE PASS; LATEST PS2 STICK REMAP FLASHED/VERIFIED; NOT PUSHED.**
+
+- Local branch `feat/ps2_chassisarm` starts from
+  `chassis_x_arm@806ee88681e92d99d0c149b7c105056bc325e1d0`.
+- Added `f407-mycar-combined-ps2-debug` as the explicit PS2 product; the default
+  `f407-mycar-combined-debug` now also selects PS2 for the school competition.
+  It reuses the current combined chassis/ARM runtime, five motors, safety
+  gates, controls, and global arbiter while selecting PS2 on USART1. DR16
+  history is preserved at local branch `legacy/dr16-baseline`.
+- After the first hardware run exposed the wrong PS2 chassis layout, the
+  vehicle-local adapter was revised: Circle latches unlocked, Cross locks
+  immediately, held R1 selects chassis, and held R2 selects ARM. Both or
+  neither shoulder selects Neutral. Startup, reconnect, link loss, or invalid
+  axes returns to locked Neutral; Circle must be freshly released and pressed
+  after startup/reconnect. Square is unused.
+- `active_source` remains `ps2`. No `pnx_modules` PS2 protocol or public API
+  changed. All four submodules remain clean at BSP `ee59c97`, Devices
+  `5c418a4`, Libs `e7c3e7a`, and Modules `dffaca9`.
+- Connected PS2 is trusted only with `ps2_link == connected`. DR16 preserves
+  its existing MyCar mapping. Hardware feedback proved this receiver reports
+  physical right-stick vertical as `right_y` and horizontal as `right_x`.
+  PS2 chassis now maps receiver `left_x -> vx`, `left_y -> vy`, and
+  `right_x -> yaw`, producing physical left-stick up/down -> forward/back,
+  left/right -> strafe, and right-stick left/right -> yaw.
+  ARM axes remain right Y/left Y/right X/left X to
+  J1/J2/J3/J4. The ARM safety gate accepts the PS2 global locked sample as its
+  release qualification, so Circle-then-R2 works without weakening DR16's
+  existing mode-local release requirement.
+- Post-revision focused PS2/product/policy/runtime Host tests: **6/6 PASS**.
+  The earlier implementation passed the full Host suite **58/58**; the full
+  suite has not been rerun after this operator-feedback revision and remains
+  the pre-commit gate.
+- Fresh latest PS2 combined build PASS: RAM `60,976 B`, Flash `101,904 B`,
+  SHA-256 `F605AA44EB02507F7EA111F5F48FD5B61701972816990EF3CA074B772AB021A3`.
+- Fresh latest DR16 combined build PASS: RAM `60,936 B`, Flash `100,392 B`,
+  SHA-256 `472E89FCF9991723F6564597E56E48D3388B9377D47252551A0D6460772B78A3`.
+- Ninja graphs prove PS2 has `ps2.cpp` and no `dr16.cpp`; DR16 has `dr16.cpp`
+  and no `ps2.cpp`. Neither graph selected H7, DM IMU, referee, TIM6, or
+  heating-lease closure.
+- The earlier PS2 ELF
+  `C83A971B34F584952BAF25A5A0668623D0AC159DB72FD975EE6F959C70F8A79B`
+  was programmed and verified with OpenOCD; the operator then reported the
+  incorrect chassis stick assignment. PS2 ELF `6F3666E0...C19C8A` was then
+  programmed and verified; the operator reported its physical right-stick
+  vertical/horizontal axes remained crossed. The latest `386BCF53...11C2`
+  ELF swaps only those PS2 policy inputs and was programmed, verified OK, and
+  reset through OpenOCD. The operator confirmed translation but reported yaw
+  reversed. Latest `925AED92...4A53` negates only PS2 yaw and was programmed,
+  verified OK, and reset through OpenOCD; yaw direction awaits operator check.
+  Latest `52AD866A...4C12` remaps PS2 chassis translation to the physical left
+  stick and yaw to the physical right-stick horizontal axis; it was programmed,
+  verified OK, and reset through OpenOCD.
+  The current `F605AA44...21A3` build corrects the receiver-field interpretation
+  for the requested physical directions; it was programmed, verified OK, and
+  reset through OpenOCD.
+  No commit, push, submodule modification, or Obsidian Vault write was
+  performed.
+
 ## Vehicle synchronization publication - 2026-08-31
 
 **Status: PUBLISHED; CURRENT ELFS NOT FLASHED; NO NEW HARDWARE RUN.**

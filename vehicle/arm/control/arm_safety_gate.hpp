@@ -23,6 +23,8 @@ struct arm_safety_input {
     bool j1_online{};
     bool can_healthy{};
     bool config_valid{};
+    bool mode_independent_unlock{};
+    bool right_switch_up{};
 };
 
 class arm_safety_gate {

@@ -28,6 +28,14 @@ remoter::state online_centered_dr16() noexcept
     return remote;
 }
 
+remoter::state online_centered_ps2() noexcept
+{
+    auto remote = online_centered_dr16();
+    remote.active_source = remoter::source::ps2;
+    remote.ps2_link = remoter::ps2_link_state::connected;
+    return remote;
+}
+
 void test_switch_maps_modes_and_offline_is_neutral() noexcept
 {
     mode_router router{};
@@ -64,6 +72,46 @@ void test_centered_held_enable_allows_chassis_entry() noexcept
     require(output.mode == control_mode::chassis);
     require(output.chassis_ready);
     require(output.chassis_remote.right_sw == remoter::sw_state::up);
+}
+
+void test_connected_ps2_is_trusted_and_link_loss_is_neutral() noexcept
+{
+    mode_router router{};
+    auto remote = online_centered_ps2();
+    remote.left_sw = remoter::sw_state::up;
+    auto output = router.update(remote, 0.05F, 0.05F);
+    require(output.remote_online);
+    require(output.mode == control_mode::chassis);
+    require(output.chassis_ready);
+
+    remote.ps2_link = remoter::ps2_link_state::remote_disconnected;
+    output = router.update(remote, 0.05F, 0.05F);
+    require(!output.remote_online);
+    require(output.mode == control_mode::neutral);
+    require(!output.chassis_ready);
+}
+
+void test_ps2_chassis_entry_waits_for_right_stick_and_left_yaw_center() noexcept
+{
+    mode_router router{};
+    auto remote = online_centered_ps2();
+    remote.left_sw = remoter::sw_state::up;
+    remote.right_y = 0.40F;
+    auto output = router.update(remote, 0.05F, 0.05F);
+    require(!output.chassis_ready);
+
+    remote.right_y = 0.0F;
+    remote.left_x = 0.40F;
+    output = router.update(remote, 0.05F, 0.05F);
+    require(!output.chassis_ready);
+
+    remote.left_x = 0.0F;
+    output = router.update(remote, 0.05F, 0.05F);
+    require(output.chassis_ready);
+
+    remote.left_y = 0.40F;
+    output = router.update(remote, 0.05F, 0.05F);
+    require(output.chassis_ready);
 }
 
 void test_off_center_entry_waits_for_center_without_dropping_enable() noexcept
@@ -145,6 +193,8 @@ int main()
 {
     test_switch_maps_modes_and_offline_is_neutral();
     test_centered_held_enable_allows_chassis_entry();
+    test_connected_ps2_is_trusted_and_link_loss_is_neutral();
+    test_ps2_chassis_entry_waits_for_right_stick_and_left_yaw_center();
     test_off_center_entry_waits_for_center_without_dropping_enable();
     test_release_clears_ready_and_rearm_requires_center();
     test_mode_exit_and_invalid_input_clear_ready();

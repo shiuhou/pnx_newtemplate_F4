@@ -26,6 +26,14 @@ bool can_state_allows_attended_control(bsp::can::state state) noexcept
            state == bsp::can::state::passive;
 }
 
+bool trusted_remote(const remoter::state& remote) noexcept
+{
+    return !remote.offline &&
+           (remote.active_source == remoter::source::dr16 ||
+            (remote.active_source == remoter::source::ps2 &&
+             remote.ps2_link == remoter::ps2_link_state::connected));
+}
+
 } // namespace
 
 runtime_policy::runtime_policy(bool config_valid, bool j1_registered,
@@ -45,9 +53,7 @@ runtime_policy::runtime_policy(bool config_valid, bool j1_registered,
 runtime_policy_output runtime_policy::update(
     const runtime_policy_input& input) noexcept
 {
-    const bool remote_online =
-        !input.remote.offline &&
-        input.remote.active_source == remoter::source::dr16;
+    const bool remote_online = trusted_remote(input.remote);
     const control_mode mode = mode_for(input.remote.left_sw);
     const bool arm_mode_selected = mode == control_mode::arm;
     const bool right_switch_up =
@@ -82,6 +88,10 @@ runtime_policy_output runtime_policy::update(
         can_healthy,
         config_valid_,
     };
+    output.safety.mode_independent_unlock =
+        remote_online &&
+        input.remote.active_source == remoter::source::ps2;
+    output.safety.right_switch_up = right_switch_up;
     output.fault_latched = fault_latched();
     output.force_zero = output.fault_latched || !arm_mode_selected ||
                         !output.safety.remote_online ||

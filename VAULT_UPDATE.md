@@ -2,6 +2,37 @@
 
 This file is a proposal only. The Vault was not modified.
 
+## 2026-08-31 PS2 combined image proposal
+
+Status: **LOCAL UNCOMMITTED SOFTWARE PASS; LATEST PS2 STICK REMAP FLASHED/VERIFIED; NOT PUSHED.**
+
+- Record the vehicle-level PS2 input adapter and separate
+  `f407-mycar-combined-ps2-debug` closure on `feat/ps2_chassisarm`, based on
+  `chassis_x_arm@806ee88`.
+- Record that shared `pnx_modules` PS2 protocol/API remained unchanged and
+  the DR16 combined image remains available as rollback.
+- Record the operator-feedback mapping: Circle unlock, Cross lock, R1 chassis,
+  R2 ARM; PS2 left stick translates and right-stick horizontal controls yaw.
+  DR16 and ARM axis mappings remain unchanged.
+- Record post-revision focused Host 6/6 PASS and fresh PS2/DR16 combined
+  builds PASS with hashes
+  `52AD866A8BAE8079F516AD5C9E01492C38C902C5E42BE5CAF83EEE5F414C12`
+  and `472E89FCF9991723F6564597E56E48D3388B9377D47252551A0D6460772B78A3`.
+- The `6F3666E0...C19C8A` PS2 ELF was flashed and exposed the remaining
+  physical right-stick X/Y swap. Latest `386BCF53...11C2` was programmed,
+  verified OK, and reset through OpenOCD. Translation then passed operator
+  observation, but yaw was reversed. Latest `925AED92...4A53` negates only
+  PS2 yaw and was programmed, verified OK, and reset through OpenOCD. Yaw and
+  disconnect-under-load safety remain pending attended validation with
+  mechanical support.
+- This is a proposal only; the Vault was not modified.
+
+- Latest PS2 stick-remap ELF `52AD866A...4C12` was programmed, verified OK,
+  and reset through OpenOCD; hardware direction remains pending operator test.
+- Current PS2 field correction maps receiver `left_x/left_y/right_x` to the
+  requested physical left-stick translation and right-stick-horizontal yaw.
+  ELF `F605AA44...21A3` was programmed, verified OK, and reset through OpenOCD.
+
 ## 2026-08-31 vehicle publication proposal
 
 - Record fast-forward publication of

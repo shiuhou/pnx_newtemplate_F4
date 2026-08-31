@@ -185,7 +185,6 @@ void test_remote_source_switches_and_axis() noexcept
     for (const remoter::source wrong_source : {
              remoter::source::none,
              remoter::source::vt03,
-             remoter::source::ps2,
          })
     {
         runtime_policy wrong_source_policy{true, true, baseline};
@@ -225,6 +224,46 @@ void test_remote_source_switches_and_axis() noexcept
 
     runtime_policy axis_policy{true, true, baseline};
     require_healthy_output(axis_policy.update(healthy_input(baseline)));
+
+    runtime_policy ps2_policy{true, true, baseline};
+    input = healthy_input(baseline);
+    input.remote.active_source = remoter::source::ps2;
+    input.remote.ps2_link = remoter::ps2_link_state::connected;
+    require_healthy_output(ps2_policy.update(input));
+
+    runtime_policy disconnected_ps2{true, true, baseline};
+    input.remote.ps2_link =
+        remoter::ps2_link_state::receiver_offline;
+    output = disconnected_ps2.update(input);
+    require(!output.manual.online);
+    require(!output.safety.remote_online);
+    require(output.force_zero);
+}
+
+void test_ps2_global_unlock_then_r2_arms_from_neutral() noexcept
+{
+    const auto baseline = active_can();
+    runtime_policy policy{true, true, baseline};
+    arm_safety_gate gate{};
+    auto input = healthy_input(baseline);
+    input.remote.active_source = remoter::source::ps2;
+    input.remote.ps2_link = remoter::ps2_link_state::connected;
+    input.remote.left_sw = remoter::sw_state::mid;
+    input.remote.right_sw = remoter::sw_state::mid;
+
+    auto output = policy.update(input);
+    require(gate.update(controller_safety_for(output)) ==
+            arm_safety_state::disabled);
+
+    input.remote.right_sw = remoter::sw_state::up;
+    output = policy.update(input);
+    require(gate.update(controller_safety_for(output)) ==
+            arm_safety_state::disabled);
+
+    input.remote.left_sw = remoter::sw_state::low;
+    output = policy.update(input);
+    require(gate.update(controller_safety_for(output)) ==
+            arm_safety_state::armed);
 }
 
 void test_j1_hold_requires_prior_arm_and_healthy_right_switch() noexcept
@@ -497,6 +536,7 @@ int main()
     test_safety_fault_latch_and_reset();
     test_arm_mode_requires_initial_release_and_allows_centered_resume();
     test_arm_mode_resume_is_cleared_by_disarm_or_health_loss();
+    test_ps2_global_unlock_then_r2_arms_from_neutral();
     test_remote_source_switches_and_axis();
     test_j1_hold_requires_prior_arm_and_healthy_right_switch();
     test_j2_hold_requires_existing_pwm_and_healthy_right_switch();

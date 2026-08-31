@@ -17,6 +17,14 @@ bool centered(float axis, float deadband) noexcept
     return std::isfinite(axis) && std::fabs(axis) <= deadband;
 }
 
+bool trusted_remote(const remoter::state& remote) noexcept
+{
+    return !remote.offline &&
+           (remote.active_source == remoter::source::dr16 ||
+            (remote.active_source == remoter::source::ps2 &&
+             remote.ps2_link == remoter::ps2_link_state::connected));
+}
+
 control_mode selected_mode(remoter::sw_state left_switch) noexcept
 {
     switch (left_switch)
@@ -46,8 +54,7 @@ mode_router_output mode_router::update(const remoter::state& remote,
                              std::isfinite(remote.right_y);
     const bool input_valid = valid_deadband(chassis_deadband) &&
                              valid_deadband(arm_deadband) && axes_finite;
-    output.remote_online = input_valid && !remote.offline &&
-                           remote.active_source == remoter::source::dr16;
+    output.remote_online = input_valid && trusted_remote(remote);
     if (!output.remote_online)
     {
         chassis_ready_ = false;
@@ -57,6 +64,7 @@ mode_router_output mode_router::update(const remoter::state& remote,
         output.chassis_remote.left_x = 0.0F;
         output.chassis_remote.left_y = 0.0F;
         output.chassis_remote.right_x = 0.0F;
+        output.chassis_remote.right_y = 0.0F;
         return output;
     }
 
@@ -67,10 +75,13 @@ mode_router_output mode_router::update(const remoter::state& remote,
                                centered(remote.left_x, arm_deadband);
 
     const bool chassis_selected = output.mode == control_mode::chassis;
+    const bool ps2_source =
+        remote.active_source == remoter::source::ps2;
     const bool chassis_axes_centered =
         centered(remote.left_x, chassis_deadband) &&
-        centered(remote.left_y, chassis_deadband) &&
-        centered(remote.right_x, chassis_deadband);
+        centered(remote.right_x, chassis_deadband) &&
+        centered(ps2_source ? remote.right_y : remote.left_y,
+                 chassis_deadband);
     if (!chassis_selected || remote.right_sw != remoter::sw_state::up)
     {
         chassis_ready_ = false;
@@ -87,6 +98,7 @@ mode_router_output mode_router::update(const remoter::state& remote,
         output.chassis_remote.left_x = 0.0F;
         output.chassis_remote.left_y = 0.0F;
         output.chassis_remote.right_x = 0.0F;
+        output.chassis_remote.right_y = 0.0F;
     }
     return output;
 }

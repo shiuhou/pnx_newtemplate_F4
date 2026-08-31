@@ -54,6 +54,16 @@ if(control_loop_index EQUAL -1)
 endif()
 string(SUBSTRING "${control_source}" ${control_loop_index} -1
     control_loop_source)
+
+string(FIND "${control_loop_source}" "input_adapter.update("
+    adapter_update_index)
+string(FIND "${control_loop_source}" "router.update("
+    router_update_index)
+if(adapter_update_index EQUAL -1 OR router_update_index EQUAL -1 OR
+   NOT adapter_update_index LESS router_update_index)
+    message(FATAL_ERROR
+        "Combined runtime must adapt PS2 input before mode routing")
+endif()
 string(REGEX MATCHALL "motor_handler\\.send_control\\(\\)"
     loop_send_matches "${control_loop_source}")
 list(LENGTH loop_send_matches loop_send_count)
@@ -88,6 +98,25 @@ foreach(required_token IN ITEMS
     if(token_index EQUAL -1)
         message(FATAL_ERROR
             "Combined runtime is missing required token: ${required_token}")
+    endif()
+endforeach()
+
+foreach(required_token IN ITEMS
+        "remote_config.ps2.thread_priority"
+        "remote_config.ps2.receiver_offline_timeout_ticks"
+        "remote_config.ps2.frame_timeout_ticks"
+        "remote_config.ps2.deadzone"
+        "next_telemetry.active_source"
+        "next_telemetry.ps2_link"
+        "next_telemetry.ps2_buttons"
+        "next_telemetry.ps2_pressed"
+        "next_telemetry.ps2_unlocked"
+        "next_telemetry.r1_chassis_held"
+        "next_telemetry.r2_arm_held")
+    string(FIND "${runtime_source}" "${required_token}" token_index)
+    if(token_index EQUAL -1)
+        message(FATAL_ERROR
+            "Combined PS2 runtime is missing token: ${required_token}")
     endif()
 endforeach()
 

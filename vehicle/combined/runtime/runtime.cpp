@@ -1,6 +1,7 @@
 #include "vehicle/combined/runtime/runtime.hpp"
 
 #include "vehicle/combined/control/output_arbiter.hpp"
+#include "vehicle/combined/control/ps2_input_adapter.hpp"
 
 #include "vehicle/arm/control/gravity_feedforward.hpp"
 #include "vehicle/arm/control/j1_manual_command.hpp"
@@ -38,6 +39,9 @@ constexpr std::size_t remote_ingest_stack_bytes = 768U;
 
 static_assert(TX_TIMER_TICKS_PER_SECOND == 1000U,
               "Combined runtime requires a one-millisecond ThreadX tick");
+static_assert(::config::feature::enable_dr16 !=
+                  ::config::feature::enable_ps2,
+              "Combined image requires exactly one receiver source");
 
 chassis::controller_configuration chassis_controller_config_of(
     const chassis::configuration& config) noexcept
@@ -101,6 +105,7 @@ arm::servo_pwm_output j2_pwm{{bsp::pwm::none, servo_period_us}};
 arm::servo_pwm_output j3_pwm{{bsp::pwm::none, servo_period_us}};
 arm::servo_pwm_output j4_pwm{{bsp::pwm::none, servo_period_us}};
 mode_router router{};
+ps2_input_adapter input_adapter{};
 
 msg::subscriber remote_subscriber{};
 remote_ingest_snapshot shared_remote{};
@@ -318,8 +323,20 @@ void remote_ingest_entry(ULONG)
 void control_entry(ULONG)
 {
     ::remoter::config remote_config{};
-    remote_config.dr16.thread_priority = params::remoter::thread_priority;
-    remote_config.dr16.rx_timeout_ticks = params::remoter::rx_timeout_ticks;
+    if constexpr (::config::feature::enable_ps2)
+    {
+        remote_config.ps2.thread_priority = params::remoter::thread_priority;
+        remote_config.ps2.receiver_offline_timeout_ticks =
+            params::remoter::ps2_offline_timeout_ticks;
+        remote_config.ps2.frame_timeout_ticks =
+            params::remoter::ps2_frame_timeout_ticks;
+        remote_config.ps2.deadzone = params::remoter::ps2_deadzone;
+    }
+    else
+    {
+        remote_config.dr16.thread_priority = params::remoter::thread_priority;
+        remote_config.dr16.rx_timeout_ticks = params::remoter::rx_timeout_ticks;
+    }
     remote_config.thread_priority = params::remoter::thread_priority + 1U;
     remote_config.offline_timeout_ticks = remote_freshness_ticks;
 
@@ -364,11 +381,12 @@ void control_entry(ULONG)
             control_remote.active_source = remoter::source::none;
         }
 
+        const auto adapted_remote = input_adapter.update(control_remote);
         const float arm_center_deadband = std::min(
             arm_configuration.j1_manual_deadband,
             arm_configuration.servos.deadband);
         const auto routed = router.update(
-            control_remote, chassis_configuration.manual.deadband,
+            adapted_remote, chassis_configuration.manual.deadband,
             arm_center_deadband);
         const auto can = bsp::can::snapshot(bsp::can::bus::can1);
         const std::uint32_t cycle = control_loop_count + 1U;
@@ -405,7 +423,7 @@ void control_entry(ULONG)
         auto chassis_policy_output = chassis_policy.update(chassis_input);
 
         arm::runtime_policy_input arm_input{};
-        arm_input.remote = control_remote;
+        arm_input.remote = adapted_remote;
         arm_input.can = can;
         arm_input.watchdog_sampled = watchdog_sampled;
         arm_input.j1_online = all_motors_online;
@@ -665,6 +683,22 @@ void control_entry(ULONG)
 
         telemetry next_telemetry{};
         next_telemetry.mode = routed.mode;
+        next_telemetry.active_source = control_remote.active_source;
+        next_telemetry.ps2_link = control_remote.ps2_link;
+        next_telemetry.ps2_buttons = control_remote.ps2_buttons;
+        next_telemetry.ps2_pressed = control_remote.ps2_pressed;
+        next_telemetry.ps2_unlocked =
+            adapted_remote.active_source == remoter::source::ps2 &&
+            !adapted_remote.offline &&
+            adapted_remote.right_sw == remoter::sw_state::up;
+        next_telemetry.r1_chassis_held =
+            next_telemetry.ps2_unlocked &&
+            remoter::is_held(control_remote.ps2_buttons,
+                             remoter::ps2_button::r1);
+        next_telemetry.r2_arm_held =
+            next_telemetry.ps2_unlocked &&
+            remoter::is_held(control_remote.ps2_buttons,
+                             remoter::ps2_button::r2);
         next_telemetry.faults = faults();
         next_telemetry.watchdog_sampled = watchdog_sampled;
         next_telemetry.all_motors_online = all_motors_online;
@@ -795,6 +829,7 @@ void start(const chassis::configuration& chassis_config,
     arm_safety = {};
     j1_hold = {};
     router.reset();
+    input_adapter.reset();
     remote_subscriber = {};
     publish_remote_snapshot({});
     publish_telemetry({});

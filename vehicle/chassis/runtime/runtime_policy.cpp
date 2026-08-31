@@ -2,6 +2,18 @@
 
 namespace vehicle::chassis
 {
+namespace
+{
+
+bool trusted_remote(const remoter::state& remote) noexcept
+{
+    return !remote.offline &&
+           (remote.active_source == remoter::source::dr16 ||
+            (remote.active_source == remoter::source::ps2 &&
+             remote.ps2_link == remoter::ps2_link_state::connected));
+}
+
+} // namespace
 
 runtime_policy::runtime_policy(bool config_valid, bool all_registered,
                                bsp::can::telemetry can_baseline) noexcept
@@ -26,10 +38,7 @@ runtime_policy::runtime_policy(bool config_valid, bool all_registered,
 runtime_policy_output runtime_policy::update(
     const runtime_policy_input& input) noexcept
 {
-    // remoter service 可能支援多種來源；MyCar 手動模式只信任 fresh DR16。
-    const bool remote_online =
-        !input.remote.offline &&
-        input.remote.active_source == remoter::source::dr16;
+    const bool remote_online = trusted_remote(input.remote);
     // 目前 MyCar 左撥桿已損壞；只把右撥桿 UP 視為解鎖請求。
     // safety gate 仍要求上電後先觀察非 UP、再觀察 UP 上升沿，避免誤啟動。
     const bool arm_switches_up =
@@ -58,8 +67,8 @@ runtime_policy_output runtime_policy::update(
     output.manual = {
         remote_online,
         arm_switches_up,
-        // Shared remoter 保留標準 DR16 命名；這台遙控器實測 ch_2 是前後、
-        // ch_3 是左右，因此只在 MyCar 邊界交換左桿兩軸。
+        // 此車的 DR16 與 PS2 邊界都使用實機驗證過的欄位交換：
+        // 左搖桿左右 -> vy、左搖桿上下 -> vx、右搖桿左右 -> yaw。
         input.remote.left_y,
         input.remote.left_x,
         input.remote.right_x,

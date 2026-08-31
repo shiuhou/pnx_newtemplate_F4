@@ -255,6 +255,17 @@ target_include_directories(pnx_combined_mode_router_tests PRIVATE
 )
 add_test(NAME combined_mode_router COMMAND pnx_combined_mode_router_tests)
 
+add_executable(pnx_combined_ps2_input_adapter_tests
+    combined_ps2_input_adapter_tests.cpp
+    "${CMAKE_SOURCE_DIR}/vehicle/combined/control/ps2_input_adapter.cpp"
+)
+target_include_directories(pnx_combined_ps2_input_adapter_tests PRIVATE
+    "${CMAKE_SOURCE_DIR}"
+    "${CMAKE_SOURCE_DIR}/pnx_modules/remoter/include"
+)
+add_test(NAME combined_ps2_input_adapter
+    COMMAND pnx_combined_ps2_input_adapter_tests)
+
 add_executable(pnx_combined_output_arbiter_tests
     combined_output_arbiter_tests.cpp
     "${CMAKE_SOURCE_DIR}/vehicle/combined/control/output_arbiter.cpp"

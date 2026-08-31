@@ -11,30 +11,36 @@ arm_safety_state arm_safety_gate::update(const arm_safety_input& input) noexcept
         arm_position_released_ = false;
     }
 
-    if (state_ != arm_safety_state::fault_latched &&
-        input.remote_online && !input.arm_mode_selected)
-    {
-        state_ = arm_safety_state::disabled;
-        arm_position_released_ =
-            arm_position_released_ && input.enable_switches_up;
-        previous_enable_switches_up_ = false;
-        return state_;
-    }
-
     const bool switch_sample_valid =
         input.remote_online && input.arm_mode_selected;
     const bool arm_rising = switch_sample_valid &&
                             input.enable_switches_up &&
                             !previous_enable_switches_up_;
+    const bool release_observed =
+        input.manual_axes_centered &&
+        ((switch_sample_valid && !input.enable_switches_up) ||
+         (input.mode_independent_unlock && !input.right_switch_up));
 
-    if (switch_sample_valid && !input.enable_switches_up &&
-        input.manual_axes_centered)
+    if (release_observed)
     {
         arm_position_released_ = true;
         if (state_ == arm_safety_state::fault_latched)
         {
             fault_release_observed_ = true;
         }
+    }
+
+    if (state_ != arm_safety_state::fault_latched &&
+        input.remote_online && !input.arm_mode_selected)
+    {
+        state_ = arm_safety_state::disabled;
+        if (!input.mode_independent_unlock)
+        {
+            arm_position_released_ =
+                arm_position_released_ && input.enable_switches_up;
+        }
+        previous_enable_switches_up_ = false;
+        return state_;
     }
 
     if (state_ == arm_safety_state::fault_latched)

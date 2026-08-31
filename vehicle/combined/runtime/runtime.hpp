@@ -26,6 +26,14 @@ enum class runtime_fault : std::uint32_t {
 
 struct telemetry {
     control_mode mode{control_mode::neutral};
+    remoter::source active_source{remoter::source::none};
+    remoter::ps2_link_state ps2_link{
+        remoter::ps2_link_state::receiver_offline};
+    std::uint16_t ps2_buttons{};
+    std::uint16_t ps2_pressed{};
+    bool ps2_unlocked{};
+    bool r1_chassis_held{};
+    bool r2_arm_held{};
     runtime_fault faults{runtime_fault::none};
     bool watchdog_sampled{};
     bool all_motors_online{};

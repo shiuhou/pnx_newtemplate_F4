@@ -28,6 +28,13 @@ option(PNX_ENABLE_ARM
     "Build the fail-closed J1-J4 arm product closure" OFF)
 option(PNX_ENABLE_MYCAR_COMBINED
     "Build the fail-closed combined MyCar chassis and arm product" OFF)
+option(PNX_MYCAR_COMBINED_PS2
+    "Use PS2 instead of DR16 in the combined MyCar product" OFF)
+
+if(PNX_MYCAR_COMBINED_PS2 AND NOT PNX_ENABLE_MYCAR_COMBINED)
+    message(FATAL_ERROR
+        "PNX_MYCAR_COMBINED_PS2 requires PNX_ENABLE_MYCAR_COMBINED")
+endif()
 
 foreach(PNX_RETIRED_VALIDATION_OPTION
         PNX_ENABLE_CAN_M2006_VALIDATION
@@ -105,8 +112,13 @@ set(PNX_BSP_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp")
 set(PNX_BOARD_IOC
     "${PNX_BOARD_ROOT}/dji_c_board_f407.ioc")
 if(PNX_ENABLE_MYCAR_COMBINED)
-    set(PNX_BOARD_PARAMS
-        "${CMAKE_CURRENT_SOURCE_DIR}/configs/vehicles/mycar_combined/params.json")
+    if(PNX_MYCAR_COMBINED_PS2)
+        set(PNX_BOARD_PARAMS
+            "${CMAKE_CURRENT_SOURCE_DIR}/configs/vehicles/mycar_combined/params.ps2.json")
+    else()
+        set(PNX_BOARD_PARAMS
+            "${CMAKE_CURRENT_SOURCE_DIR}/configs/vehicles/mycar_combined/params.json")
+    endif()
     set(PNX_BOARD_ROBOT_CONFIG
         "${CMAKE_CURRENT_SOURCE_DIR}/configs/vehicles/mycar_combined/robot.json")
 elseif(PNX_ENABLE_MYCAR_CHASSIS)
@@ -185,13 +197,21 @@ set(PNX_EMBEDDED_INCLUDE_DIRS
     "${PNX_EMBEDDED_GENERATED_DIR}"
 )
 
+if(PNX_MYCAR_COMBINED_PS2)
+    set(PNX_MYCAR_COMBINED_REMOTER_SOURCE
+        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_modules/remoter/src/ps2.cpp")
+else()
+    set(PNX_MYCAR_COMBINED_REMOTER_SOURCE
+        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_modules/remoter/src/dr16.cpp")
+endif()
+
 if(PNX_ENABLE_MYCAR_COMBINED)
     list(APPEND PNX_EMBEDDED_SOURCES
         "${PNX_BSP_ROOT}/can/src/bsp_can.cpp"
         "${PNX_BSP_ROOT}/pwm/src/bsp_pwm.cpp"
         "${PNX_BSP_ROOT}/usart/src/bsp_usart.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/pnx_libs/msg/src/msg.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_modules/remoter/src/dr16.cpp"
+        "${PNX_MYCAR_COMBINED_REMOTER_SOURCE}"
         "${CMAKE_CURRENT_SOURCE_DIR}/pnx_modules/remoter/src/remoter.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/pnx_devices/motors/motor/src/motorhandler.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/pnx_devices/motors/dji/src/djimotors.cpp"
@@ -199,6 +219,7 @@ if(PNX_ENABLE_MYCAR_COMBINED)
         "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/combined.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/combined/control/mode_router.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/combined/control/output_arbiter.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/combined/control/ps2_input_adapter.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/combined/runtime/runtime.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/chassis/runtime/config.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/chassis/control/command_slew.cpp"
@@ -387,4 +408,5 @@ message(STATUS "PnX PWM/A2 closure: ${PNX_ENABLE_PWM_A2}")
 message(STATUS "PnX MyCar chassis closure: ${PNX_ENABLE_MYCAR_CHASSIS}")
 message(STATUS "PnX Arm closure: ${PNX_ENABLE_ARM}")
 message(STATUS "PnX MyCar combined closure: ${PNX_ENABLE_MYCAR_COMBINED}")
+message(STATUS "PnX MyCar combined PS2 input: ${PNX_MYCAR_COMBINED_PS2}")
 list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_LIBRARIES ob)

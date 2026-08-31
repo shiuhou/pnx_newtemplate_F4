@@ -40,15 +40,15 @@ void mycar_configuration_uses_authorized_lifted_test_limits()
     require(config.geometry.half_wheelbase_m == 0.070F);
     require(config.geometry.half_track_m == 0.1275F);
     require(config.geometry.max_wheel_rad_s == 40.0F);
-    require(config.manual.deadband == 0.05F);
-    require(config.manual.max_vx_mps == 1.50F);
-    require(config.manual.max_vy_mps == 1.50F);
+    require(config.manual.deadband == 0.04F);
+    require(config.manual.max_vx_mps == 0.80F);
+    require(config.manual.max_vy_mps == 0.80F);
     require(config.manual.max_yaw_rad_s == 2.00F);
     require(config.manual.vx_sign == 1.0F);
     require(config.manual.vy_sign == -1.0F);
     require(config.manual.yaw_sign == -1.0F);
-    require(config.command_slew.translation_accel_mps2 == 4.5F);
-    require(config.command_slew.translation_decel_mps2 == 6.0F);
+    require(config.command_slew.translation_accel_mps2 == 2.5F);
+    require(config.command_slew.translation_decel_mps2 == 4.0F);
     require(config.command_slew.yaw_accel_rad_s2 == 6.0F);
     require(config.command_slew.yaw_decel_rad_s2 == 9.0F);
     require((config.motor_direction ==

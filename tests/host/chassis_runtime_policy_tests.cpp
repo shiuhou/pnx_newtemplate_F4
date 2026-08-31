@@ -100,7 +100,6 @@ void test_remote_source_switches_and_axes() noexcept
     for (const remoter::source wrong_source : {
              remoter::source::none,
              remoter::source::vt03,
-             remoter::source::ps2,
          })
     {
         runtime_policy wrong_source_policy{true, true, baseline};
@@ -134,6 +133,29 @@ void test_remote_source_switches_and_axes() noexcept
 
     runtime_policy axes_policy{true, true, baseline};
     require_healthy_output(axes_policy.update(healthy_input(baseline)));
+
+    runtime_policy ps2_policy{true, true, baseline};
+    input = healthy_input(baseline);
+    input.remote.active_source = remoter::source::ps2;
+    input.remote.ps2_link = remoter::ps2_link_state::connected;
+    input.remote.left_x = -0.50F;
+    input.remote.left_y = 0.75F;
+    input.remote.right_y = 0.25F;
+    input.remote.right_x = -0.125F;
+    output = ps2_policy.update(input);
+    require(output.manual.online);
+    require(output.manual.left_x == 0.75F);
+    require(output.manual.left_y == -0.50F);
+    require(output.manual.right_x == -0.125F);
+    require(!output.force_zero);
+
+    runtime_policy disconnected_ps2{true, true, baseline};
+    input.remote.ps2_link =
+        remoter::ps2_link_state::remote_disconnected;
+    output = disconnected_ps2.update(input);
+    require(!output.manual.online);
+    require(!output.safety.remote_online);
+    require(output.force_zero);
 }
 
 void test_each_non_active_can_state_forces_zero_without_latching() noexcept
