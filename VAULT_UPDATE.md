@@ -1,5 +1,10 @@
 # Proposed Vault Update: F407 Core Hardware Validation
 
+> Publication update (2026-09-01): PS2 competition default was published at
+> `origin/chassis_x_arm@e51a6f5`; DR16 history is published at
+> `origin/legacy/dr16-baseline@806ee88`; full Host passed 58/58 after merge.
+> This remains a proposal only; the Vault was not modified.
+
 This file is a proposal only. The Vault was not modified.
 
 ## 2026-08-31 PS2 combined image proposal

@@ -1,8 +1,34 @@
 # F407 Engineering Handoff
 
+## PS2 competition publication - 2026-09-01
+
+**Status: PUBLISHED ON `chassis_x_arm`; PS2 IS THE COMPETITION DEFAULT; DR16 IS LEGACY.**
+
+- `feat/ps2_chassisarm@e51a6f5` was fast-forwarded into and published as
+  `origin/chassis_x_arm`.
+- The default `f407-mycar-combined-debug` preset now selects PS2. The explicit
+  `f407-mycar-combined-ps2-debug` preset remains available.
+- The pre-PS2 DR16 baseline `806ee88` is published as
+  `origin/legacy/dr16-baseline` for historical reference.
+- Focused Host tests passed 6/6; the full Host suite passed 58/58 after merge.
+- No submodule changes and no new hardware flash occurred during publication.
+
+## PS2 competition publication - 2026-09-01
+
+**Status: PUBLISHED ON `chassis_x_arm`; PS2 IS THE COMPETITION DEFAULT; DR16 IS LEGACY.**
+
+- `feat/ps2_chassisarm@e51a6f5` was fast-forwarded into and published as
+  `origin/chassis_x_arm`.
+- The default `f407-mycar-combined-debug` preset now selects PS2. The explicit
+  `f407-mycar-combined-ps2-debug` preset remains available.
+- The pre-PS2 DR16 baseline `806ee88` is published as
+  `origin/legacy/dr16-baseline` for historical reference.
+- Focused Host tests passed 6/6; the full Host suite passed 58/58 after merge.
+- No submodule changes and no new hardware flash occurred during publication.
+
 ## PS2 combined image implementation - 2026-08-31
 
-**Status: LOCAL UNCOMMITTED SOFTWARE PASS; LATEST PS2 STICK REMAP FLASHED/VERIFIED; NOT PUSHED.**
+**Status: PUBLISHED ON `chassis_x_arm`; PS2 IS THE COMPETITION DEFAULT; DR16 PRESERVED AS LEGACY.**
 
 - Local branch `feat/ps2_chassisarm` starts from
   `chassis_x_arm@806ee88681e92d99d0c149b7c105056bc325e1d0`.
@@ -10,7 +36,7 @@
   `f407-mycar-combined-debug` now also selects PS2 for the school competition.
   It reuses the current combined chassis/ARM runtime, five motors, safety
   gates, controls, and global arbiter while selecting PS2 on USART1. DR16
-  history is preserved at local branch `legacy/dr16-baseline`.
+  history is preserved at published branch `legacy/dr16-baseline`.
 - After the first hardware run exposed the wrong PS2 chassis layout, the
   vehicle-local adapter was revised: Circle latches unlocked, Cross locks
   immediately, held R1 selects chassis, and held R2 selects ARM. Both or
@@ -31,9 +57,10 @@
   release qualification, so Circle-then-R2 works without weakening DR16's
   existing mode-local release requirement.
 - Post-revision focused PS2/product/policy/runtime Host tests: **6/6 PASS**.
-  The earlier implementation passed the full Host suite **58/58**; the full
-  suite has not been rerun after this operator-feedback revision and remains
-  the pre-commit gate.
+  Full Host suite: **58/58 PASS** before and after the fast-forward merge.
+- Publication: `feat/ps2_chassisarm@e51a6f5` was fast-forwarded into
+  `chassis_x_arm` and pushed to `origin/chassis_x_arm`. The historical DR16
+  baseline `806ee88` is published as `origin/legacy/dr16-baseline`.
 - Fresh latest PS2 combined build PASS: RAM `60,976 B`, Flash `101,904 B`,
   SHA-256 `F605AA44EB02507F7EA111F5F48FD5B61701972816990EF3CA074B772AB021A3`.
 - Fresh latest DR16 combined build PASS: RAM `60,936 B`, Flash `100,392 B`,

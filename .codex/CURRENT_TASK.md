@@ -1,5 +1,10 @@
 # Current task
 
+> Completion update (2026-09-01): committed `e51a6f5`, fast-forwarded and
+> published it on `origin/chassis_x_arm`; `origin/legacy/dr16-baseline` retains
+> DR16 at `806ee88`. Full Host passed 58/58 after merge. The older body below
+> is the pre-publication checkpoint.
+
 - Objective: add a separate fail-closed PS2-controlled combined chassis/ARM
   image while preserving the DR16 image and shared PS2 API.
 - Branch/baseline: `feat/ps2_chassisarm` from `806ee88`.
