@@ -4,6 +4,7 @@
 #include "vehicle/arm/runtime/arm_runtime.hpp"
 #include "vehicle/chassis/runtime/runtime.hpp"
 #include "vehicle/combined/control/mode_router.hpp"
+#include "vehicle/combined/control/vision_command.hpp"
 
 #include <bsp_can.hpp>
 
@@ -22,6 +23,7 @@ enum class runtime_fault : std::uint32_t {
     pwm_failed = 1U << 5U,
     overrun = 1U << 6U,
     subsystem_fault = 1U << 7U,
+    vision_uart_init_failed = 1U << 8U,
 };
 
 struct telemetry {
@@ -40,6 +42,7 @@ struct telemetry {
     std::uint32_t loop_count{};
     std::uint32_t overrun_count{};
     std::uint32_t remote_update_count{};
+    vision_command_snapshot vision{};
     chassis::telemetry chassis{};
     arm::telemetry arm{};
     bsp::can::telemetry can{};

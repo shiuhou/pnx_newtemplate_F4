@@ -6,8 +6,12 @@ endif()
 
 set(core_contract_out "${PNX_BINARY_DIR}/f407-core-config-contract")
 set(mycar_contract_out "${PNX_BINARY_DIR}/f407-mycar-config-contract")
-file(REMOVE_RECURSE "${core_contract_out}" "${mycar_contract_out}")
-file(MAKE_DIRECTORY "${core_contract_out}" "${mycar_contract_out}")
+set(combined_ps2_contract_out
+    "${PNX_BINARY_DIR}/f407-combined-ps2-config-contract")
+file(REMOVE_RECURSE "${core_contract_out}" "${mycar_contract_out}"
+    "${combined_ps2_contract_out}")
+file(MAKE_DIRECTORY "${core_contract_out}" "${mycar_contract_out}"
+    "${combined_ps2_contract_out}")
 
 execute_process(
     COMMAND "${CMAKE_COMMAND}"
@@ -41,6 +45,35 @@ foreach(required_text IN ITEMS
             "Generated F407 config is missing: ${required_text}")
     endif()
 endforeach()
+
+execute_process(
+    COMMAND "${CMAKE_COMMAND}"
+        "-DIOC=${PNX_SOURCE_DIR}/boards/dji_c_board_f407/dji_c_board_f407.ioc"
+        "-DPARAMS=${PNX_SOURCE_DIR}/configs/vehicles/mycar_combined/params.ps2.json"
+        "-DROBOT_CONFIG=${PNX_SOURCE_DIR}/configs/vehicles/mycar_combined/robot.json"
+        "-DOUT_DIR=${combined_ps2_contract_out}"
+        -DPNX_ENABLE_USB_CDC=OFF
+        -DPNX_ENABLE_MYCAR_COMBINED=ON
+        -DPNX_MYCAR_COMBINED_PS2=ON
+        -P "${PNX_SOURCE_DIR}/configs/cmake/generate_config.cmake"
+    RESULT_VARIABLE combined_generation_result
+    OUTPUT_VARIABLE combined_generation_output
+    ERROR_VARIABLE combined_generation_error
+)
+if(NOT combined_generation_result EQUAL 0)
+    message(FATAL_ERROR
+        "F407 combined PS2 config generation failed:\n"
+        "${combined_generation_output}\n${combined_generation_error}")
+endif()
+
+file(READ "${combined_ps2_contract_out}/config.hpp" combined_ps2_config)
+string(FIND "${combined_ps2_config}"
+    "inline constexpr bsp::usart::port vision = usart6"
+    vision_binding_index)
+if(vision_binding_index EQUAL -1)
+    message(FATAL_ERROR
+        "Generated combined PS2 config must bind vision to USART6")
+endif()
 
 foreach(required_text IN ITEMS
         "inline constexpr bool has_remoter = 0"

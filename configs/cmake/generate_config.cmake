@@ -77,9 +77,21 @@ _pnx_json_bool_to_cmake("${motor_lk}" MOTOR_LK)
 _pnx_require_json(remoter_uart bindings remoter_uart)
 _pnx_require_json(referee_uart bindings referee_uart)
 _pnx_require_json(remoter_source remoter source)
+string(JSON vision_uart ERROR_VARIABLE vision_uart_error
+    GET "${params_json}" bindings vision_uart)
+if(vision_uart_error)
+    set(vision_uart "none")
+endif()
 string(TOLOWER "${remoter_uart}" remoter_uart)
 string(TOLOWER "${referee_uart}" referee_uart)
+string(TOLOWER "${vision_uart}" vision_uart)
 string(TOLOWER "${remoter_source}" remoter_source)
+
+if(PNX_ENABLE_MYCAR_COMBINED AND PNX_MYCAR_COMBINED_PS2 AND
+   vision_uart STREQUAL "none")
+    message(FATAL_ERROR
+        "PS2 combined product requires bindings.vision_uart")
+endif()
 
 # --- HAS_* from IOC + bindings ---
 pnx_ioc_hw_in_list("${PNX_IOC_UART_HW}" "${remoter_uart}" remoter_uart_present)
@@ -317,6 +329,7 @@ pnx_ioc_uart_index("${PNX_IOC_UART_HW}" "${remoter_uart}" dr16_port_idx)
 pnx_ioc_uart_index("${PNX_IOC_UART_HW}" "${remoter_uart}" ps2_port_idx)
 pnx_ioc_uart_index("${PNX_IOC_UART_HW}" "uart7" vt03_port_idx)
 pnx_ioc_uart_index("${PNX_IOC_UART_HW}" "${referee_uart}" referee_port_idx)
+pnx_ioc_uart_index("${PNX_IOC_UART_HW}" "${vision_uart}" vision_port_idx)
 
 if(dr16_port_idx GREATER_EQUAL 0)
     set(dr16_binding "${remoter_uart}")
@@ -346,6 +359,28 @@ elseif(ENABLE_VT03)
     set(active_remoter_uart "uart7")
 elseif(ENABLE_PS2)
     set(active_remoter_uart "${remoter_uart}")
+endif()
+
+if(NOT vision_uart STREQUAL "none")
+    pnx_ioc_uart_has_dma(
+        "${PNX_IOC_LINES}" "${vision_uart}" "RX" vision_has_rx_dma)
+    if(vision_port_idx LESS 0 OR NOT vision_has_rx_dma)
+        message(FATAL_ERROR
+            "params.bindings.vision_uart=${vision_uart} requires an IOC UART with RX DMA")
+    endif()
+    if(NOT active_remoter_uart STREQUAL "" AND
+       vision_uart STREQUAL active_remoter_uart)
+        message(FATAL_ERROR
+            "params.bindings.vision_uart=${vision_uart} conflicts with the active remoter UART")
+    endif()
+    if(NOT referee_uart STREQUAL "none" AND
+       vision_uart STREQUAL referee_uart)
+        message(FATAL_ERROR
+            "params.bindings.vision_uart=${vision_uart} conflicts with the referee UART")
+    endif()
+    set(vision_binding "${vision_uart}")
+else()
+    set(vision_binding "bsp::usart::none")
 endif()
 
 # The test-report UART belongs to the validation closures, not to a product
@@ -592,6 +627,7 @@ file(WRITE "${CONFIG_HPP}"
 "inline constexpr bsp::usart::port vt03 = ${vt03_binding};\n"
 "inline constexpr bsp::usart::port ps2 = ${ps2_binding};\n"
 "inline constexpr bsp::usart::port referee = ${referee_binding};\n"
+"inline constexpr bsp::usart::port vision = ${vision_binding};\n"
 "inline constexpr bsp::usart::port test_report = ${test_report_binding};\n\n"
 "} // namespace uart\n"
 "} // namespace app\n\n"

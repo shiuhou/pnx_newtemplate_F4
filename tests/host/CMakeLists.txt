@@ -266,6 +266,16 @@ target_include_directories(pnx_combined_ps2_input_adapter_tests PRIVATE
 add_test(NAME combined_ps2_input_adapter
     COMMAND pnx_combined_ps2_input_adapter_tests)
 
+add_executable(pnx_combined_vision_command_tests
+    combined_vision_command_tests.cpp
+    "${CMAKE_SOURCE_DIR}/vehicle/combined/control/vision_command.cpp"
+)
+target_include_directories(pnx_combined_vision_command_tests PRIVATE
+    "${CMAKE_SOURCE_DIR}"
+)
+add_test(NAME combined_vision_command
+    COMMAND pnx_combined_vision_command_tests)
+
 add_executable(pnx_combined_output_arbiter_tests
     combined_output_arbiter_tests.cpp
     "${CMAKE_SOURCE_DIR}/vehicle/combined/control/output_arbiter.cpp"

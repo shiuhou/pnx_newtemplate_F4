@@ -220,6 +220,7 @@ if(PNX_ENABLE_MYCAR_COMBINED)
         "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/combined/control/mode_router.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/combined/control/output_arbiter.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/combined/control/ps2_input_adapter.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/combined/control/vision_command.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/combined/runtime/runtime.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/chassis/runtime/config.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/chassis/control/command_slew.cpp"

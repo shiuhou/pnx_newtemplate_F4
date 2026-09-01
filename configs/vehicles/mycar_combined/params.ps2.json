@@ -17,6 +17,7 @@
   },
   "bindings": {
     "remoter_uart": "usart1",
+    "vision_uart": "usart6",
     "referee_uart": "none"
   },
   "can": {

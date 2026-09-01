@@ -2,6 +2,7 @@
 
 #include "vehicle/combined/control/output_arbiter.hpp"
 #include "vehicle/combined/control/ps2_input_adapter.hpp"
+#include "vehicle/combined/control/vision_command.hpp"
 
 #include "vehicle/arm/control/gravity_feedforward.hpp"
 #include "vehicle/arm/control/j1_manual_command.hpp"
@@ -11,6 +12,7 @@
 #include "vehicle/arm/runtime/servo_pwm_output.hpp"
 
 #include <config.hpp>
+#include <bsp_usart.hpp>
 #include <djimotorhandler.hpp>
 #include <msg.hpp>
 #include <remoter.hpp>
@@ -36,6 +38,7 @@ constexpr std::size_t control_stack_bytes = 4096U;
 constexpr std::uint32_t remote_freshness_ticks = 120U;
 constexpr UINT remote_ingest_priority = 4U;
 constexpr std::size_t remote_ingest_stack_bytes = 768U;
+constexpr std::size_t vision_dma_buffer_size = 64U;
 
 static_assert(TX_TIMER_TICKS_PER_SECOND == 1000U,
               "Combined runtime requires a one-millisecond ThreadX tick");
@@ -106,6 +109,8 @@ arm::servo_pwm_output j3_pwm{{bsp::pwm::none, servo_period_us}};
 arm::servo_pwm_output j4_pwm{{bsp::pwm::none, servo_period_us}};
 mode_router router{};
 ps2_input_adapter input_adapter{};
+vision_command_receiver vision_receiver{};
+bsp::usart::dma_rx_storage<vision_dma_buffer_size> vision_rx_storage{};
 
 msg::subscriber remote_subscriber{};
 remote_ingest_snapshot shared_remote{};
@@ -123,6 +128,51 @@ std::uint32_t control_overrun_count{};
 std::uint32_t fault_mask{};
 arm::j1_manual_command_output previous_manual_command{};
 std::int16_t previous_logical_current_raw{};
+
+void vision_rx_callback(bsp::usart::port,
+                        const bsp::usart::rx_frame& frame,
+                        void* user_data) noexcept
+{
+    auto* const receiver =
+        static_cast<vision_command_receiver*>(user_data);
+    if (receiver != nullptr && frame.data != nullptr)
+    {
+        (void)receiver->push_from_isr(frame.data, frame.len);
+    }
+}
+
+bool start_vision_uart() noexcept
+{
+    if constexpr (!::config::feature::enable_ps2)
+    {
+        return true;
+    }
+    if (::app::uart::vision == bsp::usart::none)
+    {
+        return false;
+    }
+
+    bsp::usart::line_config line{};
+    line.baud_rate = 115200U;
+    line.data_bits = bsp::usart::word_length::bits_8;
+    line.stop = bsp::usart::stop_bits::one;
+    line.parity_mode = bsp::usart::parity::none;
+    line.enable_tx = true;
+    line.enable_rx = true;
+    if (bsp::usart::configure(::app::uart::vision, line) !=
+            types::status::ok ||
+        bsp::usart::init(::app::uart::vision, bsp::usart::mode::dma) !=
+            types::status::ok)
+    {
+        return false;
+    }
+    return bsp::usart::start_rx_to_idle(
+               ::app::uart::vision, vision_rx_storage.data(),
+               vision_dma_buffer_size, vision_rx_callback,
+               &vision_receiver, nullptr, nullptr,
+               bsp::usart::rx_delivery::frame_snapshot) ==
+           types::status::ok;
+}
 
 void latch_fault(runtime_fault fault) noexcept
 {
@@ -346,6 +396,12 @@ void control_entry(ULONG)
         return;
     }
 
+    if (!start_vision_uart())
+    {
+        terminal_startup_failure(runtime_fault::vision_uart_init_failed);
+        return;
+    }
+
     remote_subscriber = msg::subscribe<::remoter::state>();
     if (!remote_subscriber.valid())
     {
@@ -372,6 +428,8 @@ void control_entry(ULONG)
         const auto remote_snapshot = copy_remote_snapshot();
         const std::uint32_t now =
             static_cast<std::uint32_t>(tx_time_get());
+        vision_receiver.process(now);
+        const auto vision_snapshot = vision_receiver.snapshot();
         remoter::state control_remote = remote_snapshot.state;
         if (!chassis::remote_snapshot_fresh(
                 remote_snapshot.seen, remote_snapshot.sample_tick,
@@ -705,6 +763,7 @@ void control_entry(ULONG)
         next_telemetry.loop_count = cycle;
         next_telemetry.overrun_count = control_overrun_count;
         next_telemetry.remote_update_count = control_remote.update_count;
+        next_telemetry.vision = vision_snapshot;
         next_telemetry.can = can;
 
         next_telemetry.chassis.state =
@@ -830,6 +889,7 @@ void start(const chassis::configuration& chassis_config,
     j1_hold = {};
     router.reset();
     input_adapter.reset();
+    vision_receiver.reset();
     remote_subscriber = {};
     publish_remote_snapshot({});
     publish_telemetry({});

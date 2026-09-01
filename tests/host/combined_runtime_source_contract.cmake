@@ -57,12 +57,16 @@ string(SUBSTRING "${control_source}" ${control_loop_index} -1
 
 string(FIND "${control_loop_source}" "input_adapter.update("
     adapter_update_index)
+string(FIND "${control_loop_source}" "vision_receiver.process(now)"
+    vision_process_index)
 string(FIND "${control_loop_source}" "router.update("
     router_update_index)
-if(adapter_update_index EQUAL -1 OR router_update_index EQUAL -1 OR
+if(vision_process_index EQUAL -1 OR adapter_update_index EQUAL -1 OR
+   router_update_index EQUAL -1 OR
+   NOT vision_process_index LESS adapter_update_index OR
    NOT adapter_update_index LESS router_update_index)
     message(FATAL_ERROR
-        "Combined runtime must adapt PS2 input before mode routing")
+        "Combined runtime must process vision, then adapt PS2, then route")
 endif()
 string(REGEX MATCHALL "motor_handler\\.send_control\\(\\)"
     loop_send_matches "${control_loop_source}")
@@ -106,6 +110,9 @@ foreach(required_token IN ITEMS
         "remote_config.ps2.receiver_offline_timeout_ticks"
         "remote_config.ps2.frame_timeout_ticks"
         "remote_config.ps2.deadzone"
+        "app::uart::vision"
+        "bsp::usart::start_rx_to_idle"
+        "push_from_isr("
         "next_telemetry.active_source"
         "next_telemetry.ps2_link"
         "next_telemetry.ps2_buttons"
