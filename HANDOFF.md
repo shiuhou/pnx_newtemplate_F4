@@ -1,46 +1,38 @@
-# F407 Engineering Handoff
+# F407 工程交接记录
 
-## PS2 vision-auto chassis software baseline - 2026-09-01
+## PS2 视觉自动底盘软件基线 - 2026-09-01
 
-**Status: SOFTWARE PASS ON `feat/ps2-auto-vision`; HARDWARE=NOT_RUN.**
+**状态：`feat/ps2-auto-vision` 软件通过；硬件未运行。**
 
-- Baseline is `chassis_x_arm@fe59062`. Local implementation commits are
-  `f1a0531` (AVC1 contract), `47c471f` (USART6 receiver) and `3829b4a`
-  (PS2 manual/AUTO arbitration and shared body-velocity controller path).
-- MaixCam sends final `vx/vy` only. AVC1 is fixed 24-byte little-endian on
-  USART6 PG9 RX / PG14 TX at 115200 8N1; V1 fixes `wz=0`. The complete
-  wire contract and golden vectors are in
-  `docs/vision-auto-chassis-interface.md`.
-- Default is locked MANUAL. Circle unlocks; Square selects AUTO; Triangle
-  returns MANUAL; Cross and PS2 loss/reconnect return locked MANUAL. AUTO
-  ignores R1/R2 and requires held L1, a post-entry local generation, a fresh
-  valid frame within 200 ms, and existing CAN/motor/config health.
-- ISR work is bounded to one copy into a 128-byte SPSC queue. The 5 ms loop
-  parses split/concatenated/garbage-prefixed streams. Invalid, stale or
-  overflowed vision input stops immediately and is recoverable on a later
-  valid frame; after the 200 ms timeout, a restarted MaixCam may establish a
-  new `seq` baseline. Existing terminal hardware faults keep their prior
-  semantics.
-- Manual and AUTO both converge on the same `body_velocity -> slew -> mecanum
-  -> four PI -> current` implementation. No second controller, application
-  framework, manager, registry or shared PnX API was added.
-- Full Host CTest: **59/59 PASS**. Clean affected F407 builds: **PASS**.
+- 基线是 `chassis_x_arm@fe59062`。主要实现提交为 `f1a0531`（AVC1 契约）、
+  `47c471f`（USART6 接收器）和 `3829b4a`（PS2 手动／自动仲裁及共用
+  `body_velocity` 控制路径）；后续 `b07daa7` 修复了相机单独重启后的序号恢复。
+- MaixCam 只发送最终 `vx/vy`。AVC1 是 USART6 PG9 RX／PG14 TX 上的固定 24 字节
+  小端帧，串口为 115200 8N1；V1 固定 `wz=0`。完整线协议与校验向量见
+  `docs/vision-auto-chassis-interface.md`。
+- 默认是锁定手动模式。圆圈键解锁；方块键选择自动；三角键回到手动；叉键及
+  PS2 掉线／重连均回到锁定手动。自动模式忽略 R1/R2，要求持续按住 L1、进入后收到
+  新帧、帧在 200 ms 内有效，且既有 CAN／电机／配置健康。
+- ISR 只向 128 字节 SPSC 队列复制一次数据。5 ms 循环解析拆分、粘连和前带垃圾字节
+  的数据流。无效、过期或溢出的视觉输入立即停车，可在后续合法帧恢复；200 ms 超时后，
+  重启的 MaixCam 可建立新的 `seq` 基线。既有硬件永久故障保持原语义。
+- 手动与自动均进入同一条 `body_velocity -> slew -> mecanum -> 四轮 PI -> 电流`
+  控制链。未增加第二套控制器、应用框架、管理器、注册器或共享 PnX API。
+- 完整 Host CTest：**59/59 通过**。受影响的 F407 干净构建：**通过**。
 
-| Preset | RAM | Flash | SHA-256 |
+| 预设 | RAM | Flash | SHA-256 |
 |---|---:|---:|---|
 | `f407-mycar-chassis-debug` | 58,072 B | 72,948 B | `C79D93A43E37A3AA6B6C73EC9D2C3F748043FF282BB24DC0A007BB0A71E3E7D3` |
 | `f407-mycar-combined-debug` | 61,360 B | 107,288 B | `EB1F2F15B1B8AD584FD7BEEF00A0BCDCBE4AAA0BA6BF2E38F5CAC2B3C299F64E` |
 | `f407-mycar-combined-ps2-debug` | 61,360 B | 107,336 B | `C94ED8945054E9453DB4B7C049CC08D587511F05E75C906736E0BC2B1F2EFDF8` |
 
-- ELF inspection found one `app_start` in each image; combined images contain
-  the direct `body_velocity` overload and vision receiver symbols, while the
-  standalone chassis image contains neither combined runtime nor vision
-  parser symbols.
-- Submodule pins are unchanged and clean: `pnx_bsp@ee59c97`,
-  `pnx_devices@5c418a4`, `pnx_libs@e7c3e7a`, `pnx_modules@dffaca9`.
-- No flash, CubeMX/IOC edit, submodule edit, physical movement or Vault write
-  occurred. Hardware acceptance in the AVC1 document remains pending separate
-  authorization.
+- ELF 检查显示每个映像各有一个 `app_start`；组合映像包含直接
+  `body_velocity` 重载和视觉接收器符号，独立底盘映像则不包含组合运行层或
+  视觉解析器符号。
+- 子模块 pin 未改变且干净：`pnx_bsp@ee59c97`、`pnx_devices@5c418a4`、
+  `pnx_libs@e7c3e7a`、`pnx_modules@dffaca9`。
+- 未烧录、未修改 CubeMX／IOC、未修改子模块、未进行物理运动或 Vault 写入。AVC1 文档
+  中的硬件验收仍需单独授权。
 
 ## PS2 competition publication - 2026-09-01
 

@@ -1,18 +1,16 @@
-# Proposed Vault Update: F407 Core Hardware Validation
+# 建议写入 Vault：F407 Core 硬件验证
 
-> PS2 vision-auto proposal (2026-09-01): local
-> `feat/ps2-auto-vision` adds the vehicle-owned AVC1 USART6 `vx/vy` contract,
-> bounded DMA-to-loop receiver, PS2 MANUAL/AUTO/L1 arbitration and one shared
-> chassis `body_velocity` control path. Full Host passed 59/59 and all three
-> affected F407 presets clean-built. The four submodule pins are unchanged;
-> no push, flash, hardware operation or actual Vault write occurred.
+> PS2 视觉自动提案（2026-09-01）：车辆专属 `feat/ps2-auto-vision` 增加 AVC1
+> USART6 `vx/vy` 契约、受限的 DMA 到控制循环接收器、PS2 手动／自动／L1 仲裁和一条
+> 共用底盘 `body_velocity` 控制路径。完整 Host 59/59 通过，三个受影响的 F407 预设均
+> 完成干净构建。四个子模块 pin 未改变；未执行烧录、硬件操作或实际 Vault 写入。
 
-> Publication update (2026-09-01): PS2 competition default was published at
-> `origin/chassis_x_arm@e51a6f5`; DR16 history is published at
-> `origin/legacy/dr16-baseline@806ee88`; full Host passed 58/58 after merge.
-> This remains a proposal only; the Vault was not modified.
+> 发布更新（2026-09-01）：PS2 比赛默认版本已发布为
+> `origin/chassis_x_arm@e51a6f5`；DR16 历史版本已发布为
+> `origin/legacy/dr16-baseline@806ee88`；合并后完整 Host 58/58 通过。
+> 本文件仍仅为提案，Vault 未修改。
 
-This file is a proposal only. The Vault was not modified.
+本文件仅为提案，Vault 未修改。
 
 ## 2026-08-31 PS2 combined image proposal
 
