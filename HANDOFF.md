@@ -10,6 +10,8 @@
 - MaixCam 只发送最终 `vx/vy`。AVC1 是 USART6 PG9 RX／PG14 TX 上的固定 24 字节
   小端帧，串口为 115200 8N1；V1 固定 `wz=0`。完整线协议与校验向量见
   `docs/vision-auto-chassis-interface.md`。
+- 视觉组从 `docs/vision-auto-chassis-quick-start.md` 开始阅读；其中包含最小 Python
+  打包函数、发送频率、按键条件和首次联调步骤。
 - 默认是锁定手动模式。圆圈键解锁；方块键选择自动；三角键回到手动；叉键及
   PS2 掉线／重连均回到锁定手动。自动模式忽略 R1/R2，要求持续按住 L1、进入后收到
   新帧、帧在 200 ms 内有效，且既有 CAN／电机／配置健康。

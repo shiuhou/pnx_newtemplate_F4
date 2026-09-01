@@ -43,17 +43,20 @@ PS2 视觉自动软件：通过，硬件未运行
   超过 200 ms、队列溢出、松开 L1、三角键、叉键或既有 CAN／电机／配置故障，都会
   在当前周期置零并清除底盘速度斜坡和 PI 状态。
 - MaixCam 负责识别和跟随控制计算；C 板只接收最终 `vx/vy`，自动模式的 `wz` 恒为
-  零。详细约定见 [AVC1 接口文档](docs/vision-auto-chassis-interface.md)。
+  零。视觉组从[快速开始](docs/vision-auto-chassis-quick-start.md)入手，字节级细节见
+  [AVC1 接口文档](docs/vision-auto-chassis-interface.md)。
 
 ## 阅读路线
 
 本分支的最短新功能阅读路线是：
 
-1. [`docs/vision-auto-chassis-interface.md`](docs/vision-auto-chassis-interface.md)
-   了解视觉组唯一需要遵守的 UART 契约。
-2. `vehicle/combined/control/vision_command.*`：帧、字节队列、超时与自动使能条件。
-3. `vehicle/combined/control/ps2_input_adapter.*`：圆圈／方块／三角／叉／L1 的语义。
-4. `vehicle/combined/runtime/runtime.cpp` 看命令仲裁如何进入同一个
+1. [`docs/vision-auto-chassis-quick-start.md`](docs/vision-auto-chassis-quick-start.md)：
+   接线、方向、打包示例和第一次联调步骤。
+2. [`docs/vision-auto-chassis-interface.md`](docs/vision-auto-chassis-interface.md)：
+   完整 UART 契约、错误处理和校验向量。
+3. `vehicle/combined/control/vision_command.*`：帧、字节队列、超时与自动使能条件。
+4. `vehicle/combined/control/ps2_input_adapter.*`：圆圈／方块／三角／叉／L1 的语义。
+5. `vehicle/combined/runtime/runtime.cpp` 看命令仲裁如何进入同一个
    `vehicle/chassis/control/controller.*`。
 
 不要由 STM32 HAL、CMSIS、ThreadX、USBX 或 `pnx_*` 子模块反向猜测车辆设计；它们分别
@@ -133,6 +136,7 @@ cmake --build --preset f407-mycar-combined-ps2-debug
 | 组合 PS2／视觉运行层 | `vehicle/combined/runtime/runtime.cpp` |
 | AVC1 解析器、队列、快照与使能条件 | `vehicle/combined/control/vision_command.*` |
 | PS2 手动／自动输入 | `vehicle/combined/control/ps2_input_adapter.*` |
+| 视觉组快速开始 | `docs/vision-auto-chassis-quick-start.md` |
 | 视觉组 UART 契约 | `docs/vision-auto-chassis-interface.md` |
 | 几何、限制、方向与 PI／电流参数 | `vehicle/chassis/runtime/config.cpp` |
 | PS2／视觉 UART 与四个 M2006 身份 | `configs/vehicles/mycar_combined/params.ps2.json`、`robot.json` |
