@@ -10,7 +10,10 @@
 | GND | GND | 必须共地 |
 | RX | PG14 / USART6_TX | V1 不使用，不提供 ACK |
 
-串口固定为 `115200, 8N1`。USART6 只由 PS2 combined 产品使用；不要将视觉串口与手柄或裁判系统串口复用。
+两端按 **3.3 V TTL UART** 连接并必须共地；不要接 RS-232 电平，也不要假定
+5 V 兼容。V1 只需要 MaixCam TX、C 板 PG9 RX 和 GND，PG14 TX 可以不接。
+串口固定为 `115200, 8N1`。USART6 只由 PS2 combined 产品使用；不要将视觉
+串口与手柄或裁判系统串口复用。
 
 ## 24-byte 固定帧
 
@@ -37,6 +40,8 @@ c = ((c << 5U) & 0xFFFFFFFFU) ^ (c >> 2U) ^ byte;
 ## Golden vectors
 
 以下三组包含完整 24-byte 帧，可直接用于核对打包、字节序、padding 与 checksum。
+它们是独立测试向量，不表示应按 `1 -> 2 -> 0` 的顺序连续发送；第三组用于
+核对 `0xFFFFFFFF -> 0` wrap 后的 `seq=0` frame。
 
 ```text
 seq=1, vx=0.5, vy=-0.25, valid=1
@@ -69,7 +74,14 @@ static bool sequence_is_newer(std::uint32_t current,
 
 因此 `0xFFFFFFFF -> 0` 是合法 wrap。发送端不得一次跳过超过 `2^31` 个 sequence。重复、倒序、magic 错误、padding 非零、checksum 错误、`valid` 非 0/1、NaN/Inf 均被丢弃，而且不会刷新 200 ms timeout。
 
+视觉端建议以 **20–50 Hz** 持续发送。每个 frame 都必须递增 `seq`，包括
+`valid=0` 的主动停车 frame；不要只在速度变化时才发送。
+
 接收流允许一帧被拆开、多帧粘连或前面带垃圾字节。接收 queue overflow 会立即作废当前命令；下一帧合法新命令到达后可以恢复。`valid=0` 或连续 200 ms 没有合法新帧都会停车。
+
+MaixCam 单独重启时可以从 `seq=0` 重新计数。在旧命令超过 200 ms 未刷新后，
+C 板会让下一帧 checksum/field 合法的 frame 建立新的 sequence baseline；
+200 ms 活跃窗口内的重复或倒序 frame 仍会被拒绝。
 
 ## PS2 操作
 

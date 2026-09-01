@@ -2,8 +2,7 @@
 
 ## PS2 vision-auto chassis software baseline - 2026-09-01
 
-**Status: LOCAL SOFTWARE PASS ON `feat/ps2-auto-vision`; NOT PUSHED;
-HARDWARE=NOT_RUN.**
+**Status: SOFTWARE PASS ON `feat/ps2-auto-vision`; HARDWARE=NOT_RUN.**
 
 - Baseline is `chassis_x_arm@fe59062`. Local implementation commits are
   `f1a0531` (AVC1 contract), `47c471f` (USART6 receiver) and `3829b4a`
@@ -19,7 +18,9 @@ HARDWARE=NOT_RUN.**
 - ISR work is bounded to one copy into a 128-byte SPSC queue. The 5 ms loop
   parses split/concatenated/garbage-prefixed streams. Invalid, stale or
   overflowed vision input stops immediately and is recoverable on a later
-  valid frame; existing terminal hardware faults keep their prior semantics.
+  valid frame; after the 200 ms timeout, a restarted MaixCam may establish a
+  new `seq` baseline. Existing terminal hardware faults keep their prior
+  semantics.
 - Manual and AUTO both converge on the same `body_velocity -> slew -> mecanum
   -> four PI -> current` implementation. No second controller, application
   framework, manager, registry or shared PnX API was added.
@@ -29,7 +30,7 @@ HARDWARE=NOT_RUN.**
 |---|---:|---:|---|
 | `f407-mycar-chassis-debug` | 58,072 B | 72,948 B | `C79D93A43E37A3AA6B6C73EC9D2C3F748043FF282BB24DC0A007BB0A71E3E7D3` |
 | `f407-mycar-combined-debug` | 61,360 B | 107,288 B | `EB1F2F15B1B8AD584FD7BEEF00A0BCDCBE4AAA0BA6BF2E38F5CAC2B3C299F64E` |
-| `f407-mycar-combined-ps2-debug` | 61,360 B | 107,288 B | `450D90B40BFC1A5E882D5680EB5273BA76D0D30C0C0271416C5F5F78F3F7E9F6` |
+| `f407-mycar-combined-ps2-debug` | 61,360 B | 107,336 B | `C94ED8945054E9453DB4B7C049CC08D587511F05E75C906736E0BC2B1F2EFDF8` |
 
 - ELF inspection found one `app_start` in each image; combined images contain
   the direct `body_velocity` overload and vision receiver symbols, while the
@@ -37,9 +38,9 @@ HARDWARE=NOT_RUN.**
   parser symbols.
 - Submodule pins are unchanged and clean: `pnx_bsp@ee59c97`,
   `pnx_devices@5c418a4`, `pnx_libs@e7c3e7a`, `pnx_modules@dffaca9`.
-- No push, flash, CubeMX/IOC edit, submodule edit, physical movement or Vault
-  write occurred. Hardware acceptance in the AVC1 document remains pending
-  separate authorization.
+- No flash, CubeMX/IOC edit, submodule edit, physical movement or Vault write
+  occurred. Hardware acceptance in the AVC1 document remains pending separate
+  authorization.
 
 ## PS2 competition publication - 2026-09-01
 

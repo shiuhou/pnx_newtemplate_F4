@@ -206,7 +206,14 @@ void vision_command_receiver::consume(std::uint8_t byte,
 
     const std::uint32_t seq = read_u32(parser_.data() + 4U);
     parser_size_ = 0U;
-    if (sequence_seen_ && !sequence_is_newer(seq, snapshot_.seq))
+    // 相機可能在 C 板持續運行時單獨重啟並從 seq=0 重新計數。
+    // 活躍鏈路仍拒絕倒序/重播；只有舊命令已逾時，才讓下一個完整合法帧
+    // 建立新的 sequence baseline。
+    const bool previous_command_timed_out =
+        snapshot_.seen &&
+        (now_tick - snapshot_.received_tick) > vision_timeout_ticks;
+    if (sequence_seen_ && !previous_command_timed_out &&
+        !sequence_is_newer(seq, snapshot_.seq))
     {
         ++snapshot_.rejected_count;
         return;

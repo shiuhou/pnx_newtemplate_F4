@@ -212,6 +212,25 @@ void test_sequence_order_and_wrap() noexcept
     require(wrap.snapshot().generation == 2U);
 }
 
+void test_sender_restart_establishes_a_new_sequence_after_timeout() noexcept
+{
+    vision_command_receiver receiver{};
+    ingest(receiver, frame_of(1000U, 0.1F, 0.0F, 1U), 100U);
+
+    // 200 ms 邊界內仍拒絕倒序 frame，避免活躍鏈路接受重播資料。
+    ingest(receiver, frame_of(0U, 0.2F, 0.0F, 1U), 300U);
+    auto snapshot = receiver.snapshot();
+    require(snapshot.seq == 1000U && snapshot.generation == 1U);
+
+    // MaixCam 重新上電後 seq 可能由 0 重啟；舊命令逾時後，下一個
+    // checksum/field 合法的 frame 應建立新的 sequence baseline。
+    ingest(receiver, frame_of(0U, 0.3F, 0.0F, 1U), 301U);
+    snapshot = receiver.snapshot();
+    require(snapshot.seq == 0U && snapshot.generation == 2U);
+    require(snapshot.received_tick == 301U);
+    require(near(snapshot.vx_mps, 0.3F));
+}
+
 void test_queue_overflow_invalidates_until_a_new_frame() noexcept
 {
     vision_command_receiver receiver{};
@@ -277,6 +296,7 @@ int main()
     test_stream_split_concatenated_garbage_and_resync();
     test_validation_and_per_axis_clamp();
     test_sequence_order_and_wrap();
+    test_sender_restart_establishes_a_new_sequence_after_timeout();
     test_queue_overflow_invalidates_until_a_new_frame();
     test_auto_gate_requires_every_deadman_and_freshness_condition();
     return EXIT_SUCCESS;
