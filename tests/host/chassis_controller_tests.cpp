@@ -490,6 +490,38 @@ void test_controller_explicit_reset_is_release_gated_and_resets_pi() noexcept
             safety_state::armed);
 }
 
+void test_direct_body_velocity_uses_the_manual_common_path() noexcept
+{
+    controller manual{base_config};
+    controller direct{base_config};
+    arm(manual);
+    arm(direct);
+
+    const auto manual_output = manual.update(
+        manual_forward, stopped_wheels, healthy_raised, 0.005F);
+    const auto direct_output = direct.update(
+        body_velocity{1.0F, 0.0F, 0.0F}, stopped_wheels,
+        healthy_raised, 0.005F);
+    require_wheels(direct_output.wheel_target_rad_s,
+                   manual_output.wheel_target_rad_s.rad_s);
+    require_currents(direct_output.motor_current_raw,
+                     manual_output.motor_current_raw);
+
+    const auto stopped = direct.update(
+        body_velocity{1.0F, 0.0F, 0.0F}, stopped_wheels,
+        healthy_released, 0.005F);
+    require(stopped.state == safety_state::disabled);
+    require_wheels(stopped.wheel_target_rad_s,
+                   {0.0F, 0.0F, 0.0F, 0.0F});
+
+    const auto resumed = direct.update(
+        body_velocity{1.0F, 0.0F, 0.0F}, stopped_wheels,
+        healthy_raised, 0.005F);
+    require(resumed.state == safety_state::armed);
+    require_wheels(resumed.wheel_target_rad_s,
+                   {10.0F, 10.0F, 10.0F, 10.0F});
+}
+
 } // namespace
 
 int main()
@@ -504,5 +536,6 @@ int main()
     test_controller_malformed_manual_input_inhibits_output();
     test_controller_fault_and_disarm_reset();
     test_controller_explicit_reset_is_release_gated_and_resets_pi();
+    test_direct_body_velocity_uses_the_manual_common_path();
     return EXIT_SUCCESS;
 }

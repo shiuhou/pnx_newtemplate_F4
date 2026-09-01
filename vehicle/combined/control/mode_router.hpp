@@ -11,6 +11,7 @@ enum class control_mode : std::uint8_t {
     neutral,
     chassis,
     arm,
+    vision_auto,
 };
 
 struct mode_router_output {

@@ -75,11 +75,31 @@ void test_interlocks_and_faults_remove_outputs() noexcept
     require(!output.chassis_enabled);
 }
 
+void test_vision_auto_owns_only_the_chassis() noexcept
+{
+    output_gate_input input{};
+    input.mode = control_mode::vision_auto;
+    input.vision_ready = true;
+    input.common_healthy = true;
+    input.chassis_controller_enabled = true;
+    input.arm_controller_enabled = true;
+
+    auto output = select_outputs(input);
+    require(output.chassis_enabled);
+    require(!output.arm_manual_enabled);
+
+    input.vision_ready = false;
+    output = select_outputs(input);
+    require(!output.chassis_enabled);
+    require(!output.arm_manual_enabled);
+}
+
 } // namespace
 
 int main()
 {
     test_only_selected_manual_product_can_move();
     test_interlocks_and_faults_remove_outputs();
+    test_vision_auto_owns_only_the_chassis();
     return EXIT_SUCCESS;
 }

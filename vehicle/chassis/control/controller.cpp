@@ -42,6 +42,13 @@ bool valid_manual_sample(const manual_input& value) noexcept
            std::isfinite(value.right_x);
 }
 
+bool valid_body_velocity(const body_velocity& value) noexcept
+{
+    return std::isfinite(value.vx_mps) &&
+           std::isfinite(value.vy_mps) &&
+           std::isfinite(value.yaw_rad_s);
+}
+
 } // namespace
 
 bool valid(const controller_configuration& config) noexcept
@@ -80,22 +87,48 @@ controller_output controller::update(
     const safety_input& safety,
     float dt_s) noexcept
 {
-    // 每個週期都從全零輸出開始組裝；任何提前 return 自然保持零 current。
-    controller_output output{};
-
     // runtime_policy 與 manual snapshot 可能來自不同的複製時刻，因此 safety
     // 同時要求兩邊都認為 DR16 online/up，避免時間差造成誤解鎖。
     safety_input gated_safety = safety;
     gated_safety.remote_online = safety.remote_online && manual.online;
     gated_safety.arm_switches_up =
         safety.arm_switches_up && manual.arm_switches_up;
+    const bool manual_valid = valid_manual_sample(manual);
     gated_safety.config_valid = safety.config_valid && config_valid_ &&
-                                valid_manual_sample(manual);
-    output.state = safety_.update(gated_safety);
+                                manual_valid;
+    return update_body_velocity(
+        map_manual(manual, config_.manual), measured_motor_rad_s,
+        gated_safety, dt_s, manual_valid);
+}
+
+controller_output controller::update(
+    const body_velocity& command,
+    const wheel_vector& measured_motor_rad_s,
+    const safety_input& safety,
+    float dt_s) noexcept
+{
+    const bool command_valid = valid_body_velocity(command);
+    safety_input gated_safety = safety;
+    gated_safety.config_valid = safety.config_valid && config_valid_ &&
+                                command_valid;
+    return update_body_velocity(command, measured_motor_rad_s,
+                                gated_safety, dt_s, command_valid);
+}
+
+controller_output controller::update_body_velocity(
+    const body_velocity& command,
+    const wheel_vector& measured_motor_rad_s,
+    const safety_input& safety,
+    float dt_s,
+    bool command_valid) noexcept
+{
+    // 每个周期从全零输出开始；手动与自动从这里共用唯一控制链。
+    controller_output output{};
+    output.state = safety_.update(safety);
 
     // 安全事件與非法時間不能等待斜坡；當週期直接零輸出並清除全部控制狀態。
     if (!safety_.output_enabled() || !config_valid_ ||
-        !valid_manual_sample(manual) || !std::isfinite(dt_s) || dt_s <= 0.0F)
+        !command_valid || !std::isfinite(dt_s) || dt_s <= 0.0F)
     {
         command_slew_.reset();
         reset_pi();
@@ -104,7 +137,7 @@ controller_output controller::update(
 
     // 只有 armed 且資料可信時才推進斜坡；正常搖桿回中會在這裡平滑減速。
     const body_velocity limited_command = command_slew_.update(
-        map_manual(manual, config_.manual), dt_s);
+        command, dt_s);
     const auto target = inverse_kinematics(
         limited_command, config_.geometry);
     if (!target.has_value())

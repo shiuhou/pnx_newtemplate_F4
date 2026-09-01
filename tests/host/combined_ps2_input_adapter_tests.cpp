@@ -7,6 +7,7 @@ namespace
 {
 
 using vehicle::combined::ps2_input_adapter;
+using vehicle::combined::operator_mode;
 
 void require(bool condition) noexcept
 {
@@ -206,6 +207,83 @@ void test_dr16_passes_through_and_resets_ps2_unlock() noexcept
     require(adapter.update(ps2).right_sw == remoter::sw_state::mid);
 }
 
+void test_square_enters_auto_only_after_unlock() noexcept
+{
+    ps2_input_adapter adapter{};
+    auto remote = connected_ps2();
+    (void)adapter.update(remote);
+
+    press(remote, remoter::ps2_button::square);
+    auto output = adapter.update(remote);
+    require(adapter.mode() == operator_mode::manual);
+    require(output.right_sw == remoter::sw_state::mid);
+
+    remote.ps2_buttons = 0U;
+    remote.ps2_pressed = 0U;
+    (void)adapter.update(remote);
+    press(remote, remoter::ps2_button::circle);
+    (void)adapter.update(remote);
+    remote.ps2_buttons = 0U;
+    remote.ps2_pressed = 0U;
+    (void)adapter.update(remote);
+
+    press(remote, remoter::ps2_button::square);
+    output = adapter.update(remote);
+    require(adapter.mode() == operator_mode::vision_auto);
+    require(adapter.entered_auto());
+    require(adapter.unlocked());
+    require(output.left_sw == remoter::sw_state::mid);
+    require(output.right_sw == remoter::sw_state::up);
+
+    remote.ps2_pressed = 0U;
+    remote.ps2_buttons = bit(remoter::ps2_button::r1) |
+                         bit(remoter::ps2_button::r2) |
+                         bit(remoter::ps2_button::l1);
+    output = adapter.update(remote);
+    require(adapter.mode() == operator_mode::vision_auto);
+    require(!adapter.entered_auto());
+    require(adapter.l1_held());
+    require(output.left_sw == remoter::sw_state::mid);
+}
+
+void test_triangle_returns_manual_and_cross_or_disconnect_lock() noexcept
+{
+    ps2_input_adapter adapter{};
+    auto remote = connected_ps2();
+    (void)adapter.update(remote);
+    press(remote, remoter::ps2_button::circle);
+    (void)adapter.update(remote);
+    remote.ps2_buttons = 0U;
+    remote.ps2_pressed = 0U;
+    (void)adapter.update(remote);
+    press(remote, remoter::ps2_button::square);
+    (void)adapter.update(remote);
+    require(adapter.mode() == operator_mode::vision_auto);
+
+    remote.ps2_buttons = bit(remoter::ps2_button::triangle) |
+                         bit(remoter::ps2_button::r1);
+    remote.ps2_pressed = bit(remoter::ps2_button::triangle);
+    auto output = adapter.update(remote);
+    require(adapter.mode() == operator_mode::manual);
+    require(adapter.stop_requested());
+    require(adapter.unlocked());
+    require(output.left_sw == remoter::sw_state::mid);
+
+    remote.ps2_buttons = bit(remoter::ps2_button::cross);
+    remote.ps2_pressed = bit(remoter::ps2_button::cross);
+    output = adapter.update(remote);
+    require(adapter.mode() == operator_mode::manual);
+    require(!adapter.unlocked());
+    require(output.right_sw == remoter::sw_state::mid);
+
+    remote = connected_ps2();
+    remote.ps2_link = remoter::ps2_link_state::remote_disconnected;
+    (void)adapter.update(remote);
+    require(adapter.mode() == operator_mode::manual);
+    require(!adapter.unlocked());
+    require(!adapter.l1_held());
+}
+
 } // namespace
 
 int main()
@@ -218,5 +296,7 @@ int main()
     test_conflicting_lock_edges_fail_closed_to_locked();
     test_invalid_axes_fail_closed();
     test_dr16_passes_through_and_resets_ps2_unlock();
+    test_square_enters_auto_only_after_unlock();
+    test_triangle_returns_manual_and_cross_or_disconnect_lock();
     return EXIT_SUCCESS;
 }

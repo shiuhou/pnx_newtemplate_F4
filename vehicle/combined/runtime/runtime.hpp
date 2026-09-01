@@ -36,6 +36,9 @@ struct telemetry {
     bool ps2_unlocked{};
     bool r1_chassis_held{};
     bool r2_arm_held{};
+    bool vision_l1_held{};
+    bool vision_motion_allowed{};
+    std::uint32_t vision_entry_generation{};
     runtime_fault faults{runtime_fault::none};
     bool watchdog_sampled{};
     bool all_motors_online{};

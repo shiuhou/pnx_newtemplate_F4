@@ -8,9 +8,12 @@ output_gate_output select_outputs(const output_gate_input& input) noexcept
     output_gate_output output{};
     const bool output_health =
         input.common_healthy && !input.terminal_fault;
+    const bool chassis_mode_ready =
+        (input.mode == control_mode::chassis && input.chassis_ready) ||
+        (input.mode == control_mode::vision_auto && input.vision_ready);
     output.chassis_enabled =
-        output_health && input.mode == control_mode::chassis &&
-        input.chassis_ready && input.chassis_controller_enabled;
+        output_health && chassis_mode_ready &&
+        input.chassis_controller_enabled;
     output.arm_manual_enabled =
         output_health && input.mode == control_mode::arm &&
         input.arm_controller_enabled;

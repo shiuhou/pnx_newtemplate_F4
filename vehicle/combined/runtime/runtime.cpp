@@ -126,6 +126,7 @@ chassis::watchdog_phase health_phase{};
 std::uint32_t control_loop_count{};
 std::uint32_t control_overrun_count{};
 std::uint32_t fault_mask{};
+std::uint32_t auto_entry_generation{};
 arm::j1_manual_command_output previous_manual_command{};
 std::int16_t previous_logical_current_raw{};
 
@@ -440,6 +441,11 @@ void control_entry(ULONG)
         }
 
         const auto adapted_remote = input_adapter.update(control_remote);
+        if (input_adapter.entered_auto())
+        {
+            // 进入 AUTO 前已经收到的 frame 不拥有新的自动控制周期。
+            auto_entry_generation = vision_snapshot.generation;
+        }
         const float arm_center_deadband = std::min(
             arm_configuration.j1_manual_deadband,
             arm_configuration.servos.deadband);
@@ -489,6 +495,26 @@ void control_entry(ULONG)
         auto arm_policy_output = arm_policy.update(arm_input);
         sync_subsystem_fault();
 
+        const bool common_healthy =
+            routed.remote_online && watchdog_sampled && all_motors_online &&
+            chassis_policy_output.safety.can_healthy &&
+            arm_policy_output.safety.can_healthy &&
+            chassis_policy_output.safety.config_valid &&
+            arm_policy_output.safety.config_valid;
+        bool terminal_fault = terminal_fault_latched();
+        const bool vision_mode =
+            input_adapter.mode() == operator_mode::vision_auto;
+        const bool vision_motion_allowed = vision_auto_motion_allowed({
+            routed.remote_online,
+            input_adapter.unlocked(),
+            vision_mode,
+            input_adapter.l1_held(),
+            auto_entry_generation,
+            vision_snapshot,
+            now,
+            common_healthy && !terminal_fault,
+        });
+
         auto chassis_safety =
             chassis::controller_safety_for(chassis_policy_output);
         auto arm_controller_safety =
@@ -498,9 +524,27 @@ void control_entry(ULONG)
             chassis_safety.config_valid = false;
             arm_controller_safety.config_valid = false;
         }
-        const auto chassis_output = chassis_controller.update(
-            chassis_policy_output.manual, measured_wheels,
-            chassis_safety, control_period_s);
+        chassis::controller_output chassis_output{};
+        if (vision_mode)
+        {
+            chassis_safety.arm_switches_up = vision_motion_allowed;
+            const chassis::body_velocity vision_command =
+                vision_motion_allowed
+                    ? chassis::body_velocity{
+                          vision_snapshot.vx_mps,
+                          vision_snapshot.vy_mps,
+                          0.0F}
+                    : chassis::body_velocity{};
+            chassis_output = chassis_controller.update(
+                vision_command, measured_wheels,
+                chassis_safety, control_period_s);
+        }
+        else
+        {
+            chassis_output = chassis_controller.update(
+                chassis_policy_output.manual, measured_wheels,
+                chassis_safety, control_period_s);
+        }
         const auto arm_controller_state =
             arm_safety.update(arm_controller_safety);
 
@@ -519,23 +563,21 @@ void control_entry(ULONG)
             previous_logical_current_raw = 0;
         }
 
-        const bool common_healthy =
-            routed.remote_online && watchdog_sampled && all_motors_online &&
-            chassis_policy_output.safety.can_healthy &&
-            arm_policy_output.safety.can_healthy &&
-            chassis_policy_output.safety.config_valid &&
-            arm_policy_output.safety.config_valid;
-        bool terminal_fault = terminal_fault_latched();
-        const auto selected_outputs = select_outputs({
-            routed.mode,
-            routed.chassis_ready,
-            common_healthy,
-            terminal_fault,
+        output_gate_input output_gate{};
+        output_gate.mode = vision_mode
+                               ? control_mode::vision_auto
+                               : routed.mode;
+        output_gate.chassis_ready = routed.chassis_ready;
+        output_gate.vision_ready = vision_motion_allowed;
+        output_gate.common_healthy = common_healthy;
+        output_gate.terminal_fault = terminal_fault;
+        output_gate.chassis_controller_enabled =
             chassis::should_set_current(
-                chassis_policy_output, chassis_output.state),
+                chassis_policy_output, chassis_output.state);
+        output_gate.arm_controller_enabled =
             arm::should_enable_outputs(
-                arm_policy_output, arm_controller_state),
-        });
+                arm_policy_output, arm_controller_state);
+        const auto selected_outputs = select_outputs(output_gate);
         bool chassis_outputs_enabled = selected_outputs.chassis_enabled;
         bool arm_outputs_enabled = selected_outputs.arm_manual_enabled;
         bool j1_outputs_enabled = j1_hold.update({
@@ -740,23 +782,23 @@ void control_entry(ULONG)
         }
 
         telemetry next_telemetry{};
-        next_telemetry.mode = routed.mode;
+        next_telemetry.mode = output_gate.mode;
         next_telemetry.active_source = control_remote.active_source;
         next_telemetry.ps2_link = control_remote.ps2_link;
         next_telemetry.ps2_buttons = control_remote.ps2_buttons;
         next_telemetry.ps2_pressed = control_remote.ps2_pressed;
-        next_telemetry.ps2_unlocked =
-            adapted_remote.active_source == remoter::source::ps2 &&
-            !adapted_remote.offline &&
-            adapted_remote.right_sw == remoter::sw_state::up;
+        next_telemetry.ps2_unlocked = input_adapter.unlocked();
         next_telemetry.r1_chassis_held =
-            next_telemetry.ps2_unlocked &&
+            next_telemetry.ps2_unlocked && !vision_mode &&
             remoter::is_held(control_remote.ps2_buttons,
                              remoter::ps2_button::r1);
         next_telemetry.r2_arm_held =
-            next_telemetry.ps2_unlocked &&
+            next_telemetry.ps2_unlocked && !vision_mode &&
             remoter::is_held(control_remote.ps2_buttons,
                              remoter::ps2_button::r2);
+        next_telemetry.vision_l1_held = input_adapter.l1_held();
+        next_telemetry.vision_motion_allowed = vision_motion_allowed;
+        next_telemetry.vision_entry_generation = auto_entry_generation;
         next_telemetry.faults = faults();
         next_telemetry.watchdog_sampled = watchdog_sampled;
         next_telemetry.all_motors_online = all_motors_online;
@@ -901,6 +943,7 @@ void start(const chassis::configuration& chassis_config,
     health_phase = {};
     control_loop_count = 0U;
     control_overrun_count = 0U;
+    auto_entry_generation = 0U;
     previous_manual_command = {};
     previous_logical_current_raw = 0;
 

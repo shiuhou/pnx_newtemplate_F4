@@ -60,6 +60,18 @@ bool sequence_is_newer(std::uint32_t current,
     return static_cast<std::int32_t>(current - previous) > 0;
 }
 
+bool vision_auto_motion_allowed(
+    const vision_auto_gate_input& input) noexcept
+{
+    return input.ps2_online && input.globally_unlocked &&
+           input.auto_mode && input.l1_held &&
+           input.command.seen && input.command.valid &&
+           input.command.generation != input.entry_generation &&
+           (input.now_tick - input.command.received_tick) <=
+               vision_timeout_ticks &&
+           input.chassis_healthy;
+}
+
 bool vision_command_receiver::push_from_isr(
     const std::uint8_t* data, std::size_t length) noexcept
 {

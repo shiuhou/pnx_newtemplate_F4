@@ -51,10 +51,22 @@ public:
         const wheel_vector& measured_motor_rad_s,
         const safety_input& safety,
         float dt_s) noexcept;
+    // 自动命令直接使用车体速度；仍进入与手动完全相同的 slew、逆解与 PI 路径。
+    controller_output update(
+        const body_velocity& command,
+        const wheel_vector& measured_motor_rad_s,
+        const safety_input& safety,
+        float dt_s) noexcept;
     // 清除 safety gate 可解除的 fault 與四輪積分；不會清 runtime_policy 的故障位元。
     void reset() noexcept;
 
 private:
+    controller_output update_body_velocity(
+        const body_velocity& command,
+        const wheel_vector& measured_motor_rad_s,
+        const safety_input& safety,
+        float dt_s,
+        bool command_valid) noexcept;
     void reset_pi() noexcept;
 
     controller_configuration config_; // 建構時保存的車輛控制參數。

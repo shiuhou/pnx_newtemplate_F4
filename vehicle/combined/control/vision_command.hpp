@@ -11,6 +11,7 @@ namespace vehicle::combined
 inline constexpr std::size_t vision_frame_size = 24U;
 inline constexpr std::size_t vision_queue_capacity = 128U;
 inline constexpr float vision_max_axis_speed_mps = 0.8F;
+inline constexpr std::uint32_t vision_timeout_ticks = 200U;
 
 std::uint32_t vision_checksum(const std::uint8_t* data,
                               std::size_t length) noexcept;
@@ -30,6 +31,20 @@ struct vision_command_snapshot {
     std::uint32_t checksum_error_count{};
     std::uint32_t overflow_count{};
 };
+
+struct vision_auto_gate_input {
+    bool ps2_online{};
+    bool globally_unlocked{};
+    bool auto_mode{};
+    bool l1_held{};
+    std::uint32_t entry_generation{};
+    vision_command_snapshot command{};
+    std::uint32_t now_tick{};
+    bool chassis_healthy{};
+};
+
+bool vision_auto_motion_allowed(
+    const vision_auto_gate_input& input) noexcept;
 
 // USART ISR 只调用 push_from_isr() 做一次持久复制；process() 由 5 ms
 // control loop 调用，避免在中断内执行协议与控制策略。

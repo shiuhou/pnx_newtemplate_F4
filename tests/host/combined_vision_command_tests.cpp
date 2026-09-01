@@ -231,6 +231,44 @@ void test_queue_overflow_invalidates_until_a_new_frame() noexcept
     require(snapshot.generation == 2U);
 }
 
+void test_auto_gate_requires_every_deadman_and_freshness_condition() noexcept
+{
+    vision_command_receiver receiver{};
+    ingest(receiver, golden_valid, 100U);
+
+    vehicle::combined::vision_auto_gate_input gate{};
+    gate.ps2_online = true;
+    gate.globally_unlocked = true;
+    gate.auto_mode = true;
+    gate.l1_held = true;
+    gate.entry_generation = 0U;
+    gate.command = receiver.snapshot();
+    gate.now_tick = 300U;
+    gate.chassis_healthy = true;
+    require(vehicle::combined::vision_auto_motion_allowed(gate));
+
+    gate.entry_generation = gate.command.generation;
+    require(!vehicle::combined::vision_auto_motion_allowed(gate));
+    gate.entry_generation = 0U;
+    gate.l1_held = false;
+    require(!vehicle::combined::vision_auto_motion_allowed(gate));
+    gate.l1_held = true;
+    gate.now_tick = 301U;
+    require(!vehicle::combined::vision_auto_motion_allowed(gate));
+    gate.now_tick = 300U;
+    gate.command.valid = false;
+    require(!vehicle::combined::vision_auto_motion_allowed(gate));
+    gate.command.valid = true;
+    gate.chassis_healthy = false;
+    require(!vehicle::combined::vision_auto_motion_allowed(gate));
+    gate.chassis_healthy = true;
+    gate.globally_unlocked = false;
+    require(!vehicle::combined::vision_auto_motion_allowed(gate));
+    gate.globally_unlocked = true;
+    gate.ps2_online = false;
+    require(!vehicle::combined::vision_auto_motion_allowed(gate));
+}
+
 } // namespace
 
 int main()
@@ -240,5 +278,6 @@ int main()
     test_validation_and_per_axis_clamp();
     test_sequence_order_and_wrap();
     test_queue_overflow_invalidates_until_a_new_frame();
+    test_auto_gate_requires_every_deadman_and_freshness_condition();
     return EXIT_SUCCESS;
 }
