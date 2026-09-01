@@ -1,5 +1,12 @@
 # Proposed Vault Update: F407 Core Hardware Validation
 
+> PS2 vision-auto proposal (2026-09-01): local
+> `feat/ps2-auto-vision` adds the vehicle-owned AVC1 USART6 `vx/vy` contract,
+> bounded DMA-to-loop receiver, PS2 MANUAL/AUTO/L1 arbitration and one shared
+> chassis `body_velocity` control path. Full Host passed 59/59 and all three
+> affected F407 presets clean-built. The four submodule pins are unchanged;
+> no push, flash, hardware operation or actual Vault write occurred.
+
 > Publication update (2026-09-01): PS2 competition default was published at
 > `origin/chassis_x_arm@e51a6f5`; DR16 history is published at
 > `origin/legacy/dr16-baseline@806ee88`; full Host passed 58/58 after merge.

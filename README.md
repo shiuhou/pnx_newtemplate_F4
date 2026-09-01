@@ -1,12 +1,15 @@
-# MyCar F407 DR16 + four-M2006 chassis
+# MyCar F407 PS2 manual + vision-auto chassis/ARM
 
 This repository is the vehicle-specific `mycar/f4` composition for a DJI
-C-board (STM32F407) chassis. It implements the first MyCar software slice:
+C-board (STM32F407) vehicle. The current competition product has two mutually
+exclusive command sources:
 
 ```text
-DR16 -> manual mapping -> X-mecanum inverse kinematics
-     -> four velocity PI loops -> bounded raw current
-     -> four M2006 motors on CAN1
+PS2 MANUAL: R1 chassis / R2 ARM -----------------------┐
+MaixCam AUTO: USART6 AVC1 vx/vy + L1 dead-man --------┤
+                                                       v
+body_velocity -> slew -> X-mecanum -> four velocity PI
+              -> bounded current -> four M2006 on CAN1
 ```
 
 It is a vehicle repository, not a general chassis framework. Vehicle code
@@ -15,9 +18,10 @@ remain upstream-owned.
 
 ## Current status
 
-The software gate and attended chassis baseline acceptance have passed. The
-current profile uses the measured chassis geometry, DR16 manual control, four
-M2006 feedback loops, startup arming, health interlocks and bounded current.
+The PS2 manual baseline is published on `chassis_x_arm`. This branch adds the
+software-complete AVC1 vision command path and manual/AUTO arbitration. Host
+tests and all affected F407 builds pass; this new AUTO ELF has not been
+flashed or operated on hardware.
 
 On 2026-08-04 the operator verified the hardware-accepted `DA37D784...` ELF:
 three cold-start/re-arm cycles, DR16 loss with zero-output recovery, five
@@ -33,11 +37,38 @@ the extended five-minute and DR16-loss evidence still belongs to `DA37D784...`.
 Software gate: PASS
 Hardware-accepted baseline ELF: PASS_OPERATOR_OBSERVED
 Current ownership-cleanup ELF: FLASH_VERIFY_PASS, SHORT_HARDWARE_PASS
+PS2 vision-auto software: PASS, HARDWARE_NOT_RUN
 ```
+
+## Current control surface
+
+- Boot, PS2 loss/reconnect and Cross are `locked + MANUAL`; Circle unlocks.
+- In MANUAL, R1 keeps the existing chassis behavior and R2 keeps the existing
+  ARM behavior.
+- Square enters AUTO only after unlock. AUTO ignores R1/R2 and requires L1 to
+  remain held.
+- AUTO cannot move until a new AVC1 frame arrives after mode entry. `valid=0`,
+  UART silence over 200 ms, queue overflow, L1 release, Triangle, Cross or any
+  existing CAN/motor/config fault selects immediate zero and clears chassis
+  slew/PI state.
+- MaixCam owns recognition and follow-control math. The C board accepts only
+  final `vx/vy`; automatic `wz` is always zero. See
+  [the AVC1 interface contract](docs/vision-auto-chassis-interface.md).
 
 ## Start here
 
 ## 中文閱讀路線
+
+本分支的最短新功能閱讀路線是：
+
+1. [`docs/vision-auto-chassis-interface.md`](docs/vision-auto-chassis-interface.md)
+   了解视觉组唯一需要遵守的 UART 契约。
+2. `vehicle/combined/control/vision_command.*` 看 frame、stream queue、timeout
+   与 AUTO gate。
+3. `vehicle/combined/control/ps2_input_adapter.*` 看 Circle/Square/Triangle/
+   Cross/L1 语义。
+4. `vehicle/combined/runtime/runtime.cpp` 看命令仲裁如何进入同一个
+   `vehicle/chassis/control/controller.*`。
 
 不要由 STM32 HAL、CMSIS、ThreadX、USBX 或 `pnx_*` 子模組往上猜設計；它們分別是
 第三方／上游實作。建議依下列順序閱讀目前 MyCar 路徑：
@@ -80,15 +111,15 @@ cmake --build build/host
 ctest --test-dir build/host --output-on-failure
 ```
 
-Build the MyCar image:
+Build the PS2 manual + vision-auto combined image:
 
 ```powershell
-cmake --preset f407-mycar-chassis-debug
-cmake --build --preset f407-mycar-chassis-debug
+cmake --preset f407-mycar-combined-ps2-debug
+cmake --build --preset f407-mycar-combined-ps2-debug
 ```
 
-The output is `build/f407-mycar-chassis-debug/pnx_embedded.elf`. Building it
-is software evidence only; do not flash it or connect non-zero motor output
+The output is `build/f407-mycar-combined-ps2-debug/pnx_embedded.elf`. Building
+it is software evidence only; do not flash it or connect non-zero motor output
 without separate authorization.
 
 ## Safety and authorization boundary
@@ -101,6 +132,9 @@ without separate authorization.
   interlock.
 - Remote loss, motor/CAN health loss, invalid configuration, malformed manual
   input and timing overrun select relax/zero and reset PI state as applicable.
+- Vision invalid/timeout/overflow and L1 release are recoverable stops, not new
+  terminal fault latches. A later valid frame may resume only while every AUTO
+  gate remains true.
 - Hardware operation, flashing, non-zero current, commit, push and
   cross-workspace writes require explicit user authorization.
 
@@ -113,6 +147,10 @@ competition tuning. Re-measure and revalidate any higher-output configuration.
 | --- | --- |
 | Vehicle control core and runtime adapter | `vehicle/chassis/common/`, `control/`, `runtime/` |
 | Vehicle composition entry point | `vehicle/mycar.cpp` |
+| Combined PS2/vision runtime | `vehicle/combined/runtime/runtime.cpp` |
+| AVC1 parser, queue, snapshot and gate | `vehicle/combined/control/vision_command.*` |
+| PS2 manual/AUTO mode input | `vehicle/combined/control/ps2_input_adapter.*` |
+| Vision-team UART contract | `docs/vision-auto-chassis-interface.md` |
 | Geometry, limits, directions and PI/current parameters | `vehicle/chassis/runtime/config.cpp` |
 | DR16/UART build settings and four M2006 identities | `configs/vehicles/mycar/params.json`, `robot.json` |
 | MyCar build selection | `CMakeLists.txt`, `CMakePresets.json` |
