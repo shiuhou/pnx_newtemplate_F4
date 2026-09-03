@@ -1,5 +1,131 @@
 # F407 Engineering Handoff
 
+## RFID UID integration handoff - 2026-09-03
+
+### Repository state
+
+- Project: M3650A-HA RFID UID integration for the DJI C-board vehicle firmware.
+- Repository: `https://github.com/shiuhou/pnx_newtemplate_F4.git`.
+- Branch: `feat/rfid`, tracking `origin/feat/rfid`.
+- Commit: `27ee62a6b1190d328215d62b400c0fc2732385cd`.
+- Working tree before this documentation update: clean.
+- Runtime build products under `build/` are ignored and are not stored on
+  GitHub.
+
+### Task objective
+
+Integrate the M3650A-HA as an isolated USART6 RFID UID reader, provide a safe
+zero-motor debug image, and passively expose RFID state in the existing PS2
+combined image without allowing RFID failures or UID events to affect the
+chassis or ARM control path.
+
+### Actual changes
+
+- Added the fixed-capacity RFID protocol parser, B1/B8 verification, automatic
+  UID dispatch, one-pending-command state machine, health query, timeout, and
+  reconnect recovery under `vehicle/rfid/`.
+- Added generated RFID feature, USART6 binding, address, baud rate, DMA, and
+  UART-collision validation.
+- Added `f407-rfid-uid-debug`, which starts no CAN, motors, or vehicle control.
+  RFID runs on USART6 at 9600 8N1 and change-driven text output runs on USART1
+  at 115200 8N1.
+- Passively starts RFID in `f407-mycar-combined-ps2-debug` without changing
+  mode routing, actuator arbitration, or terminal-fault behavior.
+- Added host protocol, state-machine, USART transport, generated-config, and
+  product-contract tests.
+- Added the operator-facing build, wiring, flash, output, and troubleshooting
+  guide at `docs/RFID_UID_DEBUG.md`.
+
+### Verification commands and observed results
+
+```powershell
+cmake --build build/host
+ctest --test-dir build/host --output-on-failure
+```
+
+Observed result before commit `27ee62a`: full Host suite **61/61 PASS**.
+
+```powershell
+cmake --build --preset f407-rfid-uid-debug --parallel 4
+```
+
+Observed result: link PASS, Flash `42,848 B`, RAM `52,976 B`.
+
+```powershell
+cmake --build --preset f407-mycar-combined-ps2-debug --parallel 4
+```
+
+Observed result: link PASS, Flash `110,408 B`, RAM `64,032 B`.
+
+```powershell
+git diff --check
+```
+
+Observed result before commit: PASS. The committed submodule gitlinks were not
+changed by the RFID implementation.
+
+### Failed attempts
+
+None observed in the final software verification. Hardware communication,
+programming, and card reads were not run as part of implementation, so they
+are not classified as pass or failure.
+
+### Decisions and rationale
+
+- Vendor documents under the local `firmware/RFID` folder are the protocol
+  authority. Their B1, B8, UID, checksum, address, baud, and command-spacing
+  behavior was retained without copying the vendor demo architecture.
+- The ELF remains a reproducible local build artifact rather than a tracked
+  binary. A teammate should build `f407-rfid-uid-debug` from commit `27ee62a`.
+- The firmware reads and validates module configuration but never writes the
+  module EEPROM.
+- Each valid UID frame received while ready increments the event counter. The
+  driver does not infer card presence, removal, or deduplicate repeated UID
+  reports.
+
+### Verified facts
+
+- `feat/rfid@27ee62a` was pushed to `origin/feat/rfid`.
+- The source branch contains the build preset and all required implementation
+  and tests; it does not contain the ignored ELF.
+- The zero-motor ELF existed locally after the successful embedded build.
+- The observed local zero-motor ELF is `1,617,384` bytes with SHA-256
+  `8F6998958AE0029EF4C6EA8ADCFC8B46014ADFB4D01B3E674FB778FE55898313`.
+- Software tests and links passed as recorded above.
+
+### Assumptions and open questions
+
+- The physical module must still be confirmed as the TTL UART variant. An
+  RS232 variant requires a transceiver and must not connect directly.
+- The module's actual B1/B8 configuration and UID must be compared with the
+  vendor tool.
+- Static and moving read reliability, detection latency, adjacent-tag
+  behavior, and installation height remain unmeasured.
+
+### Risks
+
+- The C-board shell labels do not match STM32 numbering: shell `UART1` is
+  STM32 USART6 for RFID, while shell `UART2` is STM32 USART1 for debug output.
+- Reversing power, omitting common ground, failing to cross TX/RX, or directly
+  connecting an RS232 variant can prevent communication or damage hardware.
+- A locally copied ELF is not represented by Git history unless its source
+  commit and hash are recorded; rebuilding from the named commit is safer.
+
+### Next actions
+
+- Follow `docs/RFID_UID_DEBUG.md` to build and program the zero-motor image.
+- Confirm TTL levels before connecting signal wires, then observe startup
+  reach `link=3` and compare one card UID with the vendor tool.
+- Exercise unplug/replug recovery before testing the passive combined image.
+- Record exact ELF hash and attended hardware results before accepting the
+  feature into the vehicle mainline.
+
+### Rollback point
+
+The RFID branch was created from
+`fe59062856a57121f533375763e0381c7533eeeb`. Returning to that commit removes
+the RFID feature while preserving the preceding chassis/ARM/PS2 baseline.
+
 ## PS2 competition publication - 2026-09-01
 
 **Status: PUBLISHED ON `chassis_x_arm`; PS2 IS THE COMPETITION DEFAULT; DR16 IS LEGACY.**

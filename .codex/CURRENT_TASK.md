@@ -5,8 +5,8 @@
 - Baseline: `fe59062856a57121f533375763e0381c7533eeeb`; Host baseline passed
   58/58 before RFID changes.
 - Worktree: `C:\Users\USER\Desktop\RM\rm_inschool\2026\firmware\pnx_f4_rfid`.
-- Scope guard: no commit, push, hardware operation, EEPROM write, M1 block
-  access, UID deduplication, or motor-path control in this task.
+- Scope guard during implementation: no hardware operation, EEPROM write, M1
+  block access, UID deduplication, or motor-path control.
 
 ## Vendor protocol facts
 
@@ -91,5 +91,7 @@ copied into the project.
 - Verify UID against the vendor tool, B1/B8 responses, static and moving read
   reliability, detection latency, adjacent-tag behavior, unplug/replug
   recovery, and failure isolation while PS2 vehicle control is active.
-- No hardware communication claim has been made. Changes remain uncommitted
-  and unpushed on `feat/rfid` as requested.
+- No hardware communication claim has been made. The implementation was
+  committed as `27ee62a6b1190d328215d62b400c0fc2732385cd` and pushed to
+  `origin/feat/rfid`. Build products under `build/`, including the ELF, remain
+  intentionally local and ignored by Git.
