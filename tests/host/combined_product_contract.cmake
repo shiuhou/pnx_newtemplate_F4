@@ -17,12 +17,15 @@ endif()
 file(READ "${combined_ps2_params}" ps2_params_json)
 string(JSON ps2_source GET "${ps2_params_json}" remoter source)
 string(JSON ps2_uart GET "${ps2_params_json}" bindings remoter_uart)
+string(JSON rfid_enabled GET "${ps2_params_json}" build features rfid)
+string(JSON rfid_uart GET "${ps2_params_json}" bindings rfid_uart)
 string(JSON ps2_offline_timeout GET "${ps2_params_json}"
     remoter ps2_offline_timeout_ticks)
 string(JSON ps2_frame_timeout GET "${ps2_params_json}"
     remoter ps2_frame_timeout_ticks)
 string(JSON ps2_deadzone GET "${ps2_params_json}" remoter ps2_deadzone)
 if(NOT ps2_source STREQUAL "ps2" OR NOT ps2_uart STREQUAL "usart1" OR
+   NOT rfid_enabled OR NOT rfid_uart STREQUAL "usart6" OR
    NOT ps2_offline_timeout EQUAL 600 OR NOT ps2_frame_timeout EQUAL 20 OR
    NOT ps2_deadzone EQUAL 0.08)
     message(FATAL_ERROR "Combined PS2 configuration is not the approved profile")
@@ -66,7 +69,8 @@ foreach(required_token IN ITEMS
         "pnx_modules/remoter/src/ps2.cpp"
         "configs/vehicles/mycar_combined/robot.json"
         "vehicle/combined.cpp"
-        "vehicle/combined/runtime/runtime.cpp")
+        "vehicle/combined/runtime/runtime.cpp"
+        "vehicle/rfid/reader.cpp")
     string(FIND "${root_cmake}" "${required_token}" token_index)
     if(token_index EQUAL -1)
         message(FATAL_ERROR

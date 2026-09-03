@@ -92,6 +92,7 @@ namespace app::uart
 inline constexpr bsp::usart::port dr16 = 0U;
 inline constexpr bsp::usart::port vt03 = 1U;
 inline constexpr bsp::usart::port ps2 = 2U;
+inline constexpr bsp::usart::port rfid = 1U;
 
 } // namespace app::uart
 
@@ -101,8 +102,17 @@ namespace config::feature
 inline constexpr bool enable_dr16 = false;
 inline constexpr bool enable_vt03 = false;
 inline constexpr bool enable_ps2 = false;
+inline constexpr bool has_rfid = true;
 
 } // namespace config::feature
+
+namespace params::rfid
+{
+
+inline constexpr std::uint32_t address = 0x20U;
+inline constexpr std::uint32_t baud = 9600U;
+
+} // namespace params::rfid
 
 namespace params::usb
 {

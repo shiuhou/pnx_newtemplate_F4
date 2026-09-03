@@ -8,6 +8,7 @@
     "features": {
       "ahrs": false,
       "remoter": true,
+      "rfid": false,
       "vt03": false,
       "referee": false,
       "ui": false,
@@ -17,7 +18,8 @@
   },
   "bindings": {
     "remoter_uart": "usart3",
-    "referee_uart": "none"
+    "referee_uart": "none",
+    "rfid_uart": "none"
   },
   "can": {
     "can1": {
@@ -31,6 +33,10 @@
     "source": "dr16",
     "thread_priority": 2,
     "rx_timeout_ticks": 100
+  },
+  "rfid": {
+    "address": 32,
+    "baud": 9600
   },
   "test": {
     "thread_priority": 10,

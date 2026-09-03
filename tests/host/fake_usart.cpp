@@ -1,5 +1,6 @@
 #include "bsp_usart.hpp"
 
+#include <algorithm>
 #include <array>
 #include <limits>
 
@@ -19,6 +20,8 @@ struct port_state
         bsp::usart::rx_delivery::frame_snapshot;
     std::uint8_t* rx_buffer = nullptr;
     std::size_t rx_buffer_len = 0U;
+    std::array<std::uint8_t, 256U> last_transmit{};
+    std::size_t last_transmit_len{};
     bsp::usart::telemetry telemetry{};
 };
 
@@ -101,6 +104,48 @@ void receive(
     }
 }
 
+void receive_bytes(bsp::usart::port selected, const std::uint8_t* bytes,
+                   std::size_t len) noexcept
+{
+    port_state* ctx = state_of(selected);
+    if (ctx == nullptr || bytes == nullptr || ctx->rx_buffer == nullptr ||
+        len > ctx->rx_buffer_len)
+    {
+        return;
+    }
+    std::copy_n(bytes, len, ctx->rx_buffer);
+    deliver_rx(selected, 0U, len);
+}
+
+bsp::usart::line_config configured_line(
+    bsp::usart::port selected) noexcept
+{
+    const port_state* ctx = state_of(selected);
+    return ctx != nullptr ? ctx->line : bsp::usart::line_config{};
+}
+
+bsp::usart::rx_delivery configured_delivery(
+    bsp::usart::port selected) noexcept
+{
+    const port_state* ctx = state_of(selected);
+    return ctx != nullptr ? ctx->delivery
+                          : bsp::usart::rx_delivery::frame_snapshot;
+}
+
+std::size_t copy_last_transmit(bsp::usart::port selected,
+                               std::uint8_t* output,
+                               std::size_t capacity) noexcept
+{
+    const port_state* ctx = state_of(selected);
+    if (ctx == nullptr || output == nullptr ||
+        ctx->last_transmit_len > capacity)
+    {
+        return 0U;
+    }
+    std::copy_n(ctx->last_transmit.begin(), ctx->last_transmit_len, output);
+    return ctx->last_transmit_len;
+}
+
 } // namespace host_test::fake_usart
 
 namespace bsp::usart
@@ -175,6 +220,15 @@ types::status transmit(port selected, const std::uint8_t* data,
     const types::status result = transmit_result;
     if (result == types::status::ok)
     {
+        if (len <= ctx->last_transmit.size())
+        {
+            std::copy_n(data, len, ctx->last_transmit.begin());
+            ctx->last_transmit_len = len;
+        }
+        else
+        {
+            ctx->last_transmit_len = 0U;
+        }
         ++ctx->telemetry.tx_count;
     }
     else if (result == types::status::busy)

@@ -4,6 +4,7 @@
 #include "vehicle/arm/runtime/arm_runtime.hpp"
 #include "vehicle/chassis/runtime/runtime.hpp"
 #include "vehicle/combined/control/mode_router.hpp"
+#include "vehicle/rfid/reader.hpp"
 
 #include <bsp_can.hpp>
 
@@ -42,6 +43,7 @@ struct telemetry {
     std::uint32_t remote_update_count{};
     chassis::telemetry chassis{};
     arm::telemetry arm{};
+    rfid::state rfid{};
     bsp::can::telemetry can{};
 };
 

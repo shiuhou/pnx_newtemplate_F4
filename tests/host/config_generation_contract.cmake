@@ -44,10 +44,12 @@ endforeach()
 
 foreach(required_text IN ITEMS
         "inline constexpr bool has_remoter = 0"
+        "inline constexpr bool has_rfid = 0"
         "inline constexpr bool enable_dr16 = 0"
         "inline constexpr bool has_motors = 0"
         "inline constexpr bool motor_dji = 0"
-        "inline constexpr bsp::usart::port dr16 = bsp::usart::none")
+        "inline constexpr bsp::usart::port dr16 = bsp::usart::none"
+        "inline constexpr bsp::usart::port rfid = bsp::usart::none")
     string(FIND "${core_config}" "${required_text}" required_index)
     if(required_index EQUAL -1)
         message(FATAL_ERROR

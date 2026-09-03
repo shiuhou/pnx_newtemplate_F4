@@ -901,6 +901,7 @@ telemetry debug_state() noexcept
     TX_DISABLE
     copy = runtime_telemetry;
     TX_RESTORE
+    copy.rfid = vehicle::rfid::snapshot();
     return copy;
 }
 

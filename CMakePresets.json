@@ -9,7 +9,8 @@
       "toolchainFile": "${sourceDir}/cmake/gcc-arm-none-eabi.cmake",
       "cacheVariables": {
         "CMAKE_EXPORT_COMPILE_COMMANDS": true,
-        "PNX_MYCAR_COMBINED_PS2": false
+        "PNX_MYCAR_COMBINED_PS2": false,
+        "PNX_ENABLE_RFID_UID_DEBUG": false
       }
     },
     {
@@ -67,6 +68,19 @@
         "CMAKE_BUILD_TYPE": "Debug",
         "PNX_ENABLE_USB_CDC": false,
         "PNX_ENABLE_PWM_A2": true,
+        "PNX_ENABLE_MYCAR_CHASSIS": false,
+        "PNX_ENABLE_ARM": false,
+        "PNX_ENABLE_MYCAR_COMBINED": false
+      }
+    },
+    {
+      "name": "f407-rfid-uid-debug",
+      "inherits": "f407-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "PNX_ENABLE_RFID_UID_DEBUG": true,
+        "PNX_ENABLE_USB_CDC": false,
+        "PNX_ENABLE_PWM_A2": false,
         "PNX_ENABLE_MYCAR_CHASSIS": false,
         "PNX_ENABLE_ARM": false,
         "PNX_ENABLE_MYCAR_COMBINED": false
@@ -143,6 +157,10 @@
     {
       "name": "f407-pwm-a2-debug",
       "configurePreset": "f407-pwm-a2-debug"
+    },
+    {
+      "name": "f407-rfid-uid-debug",
+      "configurePreset": "f407-rfid-uid-debug"
     },
     {
       "name": "f407-mycar-chassis-debug",

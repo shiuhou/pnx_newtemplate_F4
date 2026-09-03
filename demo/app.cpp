@@ -1,5 +1,6 @@
 #include "cboard/board_smoke/board_smoke.hpp"
 #include "cboard/pwm_a2/pwm_a2.hpp"
+#include "cboard/rfid_uid/rfid_uid.hpp"
 #include "cboard/usb_cdc/usb_cdc.hpp"
 
 // 所有 F407 韌體共用的應用分派點。
@@ -19,7 +20,8 @@
 #endif
 
 #if (defined(PNX_APP_BOARD_SMOKE) + defined(PNX_APP_USB_CDC) + \
-     defined(PNX_APP_PWM_A2) + defined(PNX_APP_MYCAR_CHASSIS) + \
+     defined(PNX_APP_PWM_A2) + defined(PNX_APP_RFID_UID) + \
+     defined(PNX_APP_MYCAR_CHASSIS) + \
      defined(PNX_APP_ARM) + defined(PNX_APP_MYCAR_COMBINED)) != 1
 #error "Exactly one F407 application must be selected"
 #endif
@@ -34,6 +36,8 @@ extern "C" void app_start()
     demo::cboard::usb_cdc::run();
 #elif defined(PNX_APP_PWM_A2)
     demo::cboard::pwm_a2::run();
+#elif defined(PNX_APP_RFID_UID)
+    demo::cboard::rfid_uid::run();
 #elif defined(PNX_APP_MYCAR_CHASSIS)
     vehicle::mycar::run();
 #elif defined(PNX_APP_ARM)

@@ -8,6 +8,7 @@
     "features": {
       "ahrs": false,
       "remoter": true,
+      "rfid": true,
       "vt03": false,
       "referee": false,
       "ui": false,
@@ -17,7 +18,8 @@
   },
   "bindings": {
     "remoter_uart": "usart1",
-    "referee_uart": "none"
+    "referee_uart": "none",
+    "rfid_uart": "usart6"
   },
   "can": {
     "can1": {
@@ -34,6 +36,10 @@
     "ps2_offline_timeout_ticks": 600,
     "ps2_frame_timeout_ticks": 20,
     "ps2_deadzone": 0.08
+  },
+  "rfid": {
+    "address": 32,
+    "baud": 9600
   },
   "test": {
     "thread_priority": 10,

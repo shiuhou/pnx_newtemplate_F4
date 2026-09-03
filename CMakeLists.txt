@@ -22,6 +22,8 @@ option(PNX_ENABLE_USB_CDC "Build the additive F407 USB CDC closure" OFF)
 set(PNX_F407_USB_ENABLED "${PNX_ENABLE_USB_CDC}")
 option(PNX_ENABLE_PWM_A2
     "Build the attended F407 TIM1/PE9/PE11/PE13/PE14 servo vertical slice" OFF)
+option(PNX_ENABLE_RFID_UID_DEBUG
+    "Build the zero-motor M3650A-HA UID debug image" OFF)
 option(PNX_ENABLE_MYCAR_CHASSIS
     "Build the fail-closed MyCar chassis product closure" OFF)
 option(PNX_ENABLE_ARM
@@ -51,7 +53,8 @@ endforeach()
 
 set(PNX_SELECTED_OPTIONAL_APPLICATIONS 0)
 foreach(PNX_APPLICATION_OPTION
-        PNX_ENABLE_USB_CDC PNX_ENABLE_PWM_A2 PNX_ENABLE_MYCAR_CHASSIS
+        PNX_ENABLE_USB_CDC PNX_ENABLE_PWM_A2 PNX_ENABLE_RFID_UID_DEBUG
+        PNX_ENABLE_MYCAR_CHASSIS
         PNX_ENABLE_ARM PNX_ENABLE_MYCAR_COMBINED)
     if(${PNX_APPLICATION_OPTION})
         math(EXPR PNX_SELECTED_OPTIONAL_APPLICATIONS
@@ -60,7 +63,7 @@ foreach(PNX_APPLICATION_OPTION
 endforeach()
 if(PNX_SELECTED_OPTIONAL_APPLICATIONS GREATER 1)
     message(FATAL_ERROR
-        "USB CDC, PWM/A2, MyCar, Arm, and Combined select different applications")
+        "USB CDC, PWM/A2, RFID UID, MyCar, Arm, and Combined select different applications")
 endif()
 
 option(PNX_USB_DEVICE_IDENTITY_CONFIRMED
@@ -111,7 +114,12 @@ set(PNX_BOARD_ROOT
 set(PNX_BSP_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp")
 set(PNX_BOARD_IOC
     "${PNX_BOARD_ROOT}/dji_c_board_f407.ioc")
-if(PNX_ENABLE_MYCAR_COMBINED)
+if(PNX_ENABLE_RFID_UID_DEBUG)
+    set(PNX_BOARD_PARAMS
+        "${CMAKE_CURRENT_SOURCE_DIR}/configs/boards/dji_c_board_f407/params.rfid.json")
+    set(PNX_BOARD_ROBOT_CONFIG
+        "${CMAKE_CURRENT_SOURCE_DIR}/configs/boards/dji_c_board_f407/robot.json")
+elseif(PNX_ENABLE_MYCAR_COMBINED)
     if(PNX_MYCAR_COMBINED_PS2)
         set(PNX_BOARD_PARAMS
             "${CMAKE_CURRENT_SOURCE_DIR}/configs/vehicles/mycar_combined/params.ps2.json")
@@ -217,6 +225,10 @@ if(PNX_ENABLE_MYCAR_COMBINED)
         "${CMAKE_CURRENT_SOURCE_DIR}/pnx_devices/motors/dji/src/djimotors.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/pnx_devices/motors/dji/src/djimotorhandler.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/combined.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/rfid/protocol.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/rfid/reader_core.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/rfid/transport.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/rfid/reader.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/combined/control/mode_router.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/combined/control/output_arbiter.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/combined/control/ps2_input_adapter.cpp"
@@ -321,6 +333,20 @@ elseif(PNX_ENABLE_ARM)
         "${CMAKE_CURRENT_SOURCE_DIR}/pnx_devices/motors/motor/include"
         "${CMAKE_CURRENT_SOURCE_DIR}/pnx_devices/motors/dji/include"
     )
+elseif(PNX_ENABLE_RFID_UID_DEBUG)
+    list(APPEND PNX_EMBEDDED_SOURCES
+        "${PNX_BSP_ROOT}/usart/src/bsp_usart.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/rfid/protocol.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/rfid/reader_core.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/rfid/transport.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/rfid/reader.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/demo/cboard/rfid_uid/rfid_uid.cpp"
+    )
+    list(APPEND PNX_EMBEDDED_INCLUDE_DIRS
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/usart/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/demo/cboard/rfid_uid"
+    )
 elseif(PNX_ENABLE_PWM_A2)
     list(APPEND PNX_EMBEDDED_SOURCES
         "${PNX_BSP_ROOT}/pwm/src/bsp_pwm.cpp"
@@ -373,7 +399,9 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${PNX_EMBEDDED_INCLUDE_DIRS}
 )
 target_link_libraries(${PROJECT_NAME} stm32cubemx)
-if(PNX_ENABLE_MYCAR_COMBINED)
+if(PNX_ENABLE_RFID_UID_DEBUG)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE PNX_APP_RFID_UID=1)
+elseif(PNX_ENABLE_MYCAR_COMBINED)
     target_compile_definitions(${PROJECT_NAME} PRIVATE
         PNX_APP_MYCAR_COMBINED=1)
 elseif(PNX_ENABLE_MYCAR_CHASSIS)
@@ -405,6 +433,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
 message(STATUS "PnX target: DJI C-board STM32F407")
 message(STATUS "PnX USB CDC closure: ${PNX_ENABLE_USB_CDC}")
 message(STATUS "PnX PWM/A2 closure: ${PNX_ENABLE_PWM_A2}")
+message(STATUS "PnX RFID UID debug closure: ${PNX_ENABLE_RFID_UID_DEBUG}")
 message(STATUS "PnX MyCar chassis closure: ${PNX_ENABLE_MYCAR_CHASSIS}")
 message(STATUS "PnX Arm closure: ${PNX_ENABLE_ARM}")
 message(STATUS "PnX MyCar combined closure: ${PNX_ENABLE_MYCAR_COMBINED}")

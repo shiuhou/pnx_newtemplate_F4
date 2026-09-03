@@ -8,7 +8,7 @@
     "features": {
       "ahrs": false,
       "remoter": false,
-      "rfid": false,
+      "rfid": true,
       "vt03": false,
       "referee": false,
       "ui": false,
@@ -19,7 +19,7 @@
   "bindings": {
     "remoter_uart": "none",
     "referee_uart": "none",
-    "rfid_uart": "none"
+    "rfid_uart": "usart6"
   },
   "can": {
     "can1": {

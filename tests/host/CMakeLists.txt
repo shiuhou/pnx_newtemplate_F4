@@ -393,6 +393,38 @@ target_include_directories(pnx_usart_contract_host_tests PRIVATE
 )
 add_test(NAME usart_contract COMMAND pnx_usart_contract_host_tests)
 
+add_executable(pnx_rfid_protocol_tests
+    rfid_protocol_tests.cpp
+    "${CMAKE_SOURCE_DIR}/vehicle/rfid/protocol.cpp"
+    "${CMAKE_SOURCE_DIR}/vehicle/rfid/reader_core.cpp"
+)
+target_include_directories(pnx_rfid_protocol_tests PRIVATE
+    "${CMAKE_SOURCE_DIR}"
+)
+add_test(NAME rfid_protocol COMMAND pnx_rfid_protocol_tests)
+
+add_executable(pnx_rfid_transport_tests
+    rfid_transport_tests.cpp
+    fake_usart.cpp
+    "${CMAKE_SOURCE_DIR}/vehicle/rfid/protocol.cpp"
+    "${CMAKE_SOURCE_DIR}/vehicle/rfid/transport.cpp"
+)
+target_include_directories(pnx_rfid_transport_tests PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/fakes"
+    "${CMAKE_SOURCE_DIR}"
+    "${CMAKE_SOURCE_DIR}/pnx_bsp/usart/include"
+    "${CMAKE_SOURCE_DIR}/pnx_libs/common/include"
+)
+add_test(NAME rfid_transport COMMAND pnx_rfid_transport_tests)
+
+add_test(
+    NAME rfid_config_contract
+    COMMAND ${CMAKE_COMMAND}
+        "-DPNX_SOURCE_DIR=${CMAKE_SOURCE_DIR}"
+        "-DPNX_BINARY_DIR=${CMAKE_BINARY_DIR}"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/rfid_config_contract.cmake"
+)
+
 add_executable(pnx_can_host_tests
     can_host_tests.cpp
     fake_can.cpp

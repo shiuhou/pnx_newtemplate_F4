@@ -76,10 +76,16 @@ _pnx_json_bool_to_cmake("${motor_lk}" MOTOR_LK)
 # error: an absent remoter_uart previously defaulted to the H7 wiring (uart5).
 _pnx_require_json(remoter_uart bindings remoter_uart)
 _pnx_require_json(referee_uart bindings referee_uart)
+_pnx_require_json(rfid_enabled build features rfid)
+_pnx_require_json(rfid_uart bindings rfid_uart)
+_pnx_require_json(rfid_address rfid address)
+_pnx_require_json(rfid_baud rfid baud)
 _pnx_require_json(remoter_source remoter source)
 string(TOLOWER "${remoter_uart}" remoter_uart)
 string(TOLOWER "${referee_uart}" referee_uart)
+string(TOLOWER "${rfid_uart}" rfid_uart)
 string(TOLOWER "${remoter_source}" remoter_source)
+_pnx_json_bool_to_cmake("${rfid_enabled}" RFID_ENABLED)
 
 # --- HAS_* from IOC + bindings ---
 pnx_ioc_hw_in_list("${PNX_IOC_UART_HW}" "${remoter_uart}" remoter_uart_present)
@@ -121,6 +127,41 @@ _pnx_feature_override("vt03" "${HAS_VT03}" HAS_VT03)
 _pnx_feature_override("referee" "${HAS_REFEREE}" HAS_REFEREE)
 _pnx_feature_override("ui" "${HAS_UI}" HAS_UI)
 set(HAS_PS2 ${HAS_REMOTER})
+if(RFID_ENABLED)
+    set(HAS_RFID 1)
+else()
+    set(HAS_RFID 0)
+endif()
+
+pnx_ioc_hw_in_list("${PNX_IOC_UART_HW}" "${rfid_uart}" rfid_uart_present)
+pnx_ioc_uart_has_dma("${PNX_IOC_LINES}" "${rfid_uart}" "RX" rfid_has_rx_dma)
+pnx_ioc_uart_has_dma("${PNX_IOC_LINES}" "${rfid_uart}" "TX" rfid_has_tx_dma)
+if(HAS_RFID)
+    if(rfid_uart STREQUAL "none")
+        message(FATAL_ERROR "RFID is enabled but bindings.rfid_uart is none")
+    endif()
+    if(NOT rfid_uart_present)
+        message(FATAL_ERROR
+            "bindings.rfid_uart=${rfid_uart} is not present in board IOC")
+    endif()
+    if(NOT rfid_has_rx_dma OR NOT rfid_has_tx_dma)
+        message(FATAL_ERROR
+            "bindings.rfid_uart=${rfid_uart} requires RX and TX DMA")
+    endif()
+    if(rfid_address LESS 0 OR rfid_address GREATER 255)
+        message(FATAL_ERROR "params.rfid.address must fit in one byte")
+    endif()
+    if(rfid_baud LESS_EQUAL 0)
+        message(FATAL_ERROR "params.rfid.baud must be positive")
+    endif()
+    set(rfid_binding "${rfid_uart}")
+else()
+    if(NOT rfid_uart STREQUAL "none")
+        message(FATAL_ERROR
+            "bindings.rfid_uart must be none when RFID is disabled")
+    endif()
+    set(rfid_binding "bsp::usart::none")
+endif()
 
 # "auto" infers the source from what the IOC and bindings actually support.
 # It must be requested explicitly -- it is no longer what an absent key means.
@@ -348,10 +389,20 @@ elseif(ENABLE_PS2)
     set(active_remoter_uart "${remoter_uart}")
 endif()
 
+if(HAS_RFID AND NOT active_remoter_uart STREQUAL "" AND
+   rfid_uart STREQUAL active_remoter_uart)
+    message(FATAL_ERROR
+        "bindings.rfid_uart=${rfid_uart} conflicts with the active remoter UART")
+endif()
+if(HAS_RFID AND HAS_REFEREE AND rfid_uart STREQUAL referee_uart)
+    message(FATAL_ERROR
+        "bindings.rfid_uart=${rfid_uart} conflicts with the active referee UART")
+endif()
+
 # The test-report UART belongs to the validation closures, not to a product
 # image. Only require and validate it when a validation closure is actually
 # selected, so a product build is not forced to nominate a test port.
-if(PNX_ENABLE_PWM_A2)
+if(PNX_ENABLE_PWM_A2 OR PNX_ENABLE_RFID_UID_DEBUG)
     set(PNX_VALIDATION_CLOSURE_SELECTED 1)
 else()
     set(PNX_VALIDATION_CLOSURE_SELECTED 0)
@@ -370,6 +421,11 @@ if(PNX_VALIDATION_CLOSURE_SELECTED)
     set(test_report_binding "${test_report_uart}")
 else()
     set(test_report_binding "bsp::usart::none")
+endif()
+if(HAS_RFID AND PNX_VALIDATION_CLOSURE_SELECTED AND
+   rfid_uart STREQUAL test_report_uart)
+    message(FATAL_ERROR
+        "bindings.rfid_uart=${rfid_uart} conflicts with the test-report UART")
 endif()
 
 # --- params namespace (explicit keys per section) ---
@@ -457,6 +513,10 @@ if(params_referee_body STREQUAL "")
     set(params_referee_body "  inline constexpr std::uint32_t thread_priority = 8${generated_semicolon_token}\n")
 endif()
 
+string(CONCAT params_rfid_body
+    "  inline constexpr std::uint32_t address = ${rfid_address}${generated_semicolon_token}\n"
+    "  inline constexpr std::uint32_t baud = ${rfid_baud}${generated_semicolon_token}\n")
+
 # params::test only exists for validation closures; a product image gets an
 # empty namespace rather than a test thread priority it will never honour.
 set(params_test_body "")
@@ -525,6 +585,7 @@ file(WRITE "${CONFIG_HPP}"
 "#define ENABLE_PS2 ${ENABLE_PS2}\n"
 "#define HAS_REFEREE ${HAS_REFEREE}\n"
 "#define HAS_UI ${HAS_UI}\n"
+"#define HAS_RFID ${HAS_RFID}\n"
 "#define HAS_MOTORS ${HAS_MOTORS}\n"
 "#define MOTOR_DJI ${MOTOR_DJI_C}\n"
 "#define MOTOR_DM ${MOTOR_DM_C}\n"
@@ -542,6 +603,7 @@ file(WRITE "${CONFIG_HPP}"
 "inline constexpr bool enable_ps2 = ${ENABLE_PS2};\n"
 "inline constexpr bool has_referee = ${HAS_REFEREE};\n"
 "inline constexpr bool has_ui = ${HAS_UI};\n"
+"inline constexpr bool has_rfid = ${HAS_RFID};\n"
 "inline constexpr bool has_motors = ${HAS_MOTORS};\n"
 "inline constexpr bool motor_dji = ${MOTOR_DJI_C};\n"
 "inline constexpr bool motor_dm = ${MOTOR_DM_C};\n"
@@ -592,6 +654,7 @@ file(WRITE "${CONFIG_HPP}"
 "inline constexpr bsp::usart::port vt03 = ${vt03_binding};\n"
 "inline constexpr bsp::usart::port ps2 = ${ps2_binding};\n"
 "inline constexpr bsp::usart::port referee = ${referee_binding};\n"
+"inline constexpr bsp::usart::port rfid = ${rfid_binding};\n"
 "inline constexpr bsp::usart::port test_report = ${test_report_binding};\n\n"
 "} // namespace uart\n"
 "} // namespace app\n\n"
@@ -604,6 +667,9 @@ file(WRITE "${CONFIG_HPP}"
 "namespace params::referee {\n"
 "${params_referee_body}"
 "} // namespace params::referee\n\n"
+"namespace params::rfid {\n"
+"${params_rfid_body}"
+"} // namespace params::rfid\n\n"
 "namespace params::test {\n"
 "${params_test_body}"
 "} // namespace params::test\n\n"
