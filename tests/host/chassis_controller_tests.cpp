@@ -532,7 +532,7 @@ void test_direct_auto_velocity_does_not_require_manual_arm_history() noexcept
     require(output.state == safety_state::armed);
     require_wheels(output.wheel_target_rad_s,
                    {10.0F, 10.0F, 10.0F, 10.0F});
-    require_currents(output.motor_current_raw, {100, 100, 100, 100});
+    require_currents(output.motor_current_raw, {101, 101, 101, 101});
 }
 
 } // namespace

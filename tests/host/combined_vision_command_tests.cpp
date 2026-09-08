@@ -310,6 +310,7 @@ void test_indicator_reports_manual_invalid_valid_motion_and_fault() noexcept
     require(!light.red && light.green && !light.blue);
 
     input.motion_allowed = true;
+    input.chassis_output_enabled = true;
     input.now_tick = 200U;
     light = vision_indicator(input);
     require(!light.red && light.green && !light.blue);
