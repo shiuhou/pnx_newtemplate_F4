@@ -1,5 +1,25 @@
 # F407 工程交接记录
 
+## 车辆主线本地收敛 - 2026-09-08
+
+**状态：本地 `mycar_f4` 已 fast-forward 到 `34a87bd`；尚未 push、未烧录、未做硬件验收。**
+
+- `pnx_f4_mycar` 已从 `origin/mycar_f4@974ccb1` fast-forward 到
+  `feat/ps2-auto-vision@34a87bd`，包含 chassis、arm、PS2、AVC1 视觉接收与
+  手动／自动仲裁。远端 `origin/mycar_f4` 尚未改变。
+- 合并前保存了本地工作：`feat/arm@03bf7d1`、`feat/maixcam@64bb294`，以及
+  视觉工作 `8cdd204`；测试期望修正为 `34a87bd`。这些 feature 均未删除。
+- 独立 `xiaoneisai-maixcam` 仓库保持独立，没有嵌入父仓库。根据 Sipeed 官方
+  MaixPy UART 文档，MaixCAM Pro 自定义 UART1 使用 A19 TX／A18 RX；A16/A17
+  属于 UART0。STM32 接口文档已同步这一接线。
+- 合并前完整 Host 为 59/59 PASS；干净构建通过
+  `f407-mycar-chassis-debug` 与 `f407-mycar-combined-ps2-debug`。合并后的
+  `pnx_f4_mycar` 再次通过 59/59 Host 和 combined-PS2 干净构建，RAM 61,360 B，
+  CCMRAM 0 B，Flash 109,176 B。
+- `pnx_f4_minimal` 已切回并 fast-forward 到纯平台
+  `F4_version@b618d83`。历史 `chassis_x_arm` 的未跟踪审计记录先保存为
+  `2909232`，没有删除任何历史分支或工作区。
+
 ## PS2 视觉自动底盘软件基线 - 2026-09-01
 
 **状态：`feat/ps2-auto-vision` 软件通过；硬件未运行。**

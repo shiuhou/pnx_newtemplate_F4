@@ -1,5 +1,11 @@
 # 建议写入 Vault：F407 Core 硬件验证
 
+> 本地主线收敛提案（2026-09-08）：`pnx_f4_mycar/mycar_f4` 已在本地
+> fast-forward 到 `34a87bd`，合并后 Host 59/59 与
+> `f407-mycar-combined-ps2-debug` 干净构建通过。远端尚未 push，硬件未运行；
+> `pnx_f4_minimal/F4_version` 已对齐 `b618d83`。本文件只是 Vault 更新提案，
+> 实际 Vault 未修改。
+
 > PS2 视觉自动提案（2026-09-01）：车辆专属 `feat/ps2-auto-vision` 增加 AVC1
 > USART6 `vx/vy` 契约、受限的 DMA 到控制循环接收器、PS2 手动／自动／L1 仲裁和一条
 > 共用底盘 `body_velocity` 控制路径。完整 Host 59/59 通过，三个受影响的 F407 预设均
