@@ -12,6 +12,7 @@
 #include "vehicle/arm/runtime/servo_pwm_output.hpp"
 
 #include <config.hpp>
+#include <bsp_indicator.hpp>
 #include <bsp_usart.hpp>
 #include <djimotorhandler.hpp>
 #include <msg.hpp>
@@ -122,6 +123,8 @@ bool any_motor_registered{};
 bool startup_zero_sent{};
 bool watchdog_sampled{};
 bool all_motors_online{};
+bool chassis_motors_online{};
+bool j1_online{};
 chassis::watchdog_phase health_phase{};
 std::uint32_t control_loop_count{};
 std::uint32_t control_overrun_count{};
@@ -194,6 +197,31 @@ bool terminal_fault_latched() noexcept
 {
     return combined_fault_latched() || chassis_policy.fault_latched() ||
            arm_policy.fault_latched();
+}
+
+void show_vision_indicator(
+    const vision_indicator_output& desired) noexcept
+{
+    const auto current = bsp::indicator::snapshot();
+    if (!current.initialized)
+    {
+        return;
+    }
+    if (current.red != desired.red)
+    {
+        (void)bsp::indicator::set(
+            bsp::indicator::channel::red, desired.red);
+    }
+    if (current.green != desired.green)
+    {
+        (void)bsp::indicator::set(
+            bsp::indicator::channel::green, desired.green);
+    }
+    if (current.blue != desired.blue)
+    {
+        (void)bsp::indicator::set(
+            bsp::indicator::channel::blue, desired.blue);
+    }
 }
 
 void sync_subsystem_fault() noexcept
@@ -334,6 +362,7 @@ void sync_fault_telemetry(const bsp::can::telemetry& can) noexcept
 void terminal_startup_failure(runtime_fault fault) noexcept
 {
     latch_fault(fault);
+    show_vision_indicator({true, false, false});
     const auto can = bsp::can::snapshot(bsp::can::bus::can1);
     sync_fault_telemetry(can);
     (void)stop_servo_outputs();
@@ -474,7 +503,15 @@ void control_entry(ULONG)
             j1_feedback.velocity * arm_configuration.j1_motor_direction;
         if (sample_watchdog)
         {
-            all_motors_online = motor_handler.alive_check();
+            (void)motor_handler.alive_check();
+            chassis_motors_online = std::all_of(
+                chassis_motor_order.begin(), chassis_motor_order.end(),
+                [](const motors::m2006* motor) noexcept {
+                    return motor != nullptr &&
+                           motor->status() == motors::state::online;
+                });
+            j1_online = j1_motor.status() == motors::state::online;
+            all_motors_online = chassis_motors_online && j1_online;
             watchdog_sampled = true;
         }
         TX_RESTORE
@@ -483,23 +520,26 @@ void control_entry(ULONG)
         chassis_input.remote = routed.chassis_remote;
         chassis_input.can = can;
         chassis_input.watchdog_sampled = watchdog_sampled;
-        chassis_input.handler_all_online = all_motors_online;
+        chassis_input.handler_all_online = chassis_motors_online;
         auto chassis_policy_output = chassis_policy.update(chassis_input);
 
         arm::runtime_policy_input arm_input{};
         arm_input.remote = adapted_remote;
         arm_input.can = can;
         arm_input.watchdog_sampled = watchdog_sampled;
-        arm_input.j1_online = all_motors_online;
+        arm_input.j1_online = j1_online;
         arm_input.manual_axes_centered = routed.arm_axes_centered;
         auto arm_policy_output = arm_policy.update(arm_input);
         sync_subsystem_fault();
 
-        const bool common_healthy =
-            routed.remote_online && watchdog_sampled && all_motors_online &&
+        const bool chassis_healthy =
+            routed.remote_online && watchdog_sampled &&
+            chassis_motors_online &&
             chassis_policy_output.safety.can_healthy &&
+            chassis_policy_output.safety.config_valid;
+        const bool arm_healthy =
+            routed.remote_online && watchdog_sampled && j1_online &&
             arm_policy_output.safety.can_healthy &&
-            chassis_policy_output.safety.config_valid &&
             arm_policy_output.safety.config_valid;
         bool terminal_fault = terminal_fault_latched();
         const bool vision_mode =
@@ -512,9 +552,8 @@ void control_entry(ULONG)
             auto_entry_generation,
             vision_snapshot,
             now,
-            common_healthy && !terminal_fault,
+            chassis_healthy && !terminal_fault,
         });
-
         auto chassis_safety =
             chassis::controller_safety_for(chassis_policy_output);
         auto arm_controller_safety =
@@ -548,7 +587,11 @@ void control_entry(ULONG)
         const auto arm_controller_state =
             arm_safety.update(arm_controller_safety);
 
-        if (chassis::trusted_release_observed(chassis_policy_output))
+        // AUTO 的 chassis_remote 會刻意把手動撥桿置為非 UP；這不是人工釋放，
+        // 不能每個 5 ms 週期重置自動命令斜坡與 PI。L1/視覺失效仍由 direct
+        // body_velocity 路徑在當週期清除輸出狀態。
+        if (!vision_mode &&
+            chassis::trusted_release_observed(chassis_policy_output))
         {
             chassis_controller.reset();
         }
@@ -569,7 +612,8 @@ void control_entry(ULONG)
                                : routed.mode;
         output_gate.chassis_ready = routed.chassis_ready;
         output_gate.vision_ready = vision_motion_allowed;
-        output_gate.common_healthy = common_healthy;
+        output_gate.chassis_healthy = chassis_healthy;
+        output_gate.arm_healthy = arm_healthy;
         output_gate.terminal_fault = terminal_fault;
         output_gate.chassis_controller_enabled =
             chassis::should_set_current(
@@ -584,13 +628,22 @@ void control_entry(ULONG)
             arm_outputs_enabled,
             arm_policy_output.manual.online,
             arm_policy_output.manual.right_switch_up,
-            common_healthy,
-            chassis_policy_output.safety.can_healthy &&
-                arm_policy_output.safety.can_healthy,
-            chassis_policy_output.safety.config_valid &&
-                arm_policy_output.safety.config_valid,
+            arm_healthy,
+            arm_policy_output.safety.can_healthy,
+            arm_policy_output.safety.config_valid,
             terminal_fault || !selected_outputs.arm_hold_allowed,
         });
+
+        // 綠燈快閃只代表最終底盤輸出閘門也已選中；若視覺有效但此處未選中，
+        // 綠燈常亮，避免把「收到命令」誤看成「已送出四輪電流」。
+        show_vision_indicator(vision_indicator({
+            vision_mode,
+            vision_motion_allowed,
+            chassis_outputs_enabled,
+            terminal_fault,
+            vision_snapshot,
+            now,
+        }));
 
         if (j1_outputs_enabled && !j1_zero.capture(directed_position_rad))
         {
@@ -899,6 +952,9 @@ void start(const chassis::configuration& chassis_config,
     }
     runtime_start_attempted = true;
 
+    (void)bsp::indicator::init();
+    show_vision_indicator({false, false, true});
+
     chassis_configuration = chassis_config;
     arm_configuration = arm_config;
     chassis_controller = chassis::controller{
@@ -940,6 +996,8 @@ void start(const chassis::configuration& chassis_config,
     startup_zero_sent = false;
     watchdog_sampled = false;
     all_motors_online = false;
+    chassis_motors_online = false;
+    j1_online = false;
     health_phase = {};
     control_loop_count = 0U;
     control_overrun_count = 0U;

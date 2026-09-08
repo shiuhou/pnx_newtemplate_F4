@@ -66,7 +66,8 @@ private:
         const wheel_vector& measured_motor_rad_s,
         const safety_input& safety,
         float dt_s,
-        bool command_valid) noexcept;
+        bool command_valid,
+        bool automatic_command) noexcept;
     void reset_pi() noexcept;
 
     controller_configuration config_; // 建構時保存的車輛控制參數。

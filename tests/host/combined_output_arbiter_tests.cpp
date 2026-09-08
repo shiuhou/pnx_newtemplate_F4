@@ -22,7 +22,8 @@ void test_only_selected_manual_product_can_move() noexcept
     output_gate_input input{};
     input.mode = control_mode::chassis;
     input.chassis_ready = true;
-    input.common_healthy = true;
+    input.chassis_healthy = true;
+    input.arm_healthy = true;
     input.chassis_controller_enabled = true;
     input.arm_controller_enabled = true;
 
@@ -48,7 +49,8 @@ void test_interlocks_and_faults_remove_outputs() noexcept
 {
     output_gate_input input{};
     input.mode = control_mode::chassis;
-    input.common_healthy = true;
+    input.chassis_healthy = true;
+    input.arm_healthy = true;
     input.chassis_controller_enabled = true;
     input.arm_controller_enabled = true;
 
@@ -56,13 +58,15 @@ void test_interlocks_and_faults_remove_outputs() noexcept
     require(!output.chassis_enabled);
 
     input.chassis_ready = true;
-    input.common_healthy = false;
+    input.chassis_healthy = false;
+    input.arm_healthy = false;
     output = select_outputs(input);
     require(!output.chassis_enabled);
     require(!output.arm_manual_enabled);
     require(!output.arm_hold_allowed);
 
-    input.common_healthy = true;
+    input.chassis_healthy = true;
+    input.arm_healthy = true;
     input.terminal_fault = true;
     output = select_outputs(input);
     require(!output.chassis_enabled);
@@ -80,7 +84,8 @@ void test_vision_auto_owns_only_the_chassis() noexcept
     output_gate_input input{};
     input.mode = control_mode::vision_auto;
     input.vision_ready = true;
-    input.common_healthy = true;
+    input.chassis_healthy = true;
+    input.arm_healthy = true;
     input.chassis_controller_enabled = true;
     input.arm_controller_enabled = true;
 
@@ -94,6 +99,22 @@ void test_vision_auto_owns_only_the_chassis() noexcept
     require(!output.arm_manual_enabled);
 }
 
+void test_arm_offline_does_not_disable_healthy_chassis() noexcept
+{
+    output_gate_input input{};
+    input.mode = control_mode::chassis;
+    input.chassis_ready = true;
+    input.chassis_healthy = true;
+    input.arm_healthy = false;
+    input.chassis_controller_enabled = true;
+    input.arm_controller_enabled = false;
+
+    const auto output = select_outputs(input);
+    require(output.chassis_enabled);
+    require(!output.arm_manual_enabled);
+    require(!output.arm_hold_allowed);
+}
+
 } // namespace
 
 int main()
@@ -101,5 +122,6 @@ int main()
     test_only_selected_manual_product_can_move();
     test_interlocks_and_faults_remove_outputs();
     test_vision_auto_owns_only_the_chassis();
+    test_arm_offline_does_not_disable_healthy_chassis();
     return EXIT_SUCCESS;
 }

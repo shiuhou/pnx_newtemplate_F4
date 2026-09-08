@@ -288,6 +288,44 @@ void test_auto_gate_requires_every_deadman_and_freshness_condition() noexcept
     require(!vehicle::combined::vision_auto_motion_allowed(gate));
 }
 
+void test_indicator_reports_manual_invalid_valid_motion_and_fault() noexcept
+{
+    using vehicle::combined::vision_indicator;
+    using vehicle::combined::vision_indicator_input;
+
+    vision_indicator_input input{};
+    input.now_tick = 0U;
+    auto light = vision_indicator(input);
+    require(!light.red && !light.green && light.blue);
+
+    input.auto_mode = true;
+    light = vision_indicator(input);
+    require(light.red && !light.green && !light.blue);
+
+    input.command.seen = true;
+    input.command.valid = true;
+    input.command.received_tick = 100U;
+    input.now_tick = 100U;
+    light = vision_indicator(input);
+    require(!light.red && light.green && !light.blue);
+
+    input.motion_allowed = true;
+    input.now_tick = 200U;
+    light = vision_indicator(input);
+    require(!light.red && light.green && !light.blue);
+    input.now_tick = 300U;
+    light = vision_indicator(input);
+    require(!light.red && !light.green && !light.blue);
+
+    input.terminal_fault = true;
+    input.now_tick = 400U;
+    light = vision_indicator(input);
+    require(light.red && !light.green && !light.blue);
+    input.now_tick = 500U;
+    light = vision_indicator(input);
+    require(!light.red && !light.green && !light.blue);
+}
+
 } // namespace
 
 int main()
@@ -299,5 +337,6 @@ int main()
     test_sender_restart_establishes_a_new_sequence_after_timeout();
     test_queue_overflow_invalidates_until_a_new_frame();
     test_auto_gate_requires_every_deadman_and_freshness_condition();
+    test_indicator_reports_manual_invalid_valid_motion_and_fault();
     return EXIT_SUCCESS;
 }

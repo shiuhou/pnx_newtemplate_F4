@@ -46,6 +46,24 @@ struct vision_auto_gate_input {
 bool vision_auto_motion_allowed(
     const vision_auto_gate_input& input) noexcept;
 
+struct vision_indicator_input {
+    bool auto_mode{};
+    bool motion_allowed{};
+    bool chassis_output_enabled{};
+    bool terminal_fault{};
+    vision_command_snapshot command{};
+    std::uint32_t now_tick{};
+};
+
+struct vision_indicator_output {
+    bool red{};
+    bool green{};
+    bool blue{};
+};
+
+vision_indicator_output vision_indicator(
+    const vision_indicator_input& input) noexcept;
+
 // USART ISR 只调用 push_from_isr() 做一次持久复制；process() 由 5 ms
 // control loop 调用，避免在中断内执行协议与控制策略。
 class vision_command_receiver {

@@ -98,7 +98,7 @@ controller_output controller::update(
                                 manual_valid;
     return update_body_velocity(
         map_manual(manual, config_.manual), measured_motor_rad_s,
-        gated_safety, dt_s, manual_valid);
+        gated_safety, dt_s, manual_valid, false);
 }
 
 controller_output controller::update(
@@ -112,7 +112,7 @@ controller_output controller::update(
     gated_safety.config_valid = safety.config_valid && config_valid_ &&
                                 command_valid;
     return update_body_velocity(command, measured_motor_rad_s,
-                                gated_safety, dt_s, command_valid);
+                                gated_safety, dt_s, command_valid, true);
 }
 
 controller_output controller::update_body_velocity(
@@ -120,14 +120,29 @@ controller_output controller::update_body_velocity(
     const wheel_vector& measured_motor_rad_s,
     const safety_input& safety,
     float dt_s,
-    bool command_valid) noexcept
+    bool command_valid,
+    bool automatic_command) noexcept
 {
     // 每个周期从全零输出开始；手动与自动从这里共用唯一控制链。
     controller_output output{};
     output.state = safety_.update(safety);
 
+    // 自动命令已有 PS2 解锁、L1、视觉新鲜度和底盘健康等上层门控。它不应再
+    // 因手动模式的「先释放、后解锁」历史而停在 disabled；但任何已锁定的故障、
+    // 电机/CAN/配置/遥控健康失败，仍然只会输出零。
+    const bool automatic_health = safety.remote_online &&
+                                  safety.arm_switches_up &&
+                                  safety.all_motors_online &&
+                                  safety.can_healthy &&
+                                  safety.config_valid;
+    if (automatic_command && output.state != safety_state::fault_latched &&
+        automatic_health)
+    {
+        output.state = safety_state::armed;
+    }
+
     // 安全事件與非法時間不能等待斜坡；當週期直接零輸出並清除全部控制狀態。
-    if (!safety_.output_enabled() || !config_valid_ ||
+    if (output.state != safety_state::armed || !config_valid_ ||
         !command_valid || !std::isfinite(dt_s) || dt_s <= 0.0F)
     {
         command_slew_.reset();

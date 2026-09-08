@@ -9,12 +9,14 @@
 
 | MaixCam Pro | DJI C 板 F407 | 说明 |
 |---|---|---|
-| TX | PG9 / USART6_RX | V1 命令单向传输 |
+| A19（配置为 `UART1_TX`） | PG9 / USART6_RX | V1 命令单向传输 |
 | GND | GND | 必须共地 |
-| RX | PG14 / USART6_TX | V1 不使用，不提供 ACK |
+| A18（配置为 `UART1_RX`） | PG14 / USART6_TX | V1 不使用，不提供 ACK |
 
 两端按 **3.3 V TTL 串口**连接并必须共地；不要接 RS-232 电平，也不要假定
-5 V 兼容。V1 只需要 MaixCam TX、C 板 PG9 RX 和 GND，PG14 TX 可以不接。
+5 V 兼容。MaixCam Pro 上 UART1 的实际引脚为 `A19=UART1_TX`、
+`A18=UART1_RX`。A16/A17 属于会输出系统日志的 UART0，不用于本接口。V1
+只需要 A19、C 板 PG9 RX 和 GND，PG14 TX 与 A18 可以不接。
 串口固定为 `115200, 8N1`。USART6 只由 PS2 combined 产品使用；不要将视觉
 串口与手柄或裁判系统串口复用。
 

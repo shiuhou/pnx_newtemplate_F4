@@ -11,11 +11,12 @@ MaixCam 发给 C 板即可。麦轮解算、四轮 PI、CAN、电机控制和安
 
 | MaixCam Pro | DJI C 板 | 说明 |
 |---|---|---|
-| TX | PG9／USART6_RX | 视觉命令由 MaixCam 发往 C 板 |
+| A19（`UART1_TX`） | PG9／USART6_RX | 视觉命令由 MaixCam 发往 C 板 |
 | GND | GND | 必须共地 |
 
 使用 3.3 V TTL 串口，参数为 `115200, 8N1`。不要接 RS-232 电平，也不要假定 5 V
-兼容。V1 是单向通信，C 板 PG14 TX 可以不接。
+兼容。MaixCam Pro 的 UART1 引脚是 A19（TX）和 A18（RX）；A16/A17 属于
+会输出系统日志的 UART0。V1 是单向通信，C 板 PG14 TX 与 MaixCam A18 可以不接。
 
 ## 2. 速度方向
 

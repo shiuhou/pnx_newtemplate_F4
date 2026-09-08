@@ -9,7 +9,8 @@ struct output_gate_input {
     control_mode mode{control_mode::neutral};
     bool chassis_ready{};
     bool vision_ready{};
-    bool common_healthy{};
+    bool chassis_healthy{};
+    bool arm_healthy{};
     bool terminal_fault{};
     bool chassis_controller_enabled{};
     bool arm_controller_enabled{};

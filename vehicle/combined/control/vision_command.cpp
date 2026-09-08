@@ -72,6 +72,36 @@ bool vision_auto_motion_allowed(
            input.chassis_healthy;
 }
 
+vision_indicator_output vision_indicator(
+    const vision_indicator_input& input) noexcept
+{
+    const bool fast_blink_on = ((input.now_tick / 100U) % 2U) == 0U;
+    const bool slow_blink_on = ((input.now_tick / 500U) % 2U) == 0U;
+
+    if (input.terminal_fault)
+    {
+        return {fast_blink_on, false, false};
+    }
+    if (!input.auto_mode)
+    {
+        return {false, false, slow_blink_on};
+    }
+
+    const bool fresh_valid =
+        input.command.seen && input.command.valid &&
+        (input.now_tick - input.command.received_tick) <=
+            vision_timeout_ticks;
+    if (!fresh_valid)
+    {
+        return {true, false, false};
+    }
+    return {false,
+            input.motion_allowed && input.chassis_output_enabled
+                ? fast_blink_on
+                : true,
+            false};
+}
+
 bool vision_command_receiver::push_from_isr(
     const std::uint8_t* data, std::size_t length) noexcept
 {

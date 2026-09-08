@@ -522,6 +522,19 @@ void test_direct_body_velocity_uses_the_manual_common_path() noexcept
                    {10.0F, 10.0F, 10.0F, 10.0F});
 }
 
+void test_direct_auto_velocity_does_not_require_manual_arm_history() noexcept
+{
+    controller automatic{base_config};
+
+    const auto output = automatic.update(
+        body_velocity{1.0F, 0.0F, 0.0F}, stopped_wheels,
+        healthy_raised, 0.005F);
+    require(output.state == safety_state::armed);
+    require_wheels(output.wheel_target_rad_s,
+                   {10.0F, 10.0F, 10.0F, 10.0F});
+    require_currents(output.motor_current_raw, {100, 100, 100, 100});
+}
+
 } // namespace
 
 int main()
@@ -537,5 +550,6 @@ int main()
     test_controller_fault_and_disarm_reset();
     test_controller_explicit_reset_is_release_gated_and_resets_pi();
     test_direct_body_velocity_uses_the_manual_common_path();
+    test_direct_auto_velocity_does_not_require_manual_arm_history();
     return EXIT_SUCCESS;
 }
