@@ -9,7 +9,8 @@
       "toolchainFile": "${sourceDir}/cmake/gcc-arm-none-eabi.cmake",
       "cacheVariables": {
         "CMAKE_EXPORT_COMPILE_COMMANDS": true,
-        "PNX_MYCAR_COMBINED_PS2": false
+        "PNX_MYCAR_COMBINED_PS2": false,
+        "PNX_ENABLE_M2006_SLIDER": false
       }
     },
     {
@@ -110,6 +111,19 @@
       }
     },
     {
+      "name": "f407-m2006-slider-debug",
+      "inherits": "f407-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "PNX_ENABLE_M2006_SLIDER": true,
+        "PNX_ENABLE_MYCAR_CHASSIS": false,
+        "PNX_ENABLE_ARM": false,
+        "PNX_ENABLE_MYCAR_COMBINED": false,
+        "PNX_ENABLE_USB_CDC": false,
+        "PNX_ENABLE_PWM_A2": false
+      }
+    },
+    {
       "name": "f407-mycar-combined-ps2-debug",
       "inherits": "f407-base",
       "cacheVariables": {
@@ -151,6 +165,10 @@
     {
       "name": "f407-arm-debug",
       "configurePreset": "f407-arm-debug"
+    },
+    {
+      "name": "f407-m2006-slider-debug",
+      "configurePreset": "f407-m2006-slider-debug"
     },
     {
       "name": "f407-mycar-combined-debug",

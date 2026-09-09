@@ -82,6 +82,53 @@
 - Focused Host tests passed 6/6; the full Host suite passed 58/58 after merge.
 - No submodule changes and no new hardware flash occurred during publication.
 
+## Single-M2006 PS2 slider - 2026-09-04
+
+**Status: SOFTWARE PASS; FLASHED/VERIFIED; UNCOMMITTED; MOTION NOT TESTED.**
+
+- Branch `feat/m2006-slider-manual` starts from committed PS2 vehicle baseline
+  `e51a6f5` and adds the `f407-m2006-slider-debug` closure only.
+- The product uses PS2 on USART1 and one M2006/C610 on CAN1 feedback ID `0x205`.
+  It reuses the existing DJI handler and output-shaft velocity feedback.
+- Manual is the default mode after one centered right-stick sample. Physical
+  right-stick horizontal (`right_x`) maps to signed target speed. Circle selects
+  automatic and Cross selects manual; Cross wins simultaneous edges.
+- Automatic shuttle logic reverses at left/right limits, but the runtime reports
+  `limits_ready=false`, so automatic mode cannot produce current before the two
+  photoelectric inputs are actually bound and validated.
+- PS2 loss/staleness, invalid axis/dt/config, unhealthy CAN, offline motor,
+  unavailable/conflicting limits, and startup before watchdog feedback all
+  produce zero current. Bring-up values are 12 rad/s manual, 8 rad/s automatic,
+  and 1500 raw C610 current limit (about 1.5 A).
+- Fresh Host suite after the live-ID correction: **60/60 PASS**. Fresh slider
+  F407 build: RAM `55,960 B`,
+  Flash `65,852 B`, SHA-256
+  `0DADE51C9DD6FC5E68536C9AF36342C1028EBA3A749F185B3C1031AED075182D`.
+  Build graph contains PS2 and no DR16 source. Submodule gitlinks are unchanged.
+- On 2026-09-05, that corrected ELF was programmed through Horco CMSIS-DAP v2
+  serial `482752132243` at 1000 kHz. OpenOCD detected STM32F407 device
+  `0x10076413` with 1024 KiB Flash and reported `Programming Finished`,
+  `Verified OK`, and `Resetting Target`.
+- The first attempt stopped before target/Flash initialization with
+  `CMSIS-DAP command CMD_INFO failed`; no programming occurred. Windows still
+  showed COM12 and the CMSIS-DAP interface, but the probe did not answer its
+  first local info command. An elevated restart of only composite USB instance
+  `USB\\VID_FAED&PID_4873\\482752132243` restored communication. A no-write
+  OpenOCD probe then detected Cortex-M4 r0p1 before the successful flash.
+- The first live runtime snapshot explained the reported no-motion symptom:
+  CAN1 was active with zero errors and continuously received ID `0x205`, while
+  the profile expected `0x201`; the registered motor therefore had `alive=0`
+  and the safety gate commanded zero. A new product-contract test reproduced
+  the configuration mismatch before the profile was changed to `0x205`.
+- After rebuilding and reflashing, live read-back showed `motor_online=true`,
+  CAN1 active, 43,950 received frames, zero CAN errors, and advancing `0x205`
+  feedback. The simultaneous PS2 snapshot reported
+  `ps2_link=remote_disconnected`; output remained zero by design. Powered motion
+  still requires the PS2 controller to reconnect, a centered right-stick
+  sample, and an attended left/right command.
+- Hardware direction, friction-wheel sign, real limit polarity, stopping distance,
+  disconnect-under-load behavior, and powered motion are not tested.
+
 ## PS2 combined image implementation - 2026-08-31
 
 **Status: PUBLISHED ON `chassis_x_arm`; PS2 IS THE COMPETITION DEFAULT; DR16 PRESERVED AS LEGACY.**

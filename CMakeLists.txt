@@ -28,6 +28,8 @@ option(PNX_ENABLE_ARM
     "Build the fail-closed J1-J4 arm product closure" OFF)
 option(PNX_ENABLE_MYCAR_COMBINED
     "Build the fail-closed combined MyCar chassis and arm product" OFF)
+option(PNX_ENABLE_M2006_SLIDER
+    "Build the PS2-controlled single-M2006 slider product" OFF)
 option(PNX_MYCAR_COMBINED_PS2
     "Use PS2 instead of DR16 in the combined MyCar product" OFF)
 
@@ -52,7 +54,7 @@ endforeach()
 set(PNX_SELECTED_OPTIONAL_APPLICATIONS 0)
 foreach(PNX_APPLICATION_OPTION
         PNX_ENABLE_USB_CDC PNX_ENABLE_PWM_A2 PNX_ENABLE_MYCAR_CHASSIS
-        PNX_ENABLE_ARM PNX_ENABLE_MYCAR_COMBINED)
+        PNX_ENABLE_ARM PNX_ENABLE_MYCAR_COMBINED PNX_ENABLE_M2006_SLIDER)
     if(${PNX_APPLICATION_OPTION})
         math(EXPR PNX_SELECTED_OPTIONAL_APPLICATIONS
             "${PNX_SELECTED_OPTIONAL_APPLICATIONS}+1")
@@ -60,7 +62,7 @@ foreach(PNX_APPLICATION_OPTION
 endforeach()
 if(PNX_SELECTED_OPTIONAL_APPLICATIONS GREATER 1)
     message(FATAL_ERROR
-        "USB CDC, PWM/A2, MyCar, Arm, and Combined select different applications")
+        "USB CDC, PWM/A2, MyCar, Arm, Combined, and Slider select different applications")
 endif()
 
 option(PNX_USB_DEVICE_IDENTITY_CONFIRMED
@@ -111,7 +113,12 @@ set(PNX_BOARD_ROOT
 set(PNX_BSP_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp")
 set(PNX_BOARD_IOC
     "${PNX_BOARD_ROOT}/dji_c_board_f407.ioc")
-if(PNX_ENABLE_MYCAR_COMBINED)
+if(PNX_ENABLE_M2006_SLIDER)
+    set(PNX_BOARD_PARAMS
+        "${CMAKE_CURRENT_SOURCE_DIR}/configs/vehicles/slider/params.json")
+    set(PNX_BOARD_ROBOT_CONFIG
+        "${CMAKE_CURRENT_SOURCE_DIR}/configs/vehicles/slider/robot.json")
+elseif(PNX_ENABLE_MYCAR_COMBINED)
     if(PNX_MYCAR_COMBINED_PS2)
         set(PNX_BOARD_PARAMS
             "${CMAKE_CURRENT_SOURCE_DIR}/configs/vehicles/mycar_combined/params.ps2.json")
@@ -205,7 +212,32 @@ else()
         "${CMAKE_CURRENT_SOURCE_DIR}/pnx_modules/remoter/src/dr16.cpp")
 endif()
 
-if(PNX_ENABLE_MYCAR_COMBINED)
+if(PNX_ENABLE_M2006_SLIDER)
+    list(APPEND PNX_EMBEDDED_SOURCES
+        "${PNX_BSP_ROOT}/can/src/bsp_can.cpp"
+        "${PNX_BSP_ROOT}/usart/src/bsp_usart.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_libs/msg/src/msg.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_modules/remoter/src/ps2.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_modules/remoter/src/remoter.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_devices/motors/motor/src/motorhandler.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_devices/motors/dji/src/djimotors.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_devices/motors/dji/src/djimotorhandler.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/slider.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/slider/control/controller.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/slider/runtime/runtime.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/chassis/control/velocity_pi.cpp"
+    )
+    list(APPEND PNX_EMBEDDED_INCLUDE_DIRS
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/can/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/usart/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_libs/msg/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_libs/math/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_modules/remoter/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_devices/motors/motor/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/pnx_devices/motors/dji/include"
+    )
+elseif(PNX_ENABLE_MYCAR_COMBINED)
     list(APPEND PNX_EMBEDDED_SOURCES
         "${PNX_BSP_ROOT}/can/src/bsp_can.cpp"
         "${PNX_BSP_ROOT}/pwm/src/bsp_pwm.cpp"
@@ -374,7 +406,10 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${PNX_EMBEDDED_INCLUDE_DIRS}
 )
 target_link_libraries(${PROJECT_NAME} stm32cubemx)
-if(PNX_ENABLE_MYCAR_COMBINED)
+if(PNX_ENABLE_M2006_SLIDER)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE
+        PNX_APP_M2006_SLIDER=1)
+elseif(PNX_ENABLE_MYCAR_COMBINED)
     target_compile_definitions(${PROJECT_NAME} PRIVATE
         PNX_APP_MYCAR_COMBINED=1)
 elseif(PNX_ENABLE_MYCAR_CHASSIS)
@@ -410,4 +445,5 @@ message(STATUS "PnX MyCar chassis closure: ${PNX_ENABLE_MYCAR_CHASSIS}")
 message(STATUS "PnX Arm closure: ${PNX_ENABLE_ARM}")
 message(STATUS "PnX MyCar combined closure: ${PNX_ENABLE_MYCAR_COMBINED}")
 message(STATUS "PnX MyCar combined PS2 input: ${PNX_MYCAR_COMBINED_PS2}")
+message(STATUS "PnX M2006 slider closure: ${PNX_ENABLE_M2006_SLIDER}")
 list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_LIBRARIES ob)

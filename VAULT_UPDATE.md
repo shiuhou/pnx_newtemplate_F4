@@ -18,6 +18,33 @@
 
 本文件仅为提案，Vault 未修改。
 
+## 2026-09-04 single-M2006 PS2 slider proposal
+
+- Record the standalone F407 slider closure on `feat/m2006-slider-manual`, based
+  on `e51a6f5`: PS2 USART1, one M2006 at the hardware-observed CAN1 feedback ID
+  `0x205`, and existing DJI `0x1FF` output handling.
+- Record right-stick-horizontal manual speed control, Circle automatic, Cross
+  manual, startup recentering, and immediate zero output on invalid PS2/CAN/motor
+  state.
+- Record that automatic reversal logic exists but hardware output is inhibited
+  until both photoelectric limits are bound and marked ready.
+- Record Host 60/60 PASS and fresh F407 build PASS at RAM 55,960 B, Flash
+  65,852 B, SHA-256 `0DADE51C...75182D`.
+- Record that this corrected ELF was programmed on 2026-09-05 through Horco
+  CMSIS-DAP v2 serial `482752132243` at 1000 kHz; OpenOCD reported programming
+  finished, verified OK, and target reset.
+- Record the recovery detail: the first attempt stopped before Flash access at
+  `CMD_INFO failed`; restarting only USB instance
+  `USB\\VID_FAED&PID_4873\\482752132243` restored the probe, and a no-write
+  Cortex-M4 attach passed before programming.
+- Record the live diagnosis: the original `0x201` profile received healthy CAN1
+  traffic whose only observed feedback ID was `0x205`, leaving the registered
+  motor offline. After the ID correction and reflash, CAN1 remained error-free
+  and the motor was online. The PS2 receiver then explicitly reported
+  `remote_disconnected`, so zero current was the expected safe result.
+- Hardware motion and limit behavior remain unverified. This is a proposal
+  only; the Vault was not modified.
+
 ## 2026-08-31 PS2 combined image proposal
 
 Status: **LOCAL UNCOMMITTED SOFTWARE PASS; LATEST PS2 STICK REMAP FLASHED/VERIFIED; NOT PUSHED.**

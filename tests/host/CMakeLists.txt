@@ -276,6 +276,24 @@ target_include_directories(pnx_combined_vision_command_tests PRIVATE
 add_test(NAME combined_vision_command
     COMMAND pnx_combined_vision_command_tests)
 
+add_executable(pnx_slider_controller_tests
+    slider_controller_tests.cpp
+    "${CMAKE_SOURCE_DIR}/vehicle/slider/control/controller.cpp"
+    "${CMAKE_SOURCE_DIR}/vehicle/chassis/control/velocity_pi.cpp"
+)
+target_include_directories(pnx_slider_controller_tests PRIVATE
+    "${CMAKE_SOURCE_DIR}"
+    "${CMAKE_SOURCE_DIR}/pnx_modules/remoter/include"
+)
+add_test(NAME slider_controller COMMAND pnx_slider_controller_tests)
+
+add_test(
+    NAME slider_product_contract
+    COMMAND ${CMAKE_COMMAND}
+        "-DPNX_SOURCE_DIR=${CMAKE_SOURCE_DIR}"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/slider_product_contract.cmake"
+)
+
 add_executable(pnx_combined_output_arbiter_tests
     combined_output_arbiter_tests.cpp
     "${CMAKE_SOURCE_DIR}/vehicle/combined/control/output_arbiter.cpp"
