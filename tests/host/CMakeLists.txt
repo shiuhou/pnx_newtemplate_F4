@@ -352,6 +352,8 @@ add_executable(pnx_shared_module_api_host_tests
 target_include_directories(pnx_shared_module_api_host_tests PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/fakes"
     "${CMAKE_SOURCE_DIR}/pnx_bsp/can/include"
+    "${CMAKE_SOURCE_DIR}/pnx_bsp/gpio/include"
+    "${CMAKE_SOURCE_DIR}/pnx_bsp/spi/include"
     "${CMAKE_SOURCE_DIR}/pnx_bsp/usart/include"
     "${CMAKE_SOURCE_DIR}/pnx_devices/imu/bmi088/include"
     "${CMAKE_SOURCE_DIR}/pnx_devices/imu/imu/include"
@@ -380,6 +382,23 @@ target_include_directories(pnx_spi_contract_host_tests PRIVATE
     "${CMAKE_SOURCE_DIR}/pnx_libs/common/include"
 )
 add_test(NAME spi_contract COMMAND pnx_spi_contract_host_tests)
+
+add_executable(pnx_ps2_protocol_host_tests
+    ps2_protocol_host_tests.cpp
+    "${CMAKE_SOURCE_DIR}/pnx_modules/remoter/src/ps2_protocol.cpp"
+)
+target_include_directories(pnx_ps2_protocol_host_tests PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/fakes"
+    "${CMAKE_SOURCE_DIR}/pnx_bsp/gpio/include"
+    "${CMAKE_SOURCE_DIR}/pnx_bsp/spi/include"
+    "${CMAKE_SOURCE_DIR}/pnx_bsp/usart/include"
+    "${CMAKE_SOURCE_DIR}/pnx_libs/common/include"
+    "${CMAKE_SOURCE_DIR}/pnx_libs/msg/include"
+    "${CMAKE_SOURCE_DIR}/pnx_modules/remoter/include"
+    "${CMAKE_SOURCE_DIR}/boards/dji_c_board_f407/Middlewares/ST/threadx/common/inc"
+    "${CMAKE_SOURCE_DIR}/boards/dji_c_board_f407/Middlewares/ST/threadx/ports/cortex_m4/gnu/inc"
+)
+add_test(NAME ps2_protocol COMMAND pnx_ps2_protocol_host_tests)
 
 add_executable(pnx_flash_contract_host_tests
     flash_contract_host_tests.cpp

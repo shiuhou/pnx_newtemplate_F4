@@ -107,9 +107,9 @@ endforeach()
 
 foreach(required_token IN ITEMS
         "remote_config.ps2.thread_priority"
-        "remote_config.ps2.receiver_offline_timeout_ticks"
-        "remote_config.ps2.frame_timeout_ticks"
-        "remote_config.ps2.deadzone"
+        "remoter::ps2_spi ps2_transport"
+        "remoter::ps2 ps2_source"
+        "remote_config.ps2_source = &ps2_source"
         "app::uart::vision"
         "bsp::usart::start_rx_to_idle"
         "push_from_isr("
@@ -137,6 +137,9 @@ endforeach()
 foreach(forbidden_token IN ITEMS
         "vehicle::mycar::run("
         "vehicle::arm::run("
+        "remote_config.ps2.receiver_offline_timeout_ticks"
+        "remote_config.ps2.frame_timeout_ticks"
+        "remote_config.ps2.deadzone"
         "control_remote.wheel")
     string(FIND "${runtime_source}" "${forbidden_token}" token_index)
     if(NOT token_index EQUAL -1)

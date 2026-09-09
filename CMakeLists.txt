@@ -30,10 +30,16 @@ option(PNX_ENABLE_MYCAR_COMBINED
     "Build the fail-closed combined MyCar chassis and arm product" OFF)
 option(PNX_MYCAR_COMBINED_PS2
     "Use PS2 instead of DR16 in the combined MyCar product" OFF)
+option(PNX_F407_PS2_RECEIVER_SAFE_PCLK1
+    "Use the receiver-verified 21 MHz APB1 clock and matching CAN timing" OFF)
 
 if(PNX_MYCAR_COMBINED_PS2 AND NOT PNX_ENABLE_MYCAR_COMBINED)
     message(FATAL_ERROR
         "PNX_MYCAR_COMBINED_PS2 requires PNX_ENABLE_MYCAR_COMBINED")
+endif()
+if(PNX_MYCAR_COMBINED_PS2 AND NOT PNX_F407_PS2_RECEIVER_SAFE_PCLK1)
+    message(FATAL_ERROR
+        "The MyCar SPI PS2 image requires the receiver-verified 21 MHz APB1 clock")
 endif()
 
 foreach(PNX_RETIRED_VALIDATION_OPTION
@@ -241,6 +247,14 @@ if(PNX_ENABLE_MYCAR_COMBINED)
         "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/arm/runtime/arm_runtime_policy.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/vehicle/arm/runtime/servo_pwm_output.cpp"
     )
+    if(PNX_MYCAR_COMBINED_PS2)
+        list(APPEND PNX_EMBEDDED_SOURCES
+            "${PNX_BSP_ROOT}/gpio/src/bsp_gpio.cpp"
+            "${PNX_BSP_ROOT}/spi/src/bsp_spi.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/pnx_modules/remoter/src/ps2_protocol.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/pnx_modules/remoter/src/ps2_sync.cpp"
+        )
+    endif()
     list(APPEND PNX_EMBEDDED_INCLUDE_DIRS
         "${CMAKE_CURRENT_SOURCE_DIR}"
         "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/can/include"
@@ -253,6 +267,13 @@ if(PNX_ENABLE_MYCAR_COMBINED)
         "${CMAKE_CURRENT_SOURCE_DIR}/pnx_devices/motors/motor/include"
         "${CMAKE_CURRENT_SOURCE_DIR}/pnx_devices/motors/dji/include"
     )
+    if(PNX_MYCAR_COMBINED_PS2)
+        list(APPEND PNX_EMBEDDED_INCLUDE_DIRS
+            "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/gpio/include"
+            "${CMAKE_CURRENT_SOURCE_DIR}/pnx_bsp/spi/include"
+            "${PNX_BSP_ROOT}/spi/src"
+        )
+    endif()
 elseif(PNX_ENABLE_MYCAR_CHASSIS)
     # DR16 + 四 M2006 的唯一產品組合點；共享 pnx_* 原始碼仍由 gitlink 提供。
     list(APPEND PNX_EMBEDDED_SOURCES
@@ -401,6 +422,10 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
     "PNX_F407_CAN_ENABLED=$<BOOL:${PNX_F407_CAN_ENABLED}>"
     "PNX_F407_USART_ENABLED=$<BOOL:${PNX_F407_USART_ENABLED}>"
     "PNX_F407_USB_ENABLED=$<BOOL:${PNX_F407_USB_ENABLED}>"
+    "PNX_F407_PS2_RECEIVER_SAFE_PCLK1=$<BOOL:${PNX_F407_PS2_RECEIVER_SAFE_PCLK1}>"
+)
+target_compile_definitions(stm32cubemx INTERFACE
+    "PNX_F407_PS2_RECEIVER_SAFE_PCLK1=$<BOOL:${PNX_F407_PS2_RECEIVER_SAFE_PCLK1}>"
 )
 
 message(STATUS "PnX target: DJI C-board STM32F407")
@@ -410,4 +435,5 @@ message(STATUS "PnX MyCar chassis closure: ${PNX_ENABLE_MYCAR_CHASSIS}")
 message(STATUS "PnX Arm closure: ${PNX_ENABLE_ARM}")
 message(STATUS "PnX MyCar combined closure: ${PNX_ENABLE_MYCAR_COMBINED}")
 message(STATUS "PnX MyCar combined PS2 input: ${PNX_MYCAR_COMBINED_PS2}")
+message(STATUS "PnX F407 PS2 receiver-safe APB1: ${PNX_F407_PS2_RECEIVER_SAFE_PCLK1}")
 list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_LIBRARIES ob)

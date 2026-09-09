@@ -82,10 +82,16 @@ string(JSON vision_uart ERROR_VARIABLE vision_uart_error
 if(vision_uart_error)
     set(vision_uart "none")
 endif()
+string(JSON ps2_backend ERROR_VARIABLE ps2_backend_error
+    GET "${params_json}" bindings ps2_backend)
+if(ps2_backend_error)
+    set(ps2_backend "none")
+endif()
 string(TOLOWER "${remoter_uart}" remoter_uart)
 string(TOLOWER "${referee_uart}" referee_uart)
 string(TOLOWER "${vision_uart}" vision_uart)
 string(TOLOWER "${remoter_source}" remoter_source)
+string(TOLOWER "${ps2_backend}" ps2_backend)
 
 if(PNX_ENABLE_MYCAR_COMBINED AND PNX_MYCAR_COMBINED_PS2 AND
    vision_uart STREQUAL "none")
@@ -97,10 +103,11 @@ endif()
 pnx_ioc_hw_in_list("${PNX_IOC_UART_HW}" "${remoter_uart}" remoter_uart_present)
 pnx_ioc_uart_has_dma("${PNX_IOC_LINES}" "${remoter_uart}" "RX" remoter_has_rx_dma)
 if(remoter_uart_present AND remoter_has_rx_dma)
-    set(HAS_REMOTER 1)
+    set(REMOTER_UART_RX_DMA_CAPABLE 1)
 else()
-    set(HAS_REMOTER 0)
+    set(REMOTER_UART_RX_DMA_CAPABLE 0)
 endif()
+set(HAS_REMOTER ${REMOTER_UART_RX_DMA_CAPABLE})
 
 # VT03 is wired to UART7 on the H7 reference board. This is a hardware fact of
 # that board, not a portable one: any board without UART7 simply reports
@@ -132,12 +139,30 @@ _pnx_feature_override("remoter" "${HAS_REMOTER}" HAS_REMOTER)
 _pnx_feature_override("vt03" "${HAS_VT03}" HAS_VT03)
 _pnx_feature_override("referee" "${HAS_REFEREE}" HAS_REFEREE)
 _pnx_feature_override("ui" "${HAS_UI}" HAS_UI)
-set(HAS_PS2 ${HAS_REMOTER})
+if(ps2_backend STREQUAL "spi" OR ps2_backend STREQUAL "gpio")
+    set(HAS_PS2 1)
+else()
+    set(HAS_PS2 0)
+endif()
+if(ps2_backend STREQUAL "spi")
+    set(PS2_BACKEND_SPI 1)
+    set(PS2_BACKEND_GPIO 0)
+elseif(ps2_backend STREQUAL "gpio")
+    set(PS2_BACKEND_SPI 0)
+    set(PS2_BACKEND_GPIO 1)
+elseif(ps2_backend STREQUAL "none")
+    set(PS2_BACKEND_SPI 0)
+    set(PS2_BACKEND_GPIO 0)
+else()
+    message(FATAL_ERROR
+        "bindings.ps2_backend='${ps2_backend}' is invalid; must be spi, gpio, or none")
+endif()
+set(ENABLE_PS2_UART 0)
 
 # "auto" infers the source from what the IOC and bindings actually support.
 # It must be requested explicitly -- it is no longer what an absent key means.
 if(remoter_source STREQUAL "auto")
-    if(HAS_REMOTER)
+    if(HAS_REMOTER AND REMOTER_UART_RX_DMA_CAPABLE)
         set(ENABLE_DR16 1)
         set(ENABLE_VT03 0)
         set(ENABLE_PS2 0)
@@ -151,7 +176,7 @@ if(remoter_source STREQUAL "auto")
         set(ENABLE_PS2 0)
     endif()
 elseif(remoter_source STREQUAL "dr16")
-    if(NOT HAS_REMOTER)
+    if(NOT HAS_REMOTER OR NOT REMOTER_UART_RX_DMA_CAPABLE)
         message(FATAL_ERROR "params.remoter.source=dr16 requires remoter UART RX DMA support in board/board.ioc")
     endif()
     set(ENABLE_DR16 1)
@@ -167,11 +192,20 @@ elseif(remoter_source STREQUAL "vt03")
 elseif(remoter_source STREQUAL "ps2")
     if(NOT HAS_PS2)
         message(FATAL_ERROR
-            "params.remoter.source=ps2 requires the bound remoter UART to have RX DMA support")
+            "params.remoter.source=ps2 requires bindings.ps2_backend=spi or gpio")
     endif()
     set(ENABLE_DR16 0)
     set(ENABLE_VT03 0)
     set(ENABLE_PS2 1)
+elseif(remoter_source STREQUAL "ps2_uart")
+    if(NOT HAS_REMOTER OR NOT REMOTER_UART_RX_DMA_CAPABLE)
+        message(FATAL_ERROR
+            "params.remoter.source=ps2_uart requires the bound remoter UART to have RX DMA support")
+    endif()
+    set(ENABLE_DR16 0)
+    set(ENABLE_VT03 0)
+    set(ENABLE_PS2 0)
+    set(ENABLE_PS2_UART 1)
 elseif(remoter_source STREQUAL "none"
        OR remoter_source STREQUAL "off"
        OR remoter_source STREQUAL "disabled")
@@ -181,7 +215,7 @@ elseif(remoter_source STREQUAL "none"
 else()
     message(FATAL_ERROR
         "params.remoter.source='${remoter_source}' is invalid; "
-        "must be one of: dr16, vt03, ps2, none, auto")
+        "must be one of: dr16, vt03, ps2, ps2_uart, none, auto")
 endif()
 
 list(LENGTH PNX_IOC_CAN_HW can_hw_count)
@@ -357,7 +391,7 @@ if(ENABLE_DR16)
     set(active_remoter_uart "${remoter_uart}")
 elseif(ENABLE_VT03)
     set(active_remoter_uart "uart7")
-elseif(ENABLE_PS2)
+elseif(ENABLE_PS2_UART)
     set(active_remoter_uart "${remoter_uart}")
 endif()
 
@@ -558,6 +592,9 @@ file(WRITE "${CONFIG_HPP}"
 "#define ENABLE_DR16 ${ENABLE_DR16}\n"
 "#define ENABLE_VT03 ${ENABLE_VT03}\n"
 "#define ENABLE_PS2 ${ENABLE_PS2}\n"
+"#define ENABLE_PS2_UART ${ENABLE_PS2_UART}\n"
+"#define PNX_PS2_BACKEND_SPI ${PS2_BACKEND_SPI}\n"
+"#define PNX_PS2_BACKEND_GPIO ${PS2_BACKEND_GPIO}\n"
 "#define HAS_REFEREE ${HAS_REFEREE}\n"
 "#define HAS_UI ${HAS_UI}\n"
 "#define HAS_MOTORS ${HAS_MOTORS}\n"
@@ -575,6 +612,9 @@ file(WRITE "${CONFIG_HPP}"
 "inline constexpr bool enable_dr16 = ${ENABLE_DR16};\n"
 "inline constexpr bool enable_vt03 = ${ENABLE_VT03};\n"
 "inline constexpr bool enable_ps2 = ${ENABLE_PS2};\n"
+"inline constexpr bool enable_ps2_uart = ${ENABLE_PS2_UART};\n"
+"inline constexpr bool ps2_backend_spi = ${PS2_BACKEND_SPI};\n"
+"inline constexpr bool ps2_backend_gpio = ${PS2_BACKEND_GPIO};\n"
 "inline constexpr bool has_referee = ${HAS_REFEREE};\n"
 "inline constexpr bool has_ui = ${HAS_UI};\n"
 "inline constexpr bool has_motors = ${HAS_MOTORS};\n"
@@ -625,7 +665,8 @@ file(WRITE "${CONFIG_HPP}"
 "${uart_binding_body}\n\n"
 "inline constexpr bsp::usart::port dr16 = ${dr16_binding};\n"
 "inline constexpr bsp::usart::port vt03 = ${vt03_binding};\n"
-"inline constexpr bsp::usart::port ps2 = ${ps2_binding};\n"
+"inline constexpr bsp::usart::port ps2_uart = ${ps2_binding};\n"
+"inline constexpr bsp::usart::port ps2 = ps2_uart;\n"
 "inline constexpr bsp::usart::port referee = ${referee_binding};\n"
 "inline constexpr bsp::usart::port vision = ${vision_binding};\n"
 "inline constexpr bsp::usart::port test_report = ${test_report_binding};\n\n"

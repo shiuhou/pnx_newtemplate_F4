@@ -35,7 +35,8 @@ file(READ "${core_contract_out}/robot_config.hpp" core_robot_config)
 
 foreach(required_text IN ITEMS
         "inline constexpr bool enable_ps2 = 0"
-        "inline constexpr bsp::usart::port ps2 = bsp::usart::none"
+        "inline constexpr bool enable_ps2_uart = 0"
+        "inline constexpr bsp::usart::port ps2_uart = bsp::usart::none"
         "inline constexpr std::uint32_t ps2_offline_timeout_ticks = 600"
         "inline constexpr std::uint32_t ps2_frame_timeout_ticks = 20"
         "inline constexpr float ps2_deadzone = 0.08f")
@@ -74,6 +75,19 @@ if(vision_binding_index EQUAL -1)
     message(FATAL_ERROR
         "Generated combined PS2 config must bind vision to USART6")
 endif()
+
+foreach(required_text IN ITEMS
+        "inline constexpr bool enable_ps2 = 1"
+        "inline constexpr bool enable_ps2_uart = 0"
+        "inline constexpr bool ps2_backend_spi = 1"
+        "inline constexpr bool ps2_backend_gpio = 0"
+        "inline constexpr bsp::usart::port ps2_uart = bsp::usart::none")
+    string(FIND "${combined_ps2_config}" "${required_text}" required_index)
+    if(required_index EQUAL -1)
+        message(FATAL_ERROR
+            "Generated combined PS2 config is missing: ${required_text}")
+    endif()
+endforeach()
 
 foreach(required_text IN ITEMS
         "inline constexpr bool has_remoter = 0"

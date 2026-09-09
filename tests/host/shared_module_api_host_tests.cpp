@@ -20,7 +20,8 @@ static_assert(std::is_same_v<
 static_assert(std::is_base_of_v<
               motors::lkmotor, motors::lk9025>);
 static_assert(
-    remoter::ps2_config{}.uart_port == app::uart::ps2);
+    remoter::ps2_uart_config{}.uart_port == app::uart::ps2_uart);
+static_assert(remoter::ps2_protocol::poll_period_ticks == 10U);
 
 int main()
 {

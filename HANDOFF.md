@@ -1,5 +1,25 @@
 # F407 工程交接记录
 
+## MyCar 同步 SPI PS2 迁移 - 2026-09-09
+
+**状态：`feat/spi-ps2-mycar` 软件完成并通过验证；未烧录、未 push。**
+
+- 从 `mycar_f4@b551345` 创建独立工作区与分支。组合小车产品已从 UART PS2
+  切换到 SPI2 同步 PS2；USART6 视觉、底盘、机械臂、手动/自动仲裁及原按键映射
+  不变，`ps2_input_adapter.cpp` 与 `mode_router.cpp` 相对基线无 diff。
+- 产品配置使用 `remoter_uart=none`、`ps2_backend=spi`；runtime 注入
+  `remoter::ps2_spi -> remoter::ps2 -> remoter::service`。共享协议以 10 ms
+  周期轮询，接受已知模拟 ID，按需求拒绝 `0x41`。
+- 依赖 pin 更新为本地已硬件验证的 `pnx_bsp@0f5ef5f` 与
+  `pnx_modules@3009a42`。这两个提交尚未被配置的 upstream remote 分支包含，
+  发布父分支前必须先发布或正式晋升依赖提交。
+- 该产品强制使用已验证的 21 MHz APB1；SPI2 `/256` 约 82 kHz。CAN1/CAN2
+  改为 prescaler 1、BS1 14TQ、BS2 6TQ，在 21 MHz 下仍为 1 Mbps；CPU
+  仍为 168 MHz。
+- F407 Debug 构建通过，RAM 60,912 B、Flash 109,952 B；ELF SHA-256 为
+  `66F0D0E9EABD5C91E36CC0491EEE217853FE628883306807AAA9E7E8D5B61D97`。
+  Host CTest **60/60** 通过。尚未烧录或进行带机械动作的实车验收。
+
 ## 车辆主线本地收敛 - 2026-09-08
 
 **状态：本地 `mycar_f4` 已 fast-forward 到 `34a87bd`；尚未 push、未烧录、未做硬件验收。**

@@ -1,5 +1,12 @@
 # 建议写入 Vault：F407 Core 硬件验证
 
+> MyCar SPI PS2 迁移提案（2026-09-09）：在
+> `feat/spi-ps2-mycar`（基于 `mycar_f4@b551345`）完成 UART PS2 到同步
+> SPI2 PS2 的产品迁移。共享依赖为 `pnx_bsp@0f5ef5f`、
+> `pnx_modules@3009a42`；控制映射与视觉自动逻辑未改。F407 构建通过，
+> Host 60/60 通过；未烧录、未做实车动作验收、未 push。父分支发布前需先
+> 发布两个当前仅本地可达的依赖提交。本文件只是提案，Vault 未修改。
+
 > 本地主线收敛提案（2026-09-08）：`pnx_f4_mycar/mycar_f4` 已在本地
 > fast-forward 到 `34a87bd`，合并后 Host 59/59 与
 > `f407-mycar-combined-ps2-debug` 干净构建通过。远端尚未 push，硬件未运行；

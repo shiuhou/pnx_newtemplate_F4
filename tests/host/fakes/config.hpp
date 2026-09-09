@@ -91,7 +91,8 @@ namespace app::uart
 
 inline constexpr bsp::usart::port dr16 = 0U;
 inline constexpr bsp::usart::port vt03 = 1U;
-inline constexpr bsp::usart::port ps2 = 2U;
+inline constexpr bsp::usart::port ps2_uart = 2U;
+inline constexpr bsp::usart::port ps2 = ps2_uart;
 
 } // namespace app::uart
 
@@ -101,6 +102,7 @@ namespace config::feature
 inline constexpr bool enable_dr16 = false;
 inline constexpr bool enable_vt03 = false;
 inline constexpr bool enable_ps2 = false;
+inline constexpr bool enable_ps2_uart = false;
 
 } // namespace config::feature
 

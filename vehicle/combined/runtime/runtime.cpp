@@ -13,6 +13,7 @@
 
 #include <config.hpp>
 #include <bsp_indicator.hpp>
+#include <bsp_spi.hpp>
 #include <bsp_usart.hpp>
 #include <djimotorhandler.hpp>
 #include <msg.hpp>
@@ -112,6 +113,11 @@ mode_router router{};
 ps2_input_adapter input_adapter{};
 vision_command_receiver vision_receiver{};
 bsp::usart::dma_rx_storage<vision_dma_buffer_size> vision_rx_storage{};
+#if PNX_PS2_BACKEND_SPI
+::remoter::ps2_spi ps2_transport{
+    bsp::spi::bus::ps2, bsp::spi::chip_select::ps2};
+::remoter::ps2 ps2_source{ps2_transport};
+#endif
 
 msg::subscriber remote_subscriber{};
 remote_ingest_snapshot shared_remote{};
@@ -406,11 +412,9 @@ void control_entry(ULONG)
     if constexpr (::config::feature::enable_ps2)
     {
         remote_config.ps2.thread_priority = params::remoter::thread_priority;
-        remote_config.ps2.receiver_offline_timeout_ticks =
-            params::remoter::ps2_offline_timeout_ticks;
-        remote_config.ps2.frame_timeout_ticks =
-            params::remoter::ps2_frame_timeout_ticks;
-        remote_config.ps2.deadzone = params::remoter::ps2_deadzone;
+#if PNX_PS2_BACKEND_SPI
+        remote_config.ps2_source = &ps2_source;
+#endif
     }
     else
     {
