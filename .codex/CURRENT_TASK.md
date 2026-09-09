@@ -3,8 +3,8 @@
 - Objective: replace the MyCar combined product's UART PS2 receiver with the
   verified SPI2 synchronous PS2 backend without changing operator controls.
 - Branch: `feat/spi-ps2-mycar`, based on `mycar_f4@b551345`.
-- State: implementation and software verification complete; hardware flash and
-  attended vehicle-motion validation remain pending.
+- State: implementation, software verification, and flash verification are
+  complete; attended vehicle-motion validation remains pending.
 - Verified: embedded Debug build passes; Host CTest passes 60/60; generated
   config selects SPI PS2 and disables UART PS2; control adapter/router have no
   diff from the baseline.
@@ -12,4 +12,5 @@
   yet advertised by their configured upstream remotes, so publish/promote them
   before publishing the parent branch.
 - Safety: APB1 is 21 MHz for this image; CAN1/CAN2 timing is adjusted to remain
-  at 1 Mbps. No flash or physical motion was performed in this task.
+  at 1 Mbps. The ELF was flashed, verified, and reset; no physical motion test
+  was performed.

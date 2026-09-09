@@ -2,7 +2,7 @@
 
 ## MyCar 同步 SPI PS2 迁移 - 2026-09-09
 
-**状态：`feat/spi-ps2-mycar` 软件完成并通过验证；未烧录、未 push。**
+**状态：`feat/spi-ps2-mycar` 软件与烧录校验完成；未做实车动作验收、未 push。**
 
 - 从 `mycar_f4@b551345` 创建独立工作区与分支。组合小车产品已从 UART PS2
   切换到 SPI2 同步 PS2；USART6 视觉、底盘、机械臂、手动/自动仲裁及原按键映射
@@ -18,7 +18,11 @@
   仍为 168 MHz。
 - F407 Debug 构建通过，RAM 60,912 B、Flash 109,952 B；ELF SHA-256 为
   `66F0D0E9EABD5C91E36CC0491EEE217853FE628883306807AAA9E7E8D5B61D97`。
-  Host CTest **60/60** 通过。尚未烧录或进行带机械动作的实车验收。
+  Host CTest **60/60** 通过。
+- 通过既有 OpenOCD CMSIS-DAP server 的 GDB 端口烧录 109,944 bytes；
+  `.isr_vector`、`.text`、`.rodata`、`.ARM`、`.init_array`、`.fini_array`
+  与 `.data` 均由 `compare-sections` 报告 `matched`，随后 reset run。
+  尚未进行带机械动作或 PS2 断连的实车验收。
 
 ## 车辆主线本地收敛 - 2026-09-08
 
